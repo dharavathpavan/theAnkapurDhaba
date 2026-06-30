@@ -1,0 +1,19 @@
+{
+  "name": "Ankapur Dhaba",
+  "short_name": "Ankapur",
+  "description": "Premium food ordering for Ankapur Dhaba.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F8F9FB",
+  "theme_color": "#C62828",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
