@@ -3,10 +3,10 @@ import { io } from "socket.io-client";
 import { useAuth } from "@/stores/auth";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:4000";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "";
 
 // Socket connection
-const socket = typeof window !== 'undefined' ? io(SOCKET_URL) : null;
+const socket = typeof window !== 'undefined' && SOCKET_URL ? io(SOCKET_URL) : null;
 
 // Helper to get auth headers from the Zustand store
 function authHeaders(): Record<string, string> {

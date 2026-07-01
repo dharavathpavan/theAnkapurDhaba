@@ -1,5 +1,12 @@
-const CACHE_NAME = "ankapur-customer-v2";
+const CACHE_NAME = "ankapur-customer-v3";
 const SHELL = ["/manifest.webmanifest", "/pwa-icon.svg"];
+
+function offlineResponse() {
+  return new Response(JSON.stringify({ error: "Network unavailable" }), {
+    status: 503,
+    headers: { "Content-Type": "application/json" },
+  });
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -23,7 +30,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match(event.request)),
+        .catch(async () => (await caches.match(event.request)) || offlineResponse()),
     );
     return;
   }
@@ -38,7 +45,7 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(event.request)),
+        .catch(async () => (await caches.match(event.request)) || (event.request.destination === "document" ? Response.redirect("/", 302) : offlineResponse())),
     );
   }
 });

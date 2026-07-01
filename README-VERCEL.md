@@ -21,8 +21,8 @@ http://localhost:4000
 Add these in Vercel Project Settings:
 
 ```text
-VITE_API_BASE_URL=https://your-backend-domain.com/api
-VITE_SOCKET_URL=https://your-backend-domain.com
+VITE_API_BASE_URL=https://ntxublkpbfmnaxjadhuc.supabase.co/functions/v1/api
+VITE_SOCKET_URL=
 VITE_SUPABASE_URL=https://ntxublkpbfmnaxjadhuc.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_SsVWDzTpWFNjaa-hhxpQJg_nkngcSZl
 ```
