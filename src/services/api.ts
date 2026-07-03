@@ -1,12 +1,30 @@
 import { type MenuItem } from "@/data/menu";
 import { io } from "socket.io-client";
+import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import { useAuth } from "@/stores/auth";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "";
+const RAW_SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "";
+const SOCKET_URL = isValidSocketIoUrl(RAW_SOCKET_URL) ? RAW_SOCKET_URL : "";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 
 // Socket connection
 const socket = typeof window !== 'undefined' && SOCKET_URL ? io(SOCKET_URL) : null;
+const realtimeClient =
+  typeof window !== 'undefined' && !SOCKET_URL && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+        realtime: { params: { eventsPerSecond: 10 } },
+      })
+    : null;
+
+function isValidSocketIoUrl(url: string) {
+  if (!url) return false;
+  if (/supabase\.co/i.test(url)) return false;
+  if (/functions\/v1\/api/i.test(url)) return false;
+  return /^https?:\/\//i.test(url);
+}
 
 // Helper to get auth headers from the Zustand store
 function authHeaders(): Record<string, string> {
@@ -113,17 +131,53 @@ export type CustomerContentEvent = {
 };
 
 export function subscribeToOrderEvents(callback: (event: OrderRealtimeEvent) => void) {
-  if (!socket) return () => undefined;
-  const listener = (event: OrderRealtimeEvent) => callback(event);
-  socket.on("orders-changed", listener);
-  return () => { socket.off("orders-changed", listener); };
+  if (socket) {
+    const listener = (event: OrderRealtimeEvent) => callback(event);
+    socket.on("orders-changed", listener);
+    return () => { socket.off("orders-changed", listener); };
+  }
+
+  if (realtimeClient) {
+    let channel: RealtimeChannel | null = realtimeClient
+      .channel("ankapur-orders")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "Order" },
+        () => callback({ type: "sync" })
+      )
+      .subscribe();
+
+    return () => {
+      if (channel) {
+        realtimeClient.removeChannel(channel);
+        channel = null;
+      }
+    };
+  }
+
+  return () => undefined;
 }
 
 export function subscribeToCustomerContent(callback: (event: CustomerContentEvent) => void) {
-  if (!socket) return () => undefined;
-  const listener = (event: CustomerContentEvent) => callback(event);
-  socket.on("customer-content-changed", listener);
-  return () => { socket.off("customer-content-changed", listener); };
+  if (socket) {
+    const listener = (event: CustomerContentEvent) => callback(event);
+    socket.on("customer-content-changed", listener);
+    return () => { socket.off("customer-content-changed", listener); };
+  }
+
+  if (realtimeClient) {
+    const tables = ["CustomerBanner", "CustomerAnnouncement", "CustomerCoupon", "StoreSetting", "MenuItem", "MenuCategory"];
+    const channel = realtimeClient.channel("ankapur-customer-content");
+    tables.forEach((table) => {
+      channel.on("postgres_changes", { event: "*", schema: "public", table }, () => {
+        callback({ type: "sync", at: new Date().toISOString() });
+      });
+    });
+    channel.subscribe();
+    return () => { realtimeClient.removeChannel(channel); };
+  }
+
+  return () => undefined;
 }
 
 /* ---------------- Menu ---------------- */
@@ -222,7 +276,43 @@ export interface CustomerAddress {
 export async function getCustomerHome(): Promise<CustomerHome> {
   const res = await fetch(`${API_BASE}/customer/home`);
   if (!res.ok) throw new Error("Failed to fetch customer home");
-  return res.json();
+  const data = await res.json();
+  return {
+    ...data,
+    store: data.store ?? defaultCustomerStore(),
+    banners: data.banners ?? [],
+    announcements: data.announcements ?? [],
+    categories: data.categories ?? [],
+    collections: data.collections ?? [],
+    recommended: data.recommended ?? [],
+    coupons: data.coupons ?? [],
+  };
+}
+
+function defaultCustomerStore(): CustomerStore {
+  return {
+    id: "default",
+    name: "Ankapur Dhaba",
+    phone: "+91 90000 00000",
+    address: "Ankapur Village, Nizamabad District, Telangana",
+    lat: 18.7283,
+    lng: 78.4477,
+    zoneRadiusKm: 8,
+    status: "online",
+    statusMessage: "",
+    openTime: "10:00",
+    closeTime: "23:00",
+    minimumOrder: 199,
+    deliveryCharge: 40,
+    freeDeliveryAbove: 499,
+    averageDeliveryMin: 30,
+    waitingTimeMin: 20,
+    packingCharge: 10,
+    holidayNotice: "",
+    splashTitle: "Ankapur Dhaba",
+    splashSubtitle: "Telangana classics, delivered hot",
+    theme: { primary: "#C62828", secondary: "#F6B51E", accent: "#16A34A", background: "#F8F9FB" },
+  };
 }
 
 export async function getCustomerMenu(): Promise<MenuItem[]> {
@@ -653,7 +743,10 @@ export async function createOrder(
   input: Omit<Order, "id" | "status" | "paymentStatus" | "createdAt" | "updatedAt">
 ): Promise<Order> {
   const res = await apiFetch(`${API_BASE}/orders`, { method: "POST", body: JSON.stringify(input) });
-  if (!res.ok) throw new Error("Failed to create order");
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error || "Failed to create order");
+  }
   return res.json();
 }
 

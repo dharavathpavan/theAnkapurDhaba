@@ -99,7 +99,7 @@ function CheckoutPage() {
       navigate({ to: "/orders/$orderId", params: { orderId: order.id } });
     } catch (error) {
       console.error(error);
-      toast.error("Couldn't place order. Try again.");
+      toast.error(error instanceof Error ? error.message : "Couldn't place order. Try again.");
     } finally {
       setSubmitting(false);
     }

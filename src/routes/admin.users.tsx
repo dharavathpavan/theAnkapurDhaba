@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Crown, Plus, Trash2, Tag, Ticket } from "lucide-react";
-import { listOrders } from "@/services/api";
+import { Crown, Plus, Trash2, Tag, Ticket, UserCog } from "lucide-react";
+import { deleteStaff, listOrders, listStaff, registerStaff } from "@/services/api";
 import {
   computeTierFromOrders,
   deleteCoupon,
@@ -32,6 +32,7 @@ const TIER_CLS: Record<CustomerTier, string> = {
 function UsersPage() {
   useOrderRealtime();
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: listOrders, refetchInterval: 5000 });
+  const staffQuery = useQuery({ queryKey: ["staff"], queryFn: listStaff });
   const [, force] = useState(0);
   const refresh = () => force((n) => n + 1);
 
@@ -75,6 +76,8 @@ function UsersPage() {
       <p className="mt-1 text-sm text-muted-foreground">
         Tier customers by spend and assign reward coupons.
       </p>
+
+      <StaffSection staff={staffQuery.data ?? []} onChange={() => staffQuery.refetch()} />
 
       <section className="mt-8 rounded-xl border border-border bg-surface">
         <header className="border-b border-border px-6 py-4">
@@ -137,6 +140,111 @@ function UsersPage() {
         onChange={refresh}
       />
     </div>
+  );
+}
+
+function StaffSection({
+  staff,
+  onChange,
+}: {
+  staff: Array<{ id: string; name: string; phone: string; role: string; createdAt?: string }>;
+  onChange: () => void;
+}) {
+  const [form, setForm] = useState({ name: "", phone: "", password: "", role: "DELIVERY" as "KITCHEN" | "DELIVERY" });
+  const [saving, setSaving] = useState(false);
+
+  async function createStaff() {
+    if (!form.name.trim() || form.phone.length < 10 || form.password.length < 6) {
+      toast.error("Enter name, 10-digit phone and 6+ character password");
+      return;
+    }
+    setSaving(true);
+    try {
+      await registerStaff({
+        name: form.name.trim(),
+        phone: form.phone,
+        password: form.password,
+        role: form.role,
+      });
+      toast.success(`${form.role === "KITCHEN" ? "Kitchen" : "Delivery"} login created`);
+      setForm({ name: "", phone: "", password: "", role: form.role });
+      onChange();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create staff login");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeStaff(id: string) {
+    try {
+      await deleteStaff(id);
+      toast.success("Staff login removed");
+      onChange();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to remove staff");
+    }
+  }
+
+  return (
+    <section className="mt-8 rounded-xl border border-border bg-surface">
+      <header className="border-b border-border px-6 py-4">
+        <h2 className="flex items-center gap-2 font-display text-xl tracking-widest">
+          <UserCog className="h-5 w-5 text-primary" /> STAFF LOGINS
+        </h2>
+        <p className="mt-1 text-xs text-muted-foreground">Create delivery boy and kitchen portal accounts.</p>
+      </header>
+
+      <div className="grid gap-4 border-b border-border p-6 md:grid-cols-5">
+        <Input label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+        <Input label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v.replace(/\D/g, "").slice(0, 10) })} />
+        <Input label="Password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} />
+        <label className="block">
+          <span className="mb-1.5 block font-display text-xs tracking-widest text-muted-foreground">ROLE</span>
+          <select
+            value={form.role}
+            onChange={(e) => setForm({ ...form, role: e.target.value as "KITCHEN" | "DELIVERY" })}
+            className="w-full rounded-md border border-input bg-background px-2 py-2.5"
+          >
+            <option value="DELIVERY">Delivery boy</option>
+            <option value="KITCHEN">Kitchen staff</option>
+          </select>
+        </label>
+        <div className="flex items-end">
+          <button
+            onClick={createStaff}
+            disabled={saving}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 font-display text-sm tracking-widest text-primary-foreground hover:bg-primary-glow disabled:opacity-60"
+          >
+            <Plus className="h-4 w-4" /> {saving ? "CREATING..." : "CREATE LOGIN"}
+          </button>
+        </div>
+      </div>
+
+      {staff.length === 0 ? (
+        <p className="px-6 py-10 text-center text-sm text-muted-foreground">No staff logins yet.</p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {staff.map((member) => (
+            <li key={member.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+              <div>
+                <div className="font-display text-lg tracking-wide">{member.name}</div>
+                <div className="text-xs text-muted-foreground">{member.phone} · {member.role}</div>
+              </div>
+              {member.role !== "ADMIN" && (
+                <button
+                  onClick={() => removeStaff(member.id)}
+                  className="rounded-md border border-border p-2 text-muted-foreground hover:text-primary"
+                  aria-label="Delete staff login"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
