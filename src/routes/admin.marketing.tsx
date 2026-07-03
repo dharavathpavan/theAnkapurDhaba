@@ -167,6 +167,18 @@ function isAdBanner(type?: string | null) {
   return /^(ad|ads|brand|sponsored)$/i.test(type || "");
 }
 
+function BannerKindButton({ label, description, active, onClick }: { label: string; description: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-2xl border p-4 text-left transition ${active ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:border-primary/40"}`}
+    >
+      <div className="font-display text-xs tracking-widest">{label.toUpperCase()}</div>
+      <div className={`mt-1 text-sm ${active ? "text-primary/80" : "text-muted-foreground"}`}>{description}</div>
+    </button>
+  );
+}
+
 function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refresh: () => void }) {
   const qc = useQueryClient();
   const [form, setForm] = useState<Partial<CustomerBanner>>(defaultBannerForm);
@@ -193,7 +205,7 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
       setEditingId(null);
       setStep("media");
       refresh();
-      toast.success("Hero banner synced");
+      toast.success("Banner synced");
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Could not save banner"),
   });
@@ -285,14 +297,20 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
     <div className="rounded-xl border border-border bg-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl tracking-widest">Hero banners</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Build a responsive banner in four quick steps, then save it live to the customer app.</p>
+          <h2 className="font-display text-2xl tracking-widest">Banner Studio</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Create hero banners, sponsored ads and brand placements from one guided builder.</p>
         </div>
         {editingId && (
           <button onClick={resetForm} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
             <X className="h-4 w-4" /> Cancel edit
           </button>
         )}
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <BannerKindButton label="Hero" description="Home top carousel" active={!isAdBanner(form.type)} onClick={() => setForm({ ...form, type: "hero" })} />
+        <BannerKindButton label="Ad" description="Tracking ad space" active={form.type === "ad"} onClick={() => setForm({ ...form, type: "ad", ctaLabel: form.ctaLabel || "View Brand" })} />
+        <BannerKindButton label="Sponsored" description="Paid promotion" active={/^(brand|sponsored)$/i.test(form.type || "")} onClick={() => setForm({ ...form, type: "sponsored", ctaLabel: form.ctaLabel || "View Offer" })} />
       </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
@@ -344,8 +362,11 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
             {step === "content" && (
               <div className="grid gap-3 md:grid-cols-2">
                 <MiniInput label="Title" value={form.title || ""} onChange={(title) => setForm({ ...form, title })} />
-                <MiniInput label="Badge / type" value={form.type || "hero"} onChange={(type) => setForm({ ...form, type })} />
+                <SelectField label="Banner type" value={form.type || "hero"} options={["hero", "ad", "sponsored", "brand", "festival-offer", "combo-offer", "weekend-offer"]} onChange={(type) => setForm({ ...form, type })} />
                 <MiniInput label="Subtitle" value={form.subtitle || ""} onChange={(subtitle) => setForm({ ...form, subtitle })} className="md:col-span-2" />
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground md:col-span-2">
+                  {isAdBanner(form.type) ? "Ad and sponsored banners appear in ad spaces such as live order tracking." : "Hero banners appear in the customer home carousel."}
+                </div>
               </div>
             )}
 
@@ -426,8 +447,13 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
               </div>
               <MediaThumb url={item.mobileImage || item.image} />
               <div className="min-w-0 flex-1">
-                <div className="truncate font-display tracking-wide">{item.title}</div>
-                <div className="truncate text-xs text-muted-foreground">{item.type} - {item.subtitle}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="truncate font-display tracking-wide">{item.title}</div>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${isAdBanner(item.type) ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}>
+                    {isAdBanner(item.type) ? "AD SPACE" : "HERO"}
+                  </span>
+                </div>
+                <div className="truncate text-xs text-muted-foreground">{isAdBanner(item.type) ? "Tracking and sponsored placement" : "Home carousel"} - {item.subtitle}</div>
                 <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                   <span>#{index + 1}</span>
                   <span>{item.textAlign || "left"}</span>
