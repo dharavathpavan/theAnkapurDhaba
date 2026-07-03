@@ -27,18 +27,22 @@ function isValidSocketIoUrl(url: string) {
   return /^https?:\/\//i.test(url);
 }
 
+type ApiFetchInit = RequestInit & { skipAuthRedirect?: boolean };
+
 // Helper to get auth headers from the Zustand store
 function authHeaders(): Record<string, string> {
   const token = useAuth.getState().token;
-  return token
-    ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
-    : { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (SUPABASE_PUBLISHABLE_KEY) headers.apikey = SUPABASE_PUBLISHABLE_KEY;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
 }
 
-async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
-  const res = await fetch(url, { ...init, headers: { ...authHeaders(), ...(init?.headers ?? {}) } });
+async function apiFetch(url: string, init?: ApiFetchInit): Promise<Response> {
+  const { skipAuthRedirect, headers, ...fetchInit } = init ?? {};
+  const res = await fetch(url, { ...fetchInit, headers: { ...authHeaders(), ...(headers ?? {}) } });
   // Auto-logout on 401/403
-  if (res.status === 401 || res.status === 403) {
+  if (!skipAuthRedirect && (res.status === 401 || res.status === 403)) {
     useAuth.getState().logout();
     if (typeof window !== 'undefined') window.location.href = '/login';
   }
@@ -735,8 +739,8 @@ export async function listMyOrders(): Promise<Order[]> {
 }
 
 export async function getOrder(id: string): Promise<Order | null> {
-  const res = await apiFetch(`${API_BASE}/orders/${id}`);
-  if (res.status === 404) return null;
+  const res = await apiFetch(`${API_BASE}/orders/${id}`, { skipAuthRedirect: true });
+  if (res.status === 401 || res.status === 403 || res.status === 404) return null;
   if (!res.ok) throw new Error("Failed to fetch order");
   return res.json();
 }

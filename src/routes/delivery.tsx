@@ -16,7 +16,6 @@ import {
 import {
   listOrders,
   updateOrderDelivery,
-  updateOrderStatus,
   type Order,
   type OrderStatus,
 } from "@/services/api";
@@ -162,7 +161,6 @@ function DeliveryOrderCard({ order }: { order: Order }) {
       routeProgress: progress,
       trackingPaused: false,
     });
-    if (nextStatus) await updateOrderStatus(order.id, nextStatus);
     await refresh();
   }
 
@@ -242,7 +240,6 @@ function DeliveryOrderCard({ order }: { order: Order }) {
         routeProgress: estimateProgress(nextStatus || order.status, order.delivery?.routeProgress),
         trackingPaused: false,
       });
-      if (nextStatus) await updateOrderStatus(order.id, nextStatus);
       await refresh();
       toast.success(nextStatus ? "Delivery started" : "Manual location updated");
     } catch {
@@ -261,7 +258,6 @@ function DeliveryOrderCard({ order }: { order: Order }) {
         routeProgress: 1,
         trackingPaused: true,
       });
-      await updateOrderStatus(order.id, "delivered");
       if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
       setWatching(false);
       await refresh();
