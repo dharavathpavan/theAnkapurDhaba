@@ -69,15 +69,15 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
   const isCancelled = order.status === "cancelled";
 
   return (
-    <div className="mx-auto max-w-6xl px-3 pb-28 pt-3 sm:px-4 md:px-6 md:py-8">
-      <section className={`overflow-hidden rounded-[30px] p-5 text-white shadow-xl md:p-7 ${isDone ? "bg-gradient-to-br from-green-600 to-emerald-900" : isCancelled ? "bg-gradient-to-br from-zinc-700 to-zinc-950" : "bg-gradient-to-br from-red-600 via-red-700 to-zinc-950"}`}>
-        <div className="flex items-start justify-between gap-4">
+    <div className="mx-auto w-full max-w-6xl overflow-x-hidden px-3 pb-28 pt-3 sm:px-4 md:px-6 md:py-8">
+      <section className={`overflow-hidden rounded-[26px] p-4 text-white shadow-xl sm:rounded-[30px] sm:p-5 md:p-7 ${isDone ? "bg-gradient-to-br from-green-600 to-emerald-900" : isCancelled ? "bg-gradient-to-br from-zinc-700 to-zinc-950" : "bg-gradient-to-br from-red-600 via-red-700 to-zinc-950"}`}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="text-[11px] font-black uppercase tracking-[0.22em] text-white/65">Live order</div>
-            <h1 className="mt-1 truncate text-3xl font-black md:text-5xl">#{order.id}</h1>
+            <h1 className="mt-1 break-all text-2xl font-black sm:text-3xl md:text-5xl">#{order.id}</h1>
             <p className="mt-1 text-sm text-white/80 md:text-base">{stage.label} - {stage.desc}</p>
           </div>
-          <div className="shrink-0 rounded-[24px] bg-white/15 px-4 py-3 text-center backdrop-blur">
+          <div className="w-fit shrink-0 rounded-[22px] bg-white/15 px-4 py-3 text-center backdrop-blur sm:rounded-[24px]">
             <div className="text-[11px] font-bold text-white/65">ETA</div>
             <div className="text-2xl font-black">{bestEta(order)}</div>
           </div>
@@ -92,16 +92,16 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
       {isDone && <CompletionCard />}
       {isCancelled && <CancelledCard />}
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_380px]">
-        <main className="space-y-4">
+      <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]">
+        <main className="min-w-0 space-y-4">
           {order.type === "delivery" ? (
             <section className="overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-zinc-100">
-              <div className="flex items-center justify-between gap-3 p-4">
-                <div>
+              <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <h2 className="text-xl font-black">Live delivery map</h2>
                   <p className="text-sm text-zinc-500">{order.delivery?.lastLocationAt ? "Delivery partner location is live" : "Waiting for rider GPS after pickup"}</p>
                 </div>
-                <span className={`rounded-2xl px-3 py-2 text-xs font-black ${order.delivery?.lastLocationAt ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>
+                <span className={`w-fit rounded-2xl px-3 py-2 text-xs font-black ${order.delivery?.lastLocationAt ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>
                   {order.delivery?.lastLocationAt ? "LIVE" : "WAITING"}
                 </span>
               </div>
@@ -119,7 +119,7 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
           <OrderDetails order={order} />
         </main>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <PartnerCard order={order} />
           <HelpCard order={order} />
         </aside>
@@ -134,8 +134,8 @@ function Timeline({ order }: { order: Order }) {
   const idx = order.status === "cancelled" ? -1 : STEPS.findIndex((step) => step.key === order.status);
   const progress = idx <= 0 ? 0 : (idx / (STEPS.length - 1)) * 100;
   return (
-    <div className="mt-5 overflow-x-auto pb-1">
-      <ol className="relative grid min-w-[720px] grid-cols-6 gap-2 px-1 pt-2">
+    <div className="mt-5 overflow-x-auto overscroll-x-contain pb-2">
+      <ol className="relative grid min-w-[560px] grid-cols-6 gap-2 px-1 pt-2 sm:min-w-[680px]">
         <div className="absolute left-[8%] right-[8%] top-8 h-2 rounded-full bg-zinc-100" />
         <div
           className="absolute left-[8%] top-8 h-2 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-green-500 transition-all duration-700 ease-out"
@@ -150,7 +150,7 @@ function Timeline({ order }: { order: Order }) {
               <div className={`grid h-14 w-14 place-items-center rounded-full shadow-sm transition duration-500 ${done ? "bg-red-600 text-white" : "bg-white text-zinc-400 ring-2 ring-zinc-100"} ${active ? "animate-pulse ring-4 ring-red-100" : ""}`}>
                 <Icon className="h-6 w-6" />
               </div>
-              <div className={`mt-3 text-sm font-black ${active ? "text-red-600" : done ? "text-zinc-950" : "text-zinc-400"}`}>{step.label}</div>
+              <div className={`mt-3 text-xs font-black sm:text-sm ${active ? "text-red-600" : done ? "text-zinc-950" : "text-zinc-400"}`}>{step.label}</div>
               <div className="mt-1 max-w-24 text-xs leading-snug text-zinc-500">{step.desc}</div>
             </li>
           );
@@ -164,12 +164,12 @@ function PartnerCard({ order }: { order: Order }) {
   const d = order.delivery || {};
   const assigned = Boolean(d.partnerName || d.partnerPhone || d.vehicleNumber);
   return (
-    <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
+    <section className="min-w-0 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black">Delivery partner</h2>
         <span className={`rounded-full px-3 py-1 text-xs font-black ${assigned ? "bg-green-50 text-green-700" : "bg-zinc-100 text-zinc-500"}`}>{assigned ? "Assigned" : "Pending"}</span>
       </div>
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-4 flex min-w-0 items-center gap-3">
         <div className="grid h-14 w-14 place-items-center rounded-3xl bg-green-100 text-green-700"><Bike className="h-7 w-7" /></div>
         <div className="min-w-0">
           <div className="truncate font-black">{order.type === "delivery" ? (d.partnerName || "Assigning soon") : "Not required"}</div>
@@ -185,7 +185,7 @@ function PartnerCard({ order }: { order: Order }) {
 function EtaCard({ order }: { order: Order }) {
   const d = order.delivery || {};
   return (
-    <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
+    <section className="min-w-0 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
       <h2 className="text-xl font-black">ETA details</h2>
       <div className="mt-4 grid gap-3">
         <EtaRow icon={Clock3} label="Estimated arrival" value={bestEta(order)} />
@@ -224,7 +224,7 @@ function OrderDetails({ order }: { order: Order }) {
       <ul className="mt-4 divide-y divide-zinc-100">
         {order.items.map((item) => (
           <li key={item.id} className="flex items-start justify-between gap-3 py-3">
-            <span className="min-w-0 text-zinc-600"><span className="font-black text-zinc-950">{item.qty}x</span> {item.name}</span>
+            <span className="min-w-0 break-words text-zinc-600"><span className="font-black text-zinc-950">{item.qty}x</span> {item.name}</span>
             <span className="shrink-0 font-black">₹{item.price * item.qty}</span>
           </li>
         ))}
@@ -233,7 +233,7 @@ function OrderDetails({ order }: { order: Order }) {
         <PriceRow label="Subtotal" value={order.subtotal} />
         <PriceRow label="GST" value={order.tax} />
         <PriceRow label="Delivery" value={order.deliveryFee} />
-        <div className="flex justify-between pt-2 text-lg font-black"><span>Grand total</span><span className="text-red-600">₹{order.total}</span></div>
+        <div className="flex justify-between gap-3 pt-2 text-lg font-black"><span>Grand total</span><span className="shrink-0 text-red-600">₹{order.total}</span></div>
       </div>
     </section>
   );
@@ -242,7 +242,7 @@ function OrderDetails({ order }: { order: Order }) {
 function PickupDineInCard({ order }: { order: Order }) {
   const m = order.delivery || {};
   return (
-    <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
+    <section className="min-w-0 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
       <h2 className="text-xl font-black">{order.type === "pickup" ? "Pickup details" : "Dine-in status"}</h2>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         <EtaRow icon={Store} label={order.type === "pickup" ? "Token" : "Table"} value={m.pickupToken || order.tableNumber || "Updating"} />
@@ -258,10 +258,10 @@ function HelpCard({ order }: { order: Order }) {
     <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
       <h2 className="text-xl font-black">Need help?</h2>
       <div className="mt-4 grid gap-2">
-        <a href="tel:+919000000000" className="flex min-h-12 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Phone className="h-5 w-5 text-red-600" /> Call restaurant</a>
-        {order.delivery?.partnerPhone && <a href={`tel:${order.delivery.partnerPhone}`} className="flex min-h-12 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Bike className="h-5 w-5 text-green-600" /> Call rider</a>}
-        <button className="flex min-h-12 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Headphones className="h-5 w-5 text-red-600" /> Support</button>
-        <button className="flex min-h-12 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Download className="h-5 w-5 text-red-600" /> Invoice</button>
+        <a href="tel:+919000000000" className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Phone className="h-5 w-5 shrink-0 text-red-600" /> <span className="truncate">Call restaurant</span></a>
+        {order.delivery?.partnerPhone && <a href={`tel:${order.delivery.partnerPhone}`} className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Bike className="h-5 w-5 shrink-0 text-green-600" /> <span className="truncate">Call rider</span></a>}
+        <button className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Headphones className="h-5 w-5 shrink-0 text-red-600" /> <span className="truncate">Support</span></button>
+        <button className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Download className="h-5 w-5 shrink-0 text-red-600" /> <span className="truncate">Invoice</span></button>
       </div>
     </section>
   );
@@ -316,7 +316,7 @@ function LocationRow({ icon: Icon, label, title, text, sub }: { icon: React.Elem
 }
 
 function PriceRow({ label, value }: { label: string; value: number }) {
-  return <div className="flex justify-between"><span className="text-zinc-500">{label}</span><span className="font-bold">₹{value}</span></div>;
+  return <div className="flex justify-between gap-3"><span className="text-zinc-500">{label}</span><span className="shrink-0 font-bold">₹{value}</span></div>;
 }
 
 function bestEta(order: Order) {

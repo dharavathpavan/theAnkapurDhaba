@@ -54,6 +54,7 @@ export const Route = createFileRoute("/kitchen")({
 
 const KDS_SETTINGS_KEY = "ankapurdhaba:kds-settings";
 const PRINTED_KEY = "ankapurdhaba:kds-printed";
+const BUILT_IN_ORDER_SOUND = "/kitchen-order.mp3";
 const PREP_OPTIONS = [5, 10, 15, 20, 25, 30, 40, 45, 60];
 const DELAY_REASONS = ["Need Ingredients", "High Load", "Machine Issue", "Staff Shortage", "Custom"];
 const DELAY_TIMES = [5, 10, 15, 20];
@@ -61,7 +62,7 @@ const ACTIVE_STATUSES: OrderStatus[] = ["received", "accepted", "preparing", "re
 
 type KdsColumn = "new" | "preparing" | "ready";
 type PrintJob = { key: string; order: Order; kind: "kot" | "bill" };
-type SoundKind = "kitchen" | "restaurant" | "alarm" | "custom";
+type SoundKind = "school" | "kitchen" | "restaurant" | "alarm" | "custom";
 type Language = "en-US" | "hi-IN" | "te-IN";
 
 type KdsSettings = {
@@ -76,7 +77,7 @@ type KdsSettings = {
 
 const DEFAULT_SETTINGS: KdsSettings = {
   soundOn: false,
-  soundKind: "restaurant",
+  soundKind: "school",
   volume: 0.9,
   repeatInterval: 6,
   voiceOn: false,
@@ -689,7 +690,7 @@ function SoundSettingsPanel({ settings, setSettings, onClose, onTest }: { settin
         <div className="mt-5 space-y-4">
           <ToggleRow label="Enable Sound" checked={settings.soundOn} onChange={(v) => setSettings({ ...settings, soundOn: v })} />
           <ToggleRow label="Voice Announcement" checked={settings.voiceOn} onChange={(v) => setSettings({ ...settings, voiceOn: v })} />
-          <SelectRow label="Bell" value={settings.soundKind} options={["kitchen", "restaurant", "alarm", "custom"]} onChange={(v) => setSettings({ ...settings, soundKind: v as SoundKind })} />
+          <SelectRow label="Bell" value={settings.soundKind} options={["school", "kitchen", "restaurant", "alarm", "custom"]} onChange={(v) => setSettings({ ...settings, soundKind: v as SoundKind })} />
           <SelectRow label="Language" value={settings.language} options={["en-US", "hi-IN", "te-IN"]} onChange={(v) => setSettings({ ...settings, language: v as Language })} />
           <RangeRow label="Volume" value={settings.volume} min={0.1} max={1} step={0.1} onChange={(v) => setSettings({ ...settings, volume: v })} />
           <RangeRow label="Repeat Seconds" value={settings.repeatInterval} min={2} max={20} step={1} onChange={(v) => setSettings({ ...settings, repeatInterval: v })} />
@@ -765,6 +766,12 @@ function usePersistentSettings(): [KdsSettings, (settings: KdsSettings) => void]
 
 function playBell(settings: KdsSettings, audioRef: React.MutableRefObject<AudioContext | null>) {
   if (!settings.soundOn && settings.soundKind !== "alarm") return;
+  if (settings.soundKind === "school") {
+    const audio = new Audio(BUILT_IN_ORDER_SOUND);
+    audio.volume = settings.volume;
+    void audio.play().catch(() => undefined);
+    return;
+  }
   if (settings.soundKind === "custom" && settings.customSound) {
     const audio = new Audio(settings.customSound);
     audio.volume = settings.volume;
@@ -776,6 +783,7 @@ function playBell(settings: KdsSettings, audioRef: React.MutableRefObject<AudioC
   const ctx = audioRef.current;
   if (ctx.state === "suspended") void ctx.resume();
   const patterns: Record<SoundKind, number[]> = {
+    school: [880, 1175],
     kitchen: [880, 880, 1175],
     restaurant: [740, 988, 740, 988],
     alarm: [440, 660, 880, 660],

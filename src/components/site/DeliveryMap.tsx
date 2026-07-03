@@ -14,8 +14,8 @@ export function DeliveryMap({ order, compact = false, premium = false }: { order
   const riderTop = 64 - progress * 32;
 
   return (
-    <div className={`overflow-hidden rounded-[28px] border ${premium ? "border-zinc-200 bg-white shadow-sm" : "border-border bg-background"}`}>
-      <div className={`relative ${compact ? "h-44" : "h-[22rem] md:h-96"} overflow-hidden`}>
+    <div className={`min-w-0 overflow-hidden rounded-[24px] border sm:rounded-[28px] ${premium ? "border-zinc-200 bg-white shadow-sm" : "border-border bg-background"}`}>
+      <div className={`relative ${compact ? "h-44" : "h-72 sm:h-[22rem] md:h-96"} overflow-hidden`}>
         <iframe
           title={`Google map for order ${order.id}`}
           src={src}
@@ -45,24 +45,24 @@ export function DeliveryMap({ order, compact = false, premium = false }: { order
         </div>
         <div className="absolute bottom-3 left-3 right-3 rounded-3xl bg-white/92 p-3 shadow-lg backdrop-blur md:bottom-4 md:left-4 md:right-4">
           <div className="flex items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <div className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">Live tracking</div>
-              <div className="font-black text-zinc-950">{location ? "Rider location updating" : "Waiting for rider location"}</div>
+              <div className="truncate font-black text-zinc-950">{location ? "Rider location updating" : "Waiting for rider location"}</div>
             </div>
-            <span className={`rounded-2xl px-3 py-2 text-sm font-black ${location ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"}`}>{location ? "LIVE" : "WAITING"}</span>
+            <span className={`shrink-0 rounded-2xl px-3 py-2 text-sm font-black ${location ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"}`}>{location ? "LIVE" : "WAITING"}</span>
           </div>
         </div>
       </div>
-      <div className={`grid gap-2 border-t px-4 py-3 text-xs md:grid-cols-2 ${premium ? "border-zinc-100 text-zinc-500" : "border-border text-muted-foreground"}`}>
+      <div className={`grid min-w-0 gap-2 border-t px-4 py-3 text-xs md:grid-cols-2 ${premium ? "border-zinc-100 text-zinc-500" : "border-border text-muted-foreground"}`}>
         {location ? (
-          <span>
+          <span className="min-w-0 break-words">
             Rider: {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
             {order.delivery?.gpsAccuracy ? ` - ${Math.round(order.delivery.gpsAccuracy)}m accuracy` : ""}
           </span>
         ) : (
-          <span>Map switches to live rider GPS after pickup.</span>
+          <span className="min-w-0 break-words">Map switches to live rider GPS after pickup.</span>
         )}
-        <span className="md:text-right">
+        <span className="min-w-0 break-words md:text-right">
           {location ? `Updated ${new Date(order.delivery?.lastLocationAt || location.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : `Destination: ${destination}`}
         </span>
       </div>
