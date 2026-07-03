@@ -462,8 +462,8 @@ function bannerPayload(form: Partial<CustomerBanner>): Partial<CustomerBanner> &
   return {
     title: form.title?.trim() || "New offer",
     subtitle: form.subtitle || "",
-    image: form.image || "/assets/hero-biryani.jpg",
-    mobileImage: form.mobileImage || null,
+    image: normalizeBannerMedia(form.image) || "/assets/hero-biryani.jpg",
+    mobileImage: normalizeBannerMedia(form.mobileImage) || null,
     type: form.type || "hero",
     ctaEnabled: form.ctaEnabled !== false,
     ctaLabel: form.ctaLabel || "Order Now",
@@ -481,6 +481,13 @@ function bannerPayload(form: Partial<CustomerBanner>): Partial<CustomerBanner> &
     overlayStrength: form.overlayStrength || "dark",
     textColorMode: form.textColorMode || "light",
   };
+}
+
+function normalizeBannerMedia(value?: string | null) {
+  const clean = value?.trim();
+  if (!clean) return "";
+  if (clean === "/assets/-biryani.jpg" || clean === "-biryani.jpg" || clean === "/-biryani.jpg") return "/assets/hero-biryani.jpg";
+  return clean;
 }
 
 function BannerPreview({ banner }: { banner: CustomerBanner }) {

@@ -29,8 +29,11 @@ const assetMap: Record<string, string> = {
   "/dish-starter.jpg": starterImg,
   "dish-starter.jpg": starterImg,
   "/assets/hero-biryani.jpg": biryaniImg,
+  "/assets/-biryani.jpg": biryaniImg,
   "/hero-biryani.jpg": biryaniImg,
+  "/-biryani.jpg": biryaniImg,
   "hero-biryani.jpg": biryaniImg,
+  "-biryani.jpg": biryaniImg,
 };
 
 export const fallbackFoodImage = biryaniImg;
@@ -41,7 +44,7 @@ export function resolveMediaUrl(src?: string | null) {
   if (!clean) return fallbackFoodImage;
   if (assetMap[clean]) return assetMap[clean];
   if (/^(https?:|data:|blob:)/i.test(clean)) return clean;
-  if (clean.startsWith("/assets/")) return clean;
+  if (clean.startsWith("/assets/")) return fallbackFoodImage;
   if (clean.startsWith("/uploads/")) return backendAssetUrl(clean);
   return clean.startsWith("/") ? clean : `/${clean}`;
 }
