@@ -33,8 +33,10 @@ const defaultBannerForm: Partial<CustomerBanner> = {
   image: "/assets/hero-biryani.jpg",
   mobileImage: "",
   type: "hero",
+  ctaEnabled: true,
   ctaLabel: "Order Now",
   ctaLink: "/menu",
+  secondaryCtaEnabled: true,
   secondaryCtaLabel: "Your Orders",
   secondaryCtaLink: "/orders",
   priority: 0,
@@ -201,6 +203,8 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
             <MiniInput label="Title" value={form.title || ""} onChange={(title) => setForm({ ...form, title })} />
             <MiniInput label="Badge / type" value={form.type || "hero"} onChange={(type) => setForm({ ...form, type })} />
             <MiniInput label="Subtitle" value={form.subtitle || ""} onChange={(subtitle) => setForm({ ...form, subtitle })} className="md:col-span-2" />
+            <ToggleField label="Primary CTA" checked={form.ctaEnabled !== false} onChange={(ctaEnabled) => setForm({ ...form, ctaEnabled })} />
+            <ToggleField label="Secondary CTA" checked={form.secondaryCtaEnabled !== false} onChange={(secondaryCtaEnabled) => setForm({ ...form, secondaryCtaEnabled })} />
             <MiniInput label="Primary CTA label" value={form.ctaLabel || ""} onChange={(ctaLabel) => setForm({ ...form, ctaLabel })} />
             <MiniInput label="Primary CTA link" value={form.ctaLink || ""} onChange={(ctaLink) => setForm({ ...form, ctaLink })} />
             <MiniInput label="Secondary CTA label" value={form.secondaryCtaLabel || ""} onChange={(secondaryCtaLabel) => setForm({ ...form, secondaryCtaLabel })} />
@@ -331,14 +335,16 @@ function bannerPayload(form: Partial<CustomerBanner>): Partial<CustomerBanner> &
     image: form.image || "/assets/hero-biryani.jpg",
     mobileImage: form.mobileImage || null,
     type: form.type || "hero",
+    ctaEnabled: form.ctaEnabled !== false,
     ctaLabel: form.ctaLabel || "Order Now",
     ctaLink: form.ctaLink || "/menu",
+    secondaryCtaEnabled: form.secondaryCtaEnabled !== false,
     secondaryCtaLabel: form.secondaryCtaLabel || null,
     secondaryCtaLink: form.secondaryCtaLink || null,
     priority: Number(form.priority || 0),
     active: form.active !== false,
-    startsAt: form.startsAt || null,
-    endsAt: form.endsAt || null,
+    startsAt: normalizeDateTime(form.startsAt),
+    endsAt: normalizeDateTime(form.endsAt),
     heightMobile: form.heightMobile || "compact",
     heightDesktop: form.heightDesktop || "standard",
     textAlign: form.textAlign || "left",
@@ -359,7 +365,7 @@ function BannerPreview({ banner }: { banner: CustomerBanner }) {
         <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-black uppercase backdrop-blur">{banner.type || "hero"}</span>
         <div className="mt-3 max-w-[240px] text-2xl font-black">{banner.title || "New offer"}</div>
         <div className={`mt-2 max-w-[240px] text-sm ${darkText ? "text-zinc-700" : "text-white/75"}`}>{banner.subtitle || "Banner subtitle preview"}</div>
-        <div className="mt-4 rounded-2xl bg-red-600 px-4 py-2 text-sm font-black text-white">{banner.ctaLabel || "Order Now"}</div>
+        {banner.ctaEnabled !== false && <div className="mt-4 rounded-2xl bg-red-600 px-4 py-2 text-sm font-black text-white">{banner.ctaLabel || "Order Now"}</div>}
       </div>
     </div>
   );
@@ -380,6 +386,12 @@ function MediaThumb({ url }: { url?: string | null }) {
 function toInputDateTime(value?: string | null) {
   if (!value) return "";
   return value.slice(0, 16);
+}
+
+function normalizeDateTime(value?: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 function fileToDataUrl(file: File) {
@@ -406,6 +418,10 @@ function MiniInput({ label, value, onChange, type = "text", className = "" }: { 
 
 function SelectField({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
   return <label className="block"><span className="mb-1 block text-xs text-muted-foreground">{label}</span><select value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>;
+}
+
+function ToggleField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  return <label className="flex items-center justify-between rounded-md border border-border bg-background p-3 text-sm"><span>{label}</span><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /></label>;
 }
 
 function StatusButton({ icon: Icon, label, active, onClick }: { icon: React.ElementType; label: string; active: boolean; onClick: () => void }) {

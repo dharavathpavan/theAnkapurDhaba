@@ -224,8 +224,10 @@ export interface CustomerBanner {
   image: string;
   mobileImage?: string | null;
   type: string;
+  ctaEnabled?: boolean | null;
   ctaLabel: string;
   ctaLink: string;
+  secondaryCtaEnabled?: boolean | null;
   secondaryCtaLabel?: string | null;
   secondaryCtaLink?: string | null;
   heightMobile?: "compact" | "standard" | "tall" | string;

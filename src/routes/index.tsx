@@ -33,18 +33,17 @@ function Home() {
   const [bannerIndex, setBannerIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const add = useCart((s) => s.add);
+  const heroBanners = useMemo(() => (data?.banners ?? []).filter((item) => !isAdBanner(item.type)), [data?.banners]);
+  const visibleBanners = heroBanners;
+  const banner = visibleBanners[bannerIndex % Math.max(visibleBanners.length, 1)];
+  const hero = banner ? heroClasses(banner) : null;
+  const categories = useMemo(() => data?.categories.slice(0, 10) ?? [], [data]);
 
   useEffect(() => {
-    if (!data?.banners.length) return;
-    const id = window.setInterval(() => setBannerIndex((i) => (i + 1) % data.banners.length), 4500);
+    if (!heroBanners.length) return;
+    const id = window.setInterval(() => setBannerIndex((i) => (i + 1) % heroBanners.length), 4500);
     return () => window.clearInterval(id);
-  }, [data?.banners.length]);
-
-  const heroBanners = useMemo(() => (data?.banners ?? []).filter((item) => !isAdBanner(item.type)), [data?.banners]);
-  const visibleBanners = heroBanners.length ? heroBanners : data?.banners ?? [];
-  const banner = visibleBanners[bannerIndex % Math.max(visibleBanners.length, 1)] || defaultHeroBanner;
-  const hero = heroClasses(banner);
-  const categories = useMemo(() => data?.categories.slice(0, 10) ?? [], [data]);
+  }, [heroBanners.length]);
 
   function showRelativeBanner(delta: number) {
     if (!visibleBanners.length) return;
@@ -75,6 +74,7 @@ function Home() {
         Search biryani, chicken, naan...
       </Link>
 
+      {banner && hero && (
       <section
         className={`relative overflow-hidden rounded-[22px] bg-zinc-950 shadow-xl sm:rounded-[28px] md:rounded-[32px] ${hero.textColor}`}
         onTouchStart={(event) => setTouchStart(event.touches[0]?.clientX ?? null)}
@@ -94,10 +94,10 @@ function Home() {
           <h1 className={`mt-3 max-w-[18rem] text-2xl font-black leading-tight sm:max-w-md sm:text-3xl md:mt-5 md:max-w-xl md:text-5xl lg:text-6xl ${hero.textBox}`}>{banner.title}</h1>
           <p className={`mt-2 line-clamp-2 max-w-[17rem] text-sm sm:max-w-md md:text-base lg:text-lg ${hero.muted} ${hero.textBox}`}>{banner.subtitle}</p>
           <div className={`mt-4 flex flex-wrap gap-2 sm:gap-3 md:mt-7 ${hero.ctaAlign}`}>
-            <Link to={(banner.ctaLink || "/menu") as never} className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-red-600 px-4 text-sm font-black text-white shadow-lg shadow-red-600/30 sm:min-h-12 sm:px-5 sm:text-base">
+            {banner.ctaEnabled !== false && <Link to={(banner.ctaLink || "/menu") as never} className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-red-600 px-4 text-sm font-black text-white shadow-lg shadow-red-600/30 sm:min-h-12 sm:px-5 sm:text-base">
               {banner.ctaLabel || "Order Now"} <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link to={(banner.secondaryCtaLink || "/orders") as never} className={`inline-flex min-h-10 items-center rounded-2xl px-4 text-sm font-bold backdrop-blur sm:min-h-12 sm:px-5 sm:text-base ${hero.secondaryButton}`}>{banner.secondaryCtaLabel || "Your Orders"}</Link>
+            </Link>}
+            {banner.secondaryCtaEnabled !== false && <Link to={(banner.secondaryCtaLink || "/orders") as never} className={`inline-flex min-h-10 items-center rounded-2xl px-4 text-sm font-bold backdrop-blur sm:min-h-12 sm:px-5 sm:text-base ${hero.secondaryButton}`}>{banner.secondaryCtaLabel || "Your Orders"}</Link>}
           </div>
           <div className={`absolute bottom-3 flex gap-1.5 sm:bottom-5 sm:gap-2 ${hero.dots}`}>
             {visibleBanners.map((item, i) => (
@@ -106,6 +106,7 @@ function Home() {
           </div>
         </div>
       </section>
+      )}
 
       <section className="sticky top-0 z-20 -mx-3 mt-3 overflow-hidden bg-yellow-100 px-3 py-2.5 text-xs font-black text-yellow-950 sm:-mx-4 sm:px-4 sm:text-sm md:static md:mx-0 md:mt-4 md:rounded-2xl md:py-3">
         <div className="animate-[marquee_20s_linear_infinite] whitespace-nowrap">
@@ -219,8 +220,8 @@ function HomeSkeleton() {
 }
 
 function BannerMedia({ banner }: { banner: CustomerBanner }) {
-  const desktopUrl = resolveMediaUrl(banner.image || defaultHeroBanner.image);
-  const mobileUrl = resolveMediaUrl(banner.mobileImage || banner.image || defaultHeroBanner.image);
+  const desktopUrl = resolveMediaUrl(banner.image);
+  const mobileUrl = resolveMediaUrl(banner.mobileImage || banner.image);
   const url = desktopUrl;
   if (isVideoUrl(url)) {
     return <video src={url} className="absolute inset-0 h-full w-full object-cover opacity-75" muted autoPlay loop playsInline />;
@@ -236,25 +237,6 @@ function BannerMedia({ banner }: { banner: CustomerBanner }) {
 function isAdBanner(type?: string) {
   return Boolean(type && /ad|sponsor|brand/i.test(type));
 }
-
-const defaultHeroBanner: CustomerBanner = {
-  id: "default-hero",
-  title: "Ankapur Dhaba",
-  subtitle: "Telangana classics, biryani, curries and fresh breads delivered hot.",
-  image: "/assets/hero-biryani.jpg",
-  type: "todays-special",
-  ctaLabel: "Order Now",
-  ctaLink: "/menu",
-  secondaryCtaLabel: "Track Order",
-  secondaryCtaLink: "/orders",
-  priority: 0,
-  active: true,
-  heightMobile: "compact",
-  heightDesktop: "standard",
-  textAlign: "left",
-  overlayStrength: "dark",
-  textColorMode: "light",
-};
 
 function heroClasses(banner: CustomerBanner) {
   const align = banner.textAlign === "center" ? "items-center text-center" : banner.textAlign === "right" ? "items-end text-right" : "items-start text-left";
