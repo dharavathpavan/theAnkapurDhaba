@@ -123,6 +123,8 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
   const qc = useQueryClient();
   const [form, setForm] = useState<Partial<CustomerBanner>>(defaultBannerForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [previewMedia, setPreviewMedia] = useState<{ image?: string; mobileImage?: string }>({});
+  const [uploadingField, setUploadingField] = useState<"image" | "mobileImage" | null>(null);
   const sorted = useMemo(() => [...banners].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)), [banners]);
   const saving = useMutation({
     mutationFn: async () => {
@@ -132,6 +134,7 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
     },
     onSuccess: () => {
       setForm(defaultBannerForm);
+      setPreviewMedia({});
       setEditingId(null);
       refresh();
       toast.success("Hero banner synced");
@@ -140,17 +143,31 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
 
   async function upload(file: File | undefined, field: "image" | "mobileImage") {
     if (!file) return;
+    const localUrl = URL.createObjectURL(file);
+    setPreviewMedia((current) => ({ ...current, [field]: localUrl }));
+    setUploadingField(field);
     try {
       const result = await uploadCatalogFile(file);
       setForm((current) => ({ ...current, [field]: result.url }));
+      setPreviewMedia((current) => ({ ...current, [field]: result.url }));
       toast.success(field === "mobileImage" ? "Mobile media uploaded" : "Media uploaded");
     } catch {
-      toast.error("Upload failed");
+      if (file.type.startsWith("image/") && file.size <= 1_800_000) {
+        const embedded = await fileToDataUrl(file);
+        setForm((current) => ({ ...current, [field]: embedded }));
+        setPreviewMedia((current) => ({ ...current, [field]: embedded }));
+        toast.warning("Upload failed, saved as embedded image.");
+      } else {
+        toast.error("Upload failed. Preview is local only.");
+      }
+    } finally {
+      setUploadingField(null);
     }
   }
 
   function edit(item: CustomerBanner) {
     setEditingId(item.id);
+    setPreviewMedia({});
     setForm({ ...defaultBannerForm, ...item, startsAt: toInputDateTime(item.startsAt), endsAt: toInputDateTime(item.endsAt) });
   }
 
@@ -172,7 +189,7 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
           <p className="mt-1 text-sm text-muted-foreground">Create responsive app banners with schedule, CTAs and layout controls.</p>
         </div>
         {editingId && (
-          <button onClick={() => { setEditingId(null); setForm(defaultBannerForm); }} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
+          <button onClick={() => { setEditingId(null); setForm(defaultBannerForm); setPreviewMedia({}); }} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
             <X className="h-4 w-4" /> Cancel edit
           </button>
         )}
@@ -191,8 +208,8 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background p-3 text-sm"><Upload className="h-4 w-4" /> Upload desktop media<input type="file" className="hidden" accept="image/*,video/*" onChange={(e) => upload(e.target.files?.[0], "image")} /></label>
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background p-3 text-sm"><Upload className="h-4 w-4" /> Upload mobile media<input type="file" className="hidden" accept="image/*,video/*" onChange={(e) => upload(e.target.files?.[0], "mobileImage")} /></label>
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background p-3 text-sm"><Upload className="h-4 w-4" /> {uploadingField === "image" ? "Uploading..." : "Upload desktop media"}<input type="file" className="hidden" accept="image/*,video/*" onChange={(e) => upload(e.target.files?.[0], "image")} /></label>
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background p-3 text-sm"><Upload className="h-4 w-4" /> {uploadingField === "mobileImage" ? "Uploading..." : "Upload mobile media"}<input type="file" className="hidden" accept="image/*,video/*" onChange={(e) => upload(e.target.files?.[0], "mobileImage")} /></label>
             <MiniInput label="Desktop media URL" value={form.image || ""} onChange={(image) => setForm({ ...form, image })} />
             <MiniInput label="Mobile media URL" value={form.mobileImage || ""} onChange={(mobileImage) => setForm({ ...form, mobileImage })} />
           </div>
@@ -212,14 +229,14 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
             </label>
           </div>
 
-          <button onClick={() => saving.mutate()} disabled={saving.isPending} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 font-display text-xs tracking-widest text-primary-foreground disabled:opacity-60">
+          <button onClick={() => saving.mutate()} disabled={saving.isPending || Boolean(uploadingField)} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 font-display text-xs tracking-widest text-primary-foreground disabled:opacity-60">
             <Save className="h-4 w-4" /> {editingId ? "SAVE BANNER" : "ADD BANNER"}
           </button>
         </div>
 
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm font-bold text-muted-foreground"><Eye className="h-4 w-4" /> Preview</div>
-          <BannerPreview banner={{ ...defaultBannerForm, ...form } as CustomerBanner} />
+          <BannerPreview banner={{ ...defaultBannerForm, ...form, image: previewMedia.image || form.image, mobileImage: previewMedia.mobileImage || form.mobileImage } as CustomerBanner} />
         </div>
       </div>
 
@@ -363,6 +380,15 @@ function MediaThumb({ url }: { url?: string | null }) {
 function toInputDateTime(value?: string | null) {
   if (!value) return "";
   return value.slice(0, 16);
+}
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function Field({ label, value, onChange, type = "text", className = "" }: { label: string; value: string; onChange: (value: string) => void; type?: string; className?: string }) {

@@ -7,6 +7,8 @@ import paneerImg from "@/assets/dish-paneer.jpg";
 import starterImg from "@/assets/dish-starter.jpg";
 import biryaniImg from "@/assets/hero-biryani.jpg";
 
+const apiBase = import.meta.env.VITE_API_BASE_URL || "";
+
 const assetMap: Record<string, string> = {
   "/assets/dish-chicken.jpg": chickenImg,
   "/dish-chicken.jpg": chickenImg,
@@ -40,8 +42,17 @@ export function resolveMediaUrl(src?: string | null) {
   if (assetMap[clean]) return assetMap[clean];
   if (/^(https?:|data:|blob:)/i.test(clean)) return clean;
   if (clean.startsWith("/assets/")) return clean;
-  if (clean.startsWith("/uploads/")) return clean;
+  if (clean.startsWith("/uploads/")) return backendAssetUrl(clean);
   return clean.startsWith("/") ? clean : `/${clean}`;
+}
+
+function backendAssetUrl(path: string) {
+  if (!apiBase || apiBase.includes("functions/v1")) return path;
+  try {
+    return `${new URL(apiBase).origin}${path}`;
+  } catch {
+    return path;
+  }
 }
 
 export function imageFallback(event: React.SyntheticEvent<HTMLImageElement>) {
