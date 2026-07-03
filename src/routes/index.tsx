@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Clock3, Flame, MapPin, Search, Sparkles, Star, Ticket, Truck } from "lucide-react";
-import { getCustomerHome } from "@/services/api";
+import { getCustomerHome, type CustomerBanner } from "@/services/api";
 import { useCart } from "@/stores/cart";
 import type { MenuItem } from "@/data/menu";
 import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
@@ -31,6 +31,7 @@ const categoryIcons: Record<string, string> = {
 function Home() {
   const { data, isLoading } = useQuery({ queryKey: ["customer-home"], queryFn: getCustomerHome, staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true });
   const [bannerIndex, setBannerIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
   const add = useCart((s) => s.add);
 
   useEffect(() => {
@@ -41,8 +42,14 @@ function Home() {
 
   const heroBanners = useMemo(() => (data?.banners ?? []).filter((item) => !isAdBanner(item.type)), [data?.banners]);
   const visibleBanners = heroBanners.length ? heroBanners : data?.banners ?? [];
-  const banner = visibleBanners[bannerIndex % Math.max(visibleBanners.length, 1)];
+  const banner = visibleBanners[bannerIndex % Math.max(visibleBanners.length, 1)] || defaultHeroBanner;
+  const hero = heroClasses(banner);
   const categories = useMemo(() => data?.categories.slice(0, 10) ?? [], [data]);
+
+  function showRelativeBanner(delta: number) {
+    if (!visibleBanners.length) return;
+    setBannerIndex((i) => (i + delta + visibleBanners.length) % visibleBanners.length);
+  }
 
   if (isLoading || !data) return <HomeSkeleton />;
 
@@ -68,22 +75,31 @@ function Home() {
         Search biryani, chicken, naan...
       </Link>
 
-      <section className="relative overflow-hidden rounded-[22px] bg-zinc-950 text-white shadow-xl sm:rounded-[28px] md:rounded-[32px]">
-        <BannerMedia src={banner?.image || "/assets/hero-biryani.jpg"} />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-black/10" />
-        <div className="relative flex min-h-[220px] flex-col justify-end p-4 sm:min-h-[270px] sm:p-5 md:min-h-[360px] md:p-8 lg:min-h-[410px] lg:p-10">
-          <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold backdrop-blur sm:text-xs">
-            <Flame className="h-3.5 w-3.5 text-yellow-300 sm:h-4 sm:w-4" /> {banner?.type?.replace(/-/g, " ").toUpperCase() || "TODAY'S SPECIAL"}
+      <section
+        className={`relative overflow-hidden rounded-[22px] bg-zinc-950 shadow-xl sm:rounded-[28px] md:rounded-[32px] ${hero.textColor}`}
+        onTouchStart={(event) => setTouchStart(event.touches[0]?.clientX ?? null)}
+        onTouchEnd={(event) => {
+          if (touchStart === null) return;
+          const diff = touchStart - (event.changedTouches[0]?.clientX ?? touchStart);
+          if (Math.abs(diff) > 42) showRelativeBanner(diff > 0 ? 1 : -1);
+          setTouchStart(null);
+        }}
+      >
+        <BannerMedia banner={banner} />
+        <div className={`absolute inset-0 ${hero.overlay}`} />
+        <div className={`relative flex ${hero.mobileHeight} ${hero.desktopHeight} flex-col justify-end p-4 sm:p-5 md:p-8 lg:p-10 ${hero.align}`}>
+          <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold backdrop-blur sm:text-xs ${hero.badge}`}>
+            <Flame className="h-3.5 w-3.5 text-yellow-300 sm:h-4 sm:w-4" /> {banner.type?.replace(/-/g, " ").toUpperCase() || "TODAY'S SPECIAL"}
           </div>
-          <h1 className="mt-3 max-w-[18rem] text-2xl font-black leading-tight sm:max-w-md sm:text-3xl md:mt-5 md:max-w-xl md:text-5xl lg:text-6xl">{banner?.title}</h1>
-          <p className="mt-2 line-clamp-2 max-w-[17rem] text-sm text-white/80 sm:max-w-md md:text-base lg:text-lg">{banner?.subtitle}</p>
-          <div className="mt-4 flex flex-wrap gap-2 sm:gap-3 md:mt-7">
-            <Link to={banner?.ctaLink || "/menu"} className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-red-600 px-4 text-sm font-black text-white shadow-lg shadow-red-600/30 sm:min-h-12 sm:px-5 sm:text-base">
-              {banner?.ctaLabel || "Order Now"} <ArrowRight className="h-4 w-4" />
+          <h1 className={`mt-3 max-w-[18rem] text-2xl font-black leading-tight sm:max-w-md sm:text-3xl md:mt-5 md:max-w-xl md:text-5xl lg:text-6xl ${hero.textBox}`}>{banner.title}</h1>
+          <p className={`mt-2 line-clamp-2 max-w-[17rem] text-sm sm:max-w-md md:text-base lg:text-lg ${hero.muted} ${hero.textBox}`}>{banner.subtitle}</p>
+          <div className={`mt-4 flex flex-wrap gap-2 sm:gap-3 md:mt-7 ${hero.ctaAlign}`}>
+            <Link to={(banner.ctaLink || "/menu") as never} className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-red-600 px-4 text-sm font-black text-white shadow-lg shadow-red-600/30 sm:min-h-12 sm:px-5 sm:text-base">
+              {banner.ctaLabel || "Order Now"} <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link to="/orders" className="inline-flex min-h-10 items-center rounded-2xl bg-white/15 px-4 text-sm font-bold backdrop-blur sm:min-h-12 sm:px-5 sm:text-base">Your Orders</Link>
+            <Link to={(banner.secondaryCtaLink || "/orders") as never} className={`inline-flex min-h-10 items-center rounded-2xl px-4 text-sm font-bold backdrop-blur sm:min-h-12 sm:px-5 sm:text-base ${hero.secondaryButton}`}>{banner.secondaryCtaLabel || "Your Orders"}</Link>
           </div>
-          <div className="absolute bottom-3 right-4 flex gap-1.5 sm:bottom-5 sm:left-6 sm:right-auto sm:gap-2 md:left-8 lg:left-10">
+          <div className={`absolute bottom-3 flex gap-1.5 sm:bottom-5 sm:gap-2 ${hero.dots}`}>
             {visibleBanners.map((item, i) => (
               <button key={item.id} onClick={() => setBannerIndex(i)} className={`h-1.5 rounded-full transition-all sm:h-2 ${i === bannerIndex ? "w-6 bg-white sm:w-8" : "w-1.5 bg-white/45 sm:w-2"}`} aria-label={`Show banner ${i + 1}`} />
             ))}
@@ -202,14 +218,67 @@ function HomeSkeleton() {
   );
 }
 
-function BannerMedia({ src }: { src: string }) {
-  const url = resolveMediaUrl(src);
+function BannerMedia({ banner }: { banner: CustomerBanner }) {
+  const desktopUrl = resolveMediaUrl(banner.image || defaultHeroBanner.image);
+  const mobileUrl = resolveMediaUrl(banner.mobileImage || banner.image || defaultHeroBanner.image);
+  const url = desktopUrl;
   if (isVideoUrl(url)) {
     return <video src={url} className="absolute inset-0 h-full w-full object-cover opacity-75" muted autoPlay loop playsInline />;
   }
-  return <img src={url} alt="" onError={imageFallback} className="absolute inset-0 h-full w-full object-cover opacity-70" />;
+  return (
+    <picture>
+      <source media="(max-width: 640px)" srcSet={mobileUrl} />
+      <img src={desktopUrl} alt="" onError={imageFallback} className="absolute inset-0 h-full w-full object-cover opacity-80" />
+    </picture>
+  );
 }
 
 function isAdBanner(type?: string) {
   return Boolean(type && /ad|sponsor|brand/i.test(type));
+}
+
+const defaultHeroBanner: CustomerBanner = {
+  id: "default-hero",
+  title: "Ankapur Dhaba",
+  subtitle: "Telangana classics, biryani, curries and fresh breads delivered hot.",
+  image: "/assets/hero-biryani.jpg",
+  type: "todays-special",
+  ctaLabel: "Order Now",
+  ctaLink: "/menu",
+  secondaryCtaLabel: "Track Order",
+  secondaryCtaLink: "/orders",
+  priority: 0,
+  active: true,
+  heightMobile: "compact",
+  heightDesktop: "standard",
+  textAlign: "left",
+  overlayStrength: "dark",
+  textColorMode: "light",
+};
+
+function heroClasses(banner: CustomerBanner) {
+  const align = banner.textAlign === "center" ? "items-center text-center" : banner.textAlign === "right" ? "items-end text-right" : "items-start text-left";
+  const ctaAlign = banner.textAlign === "center" ? "justify-center" : banner.textAlign === "right" ? "justify-end" : "justify-start";
+  const dots = banner.textAlign === "center" ? "left-1/2 -translate-x-1/2" : banner.textAlign === "right" ? "left-4 sm:left-auto sm:right-6 md:right-8 lg:right-10" : "right-4 sm:left-6 sm:right-auto md:left-8 lg:left-10";
+  const mobileHeight = banner.heightMobile === "tall" ? "min-h-[310px]" : banner.heightMobile === "standard" ? "min-h-[260px]" : "min-h-[200px]";
+  const desktopHeight = banner.heightDesktop === "tall" ? "md:min-h-[470px] lg:min-h-[520px]" : banner.heightDesktop === "compact" ? "md:min-h-[310px] lg:min-h-[340px]" : "md:min-h-[380px] lg:min-h-[430px]";
+  const darkText = banner.textColorMode === "dark";
+  const overlay = banner.overlayStrength === "light"
+    ? darkText ? "bg-white/20" : "bg-black/25"
+    : banner.overlayStrength === "medium"
+      ? darkText ? "bg-gradient-to-r from-white/80 via-white/35 to-white/5" : "bg-gradient-to-r from-black/70 via-black/35 to-black/5"
+      : darkText ? "bg-gradient-to-r from-white/95 via-white/55 to-white/10" : "bg-gradient-to-r from-black/90 via-black/55 to-black/10";
+  return {
+    align,
+    ctaAlign,
+    dots,
+    mobileHeight,
+    desktopHeight,
+    overlay,
+    textColor: darkText ? "text-zinc-950" : "text-white",
+    muted: darkText ? "text-zinc-700" : "text-white/80",
+    badge: darkText ? "bg-white/80 text-zinc-900" : "bg-white/15 text-white",
+    secondaryButton: darkText ? "bg-white/80 text-zinc-900" : "bg-white/15 text-white",
+    textBox: banner.textAlign === "center" ? "mx-auto" : banner.textAlign === "right" ? "ml-auto" : "",
+  };
 }

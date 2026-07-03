@@ -222,9 +222,17 @@ export interface CustomerBanner {
   title: string;
   subtitle: string;
   image: string;
+  mobileImage?: string | null;
   type: string;
   ctaLabel: string;
   ctaLink: string;
+  secondaryCtaLabel?: string | null;
+  secondaryCtaLink?: string | null;
+  heightMobile?: "compact" | "standard" | "tall" | string;
+  heightDesktop?: "compact" | "standard" | "tall" | string;
+  textAlign?: "left" | "center" | "right" | string;
+  overlayStrength?: "light" | "medium" | "dark" | string;
+  textColorMode?: "light" | "dark" | string;
   priority: number;
   active: boolean;
   startsAt?: string | null;
@@ -654,9 +662,12 @@ export async function uploadCatalogFile(file: File): Promise<{ url: string; file
   const form = new FormData();
   form.append("file", file);
   const token = useAuth.getState().token;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (SUPABASE_PUBLISHABLE_KEY) headers.apikey = SUPABASE_PUBLISHABLE_KEY;
   const res = await fetch(`${API_BASE}/catalog/uploads`, {
     method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    headers,
     body: form,
   });
   if (!res.ok) throw new Error("Failed to upload file");
