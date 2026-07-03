@@ -18,6 +18,7 @@ const realtimeClient =
         realtime: { params: { eventsPerSecond: 10 } },
       })
     : null;
+let realtimeSubscriptionId = 0;
 
 function isValidSocketIoUrl(url: string) {
   if (!url) return false;
@@ -138,8 +139,9 @@ export function subscribeToOrderEvents(callback: (event: OrderRealtimeEvent) => 
   }
 
   if (realtimeClient) {
+    const channelName = `ankapur-orders-${++realtimeSubscriptionId}`;
     let channel: RealtimeChannel | null = realtimeClient
-      .channel("ankapur-orders")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "Order" },
@@ -167,7 +169,7 @@ export function subscribeToCustomerContent(callback: (event: CustomerContentEven
 
   if (realtimeClient) {
     const tables = ["CustomerBanner", "CustomerAnnouncement", "CustomerCoupon", "StoreSetting", "MenuItem", "MenuCategory"];
-    const channel = realtimeClient.channel("ankapur-customer-content");
+    const channel = realtimeClient.channel(`ankapur-customer-content-${++realtimeSubscriptionId}`);
     tables.forEach((table) => {
       channel.on("postgres_changes", { event: "*", schema: "public", table }, () => {
         callback({ type: "sync", at: new Date().toISOString() });
