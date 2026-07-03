@@ -5,6 +5,7 @@ import { ArrowRight, Clock3, Flame, MapPin, Search, Sparkles, Star, Ticket, Truc
 import { getCustomerHome } from "@/services/api";
 import { useCart } from "@/stores/cart";
 import type { MenuItem } from "@/data/menu";
+import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -150,7 +151,7 @@ function FoodTile({ item, onAdd }: { item: MenuItem; onAdd: () => void }) {
     <article className="min-w-[210px] overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-100">
       <Link to="/menu" className="block">
         <div className="relative aspect-[4/3] bg-zinc-100">
-          <img src={item.image} alt={item.name} loading="lazy" className="h-full w-full object-cover" />
+          <img src={resolveMediaUrl(item.image)} alt={item.name} loading="lazy" onError={imageFallback} className="h-full w-full object-cover" />
           {item.discountPercent ? <span className="absolute left-3 top-3 rounded-full bg-yellow-400 px-2 py-1 text-xs font-black text-zinc-950">{item.discountPercent}% OFF</span> : null}
         </div>
       </Link>
@@ -202,16 +203,13 @@ function HomeSkeleton() {
 }
 
 function BannerMedia({ src }: { src: string }) {
-  if (isVideo(src)) {
-    return <video src={src} className="absolute inset-0 h-full w-full object-cover opacity-75" muted autoPlay loop playsInline />;
+  const url = resolveMediaUrl(src);
+  if (isVideoUrl(url)) {
+    return <video src={url} className="absolute inset-0 h-full w-full object-cover opacity-75" muted autoPlay loop playsInline />;
   }
-  return <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover opacity-70" />;
+  return <img src={url} alt="" onError={imageFallback} className="absolute inset-0 h-full w-full object-cover opacity-70" />;
 }
 
 function isAdBanner(type?: string) {
   return Boolean(type && /ad|sponsor|brand/i.test(type));
-}
-
-function isVideo(url: string) {
-  return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
 }

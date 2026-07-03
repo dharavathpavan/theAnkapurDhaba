@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { getCustomerHome, getOrder, type CustomerBanner, type DeliveryDetails, type Order, type OrderStatus } from "@/services/api";
 import { useOrderRealtime } from "@/hooks/use-order-realtime";
+import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
 import { DeliveryMap } from "@/components/site/DeliveryMap";
 import { clearActiveOrder, saveActiveOrder } from "@/stores/active-order";
 
@@ -358,10 +359,7 @@ function TrackingSkeleton() {
 }
 
 function AdMedia({ src }: { src: string }) {
-  if (isVideo(src)) return <video src={src} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" muted autoPlay loop playsInline />;
-  return <img src={src} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />;
-}
-
-function isVideo(url: string) {
-  return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
+  const url = resolveMediaUrl(src);
+  if (isVideoUrl(url)) return <video src={url} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" muted autoPlay loop playsInline />;
+  return <img src={url} alt="" onError={imageFallback} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />;
 }

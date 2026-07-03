@@ -2,6 +2,7 @@ import type { MenuItem } from "@/data/menu";
 import { useCart } from "@/stores/cart";
 import { VegDot, SpiceLevel } from "./VegDot";
 import { Plus, Minus } from "lucide-react";
+import { imageFallback, resolveMediaUrl } from "@/lib/media";
 
 interface Props {
   item: MenuItem;
@@ -20,9 +21,10 @@ export function DishCard({ item, size = "md" }: Props) {
     <article className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-all hover:border-primary/40 hover:shadow-[var(--shadow-card)]">
       <div className={`relative ${aspect} overflow-hidden bg-muted`}>
         <img
-          src={item.image}
+          src={resolveMediaUrl(item.image)}
           alt={item.name}
           loading="lazy"
+          onError={imageFallback}
           width={800}
           height={600}
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"

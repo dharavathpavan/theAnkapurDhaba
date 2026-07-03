@@ -6,6 +6,7 @@ import { addCustomerFavorite, getCustomerHome, getCustomerMenu } from "@/service
 import { useCart } from "@/stores/cart";
 import type { MenuItem } from "@/data/menu";
 import { toast } from "sonner";
+import { imageFallback, resolveMediaUrl } from "@/lib/media";
 
 export const Route = createFileRoute("/menu")({
   validateSearch: (search: Record<string, unknown>) => ({ category: typeof search.category === "string" ? search.category : undefined }),
@@ -120,7 +121,7 @@ function MenuCard({ item, qty, onOpen, onAdd }: { item: MenuItem; qty: number; o
       </button>
       <div className="relative">
         <button onClick={onOpen} className="block aspect-square w-full overflow-hidden rounded-2xl bg-zinc-100 sm:rounded-3xl">
-          <img src={item.image} alt={item.name} loading="lazy" className="h-full w-full object-cover" />
+          <img src={resolveMediaUrl(item.image)} alt={item.name} loading="lazy" onError={imageFallback} className="h-full w-full object-cover" />
         </button>
         <button onClick={onAdd} disabled={!item.available} className="absolute -bottom-2 left-1/2 min-w-20 -translate-x-1/2 rounded-2xl bg-white px-3 py-2 text-xs font-black text-red-600 shadow-lg ring-1 ring-red-100 disabled:text-zinc-400 sm:min-w-24 sm:px-4 sm:text-sm">
           {qty > 0 ? `${qty} ADDED` : item.available ? "ADD" : "SOLD OUT"}
@@ -169,7 +170,7 @@ function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
     <div className="fixed inset-0 z-[70] bg-black/45 backdrop-blur-sm">
       <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-[32px] bg-[#F8F9FB] shadow-2xl md:left-1/2 md:top-1/2 md:max-h-[88vh] md:max-w-2xl md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[32px]">
         <div className="relative aspect-[16/10] bg-zinc-100">
-          <img src={item.images?.[0]?.url || item.image} alt={item.name} className="h-full w-full object-cover" />
+          <img src={resolveMediaUrl(item.images?.[0]?.url || item.image)} alt={item.name} onError={imageFallback} className="h-full w-full object-cover" />
           <button onClick={onClose} className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/90"><X className="h-5 w-5" /></button>
           <button onClick={saveFavorite} className="absolute left-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/90 text-red-600"><Heart className="h-5 w-5" /></button>
         </div>

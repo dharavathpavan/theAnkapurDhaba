@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Star } from "lucide-react";
 import { getCustomerMenu, listCustomerFavorites, removeCustomerFavorite } from "@/services/api";
 import { useCart } from "@/stores/cart";
+import { imageFallback, resolveMediaUrl } from "@/lib/media";
 
 export const Route = createFileRoute("/favorites")({
   head: () => ({ meta: [{ title: "Favorites - Ankapur Dhaba" }] }),
@@ -31,7 +32,7 @@ function FavoritesPage() {
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           {items.map((item) => (
             <article key={item.id} className="flex gap-3 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-zinc-100">
-              <img src={item.image} alt={item.name} className="h-28 w-28 rounded-3xl object-cover" />
+              <img src={resolveMediaUrl(item.image)} alt={item.name} onError={imageFallback} className="h-28 w-28 rounded-3xl object-cover" />
               <div className="min-w-0 flex-1">
                 <h2 className="line-clamp-2 font-black">{item.name}</h2>
                 <div className="mt-1 flex items-center gap-1 text-sm text-zinc-500"><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> {item.rating || 4.6}</div>

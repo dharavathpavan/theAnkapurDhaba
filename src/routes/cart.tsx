@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Minus, Plus, ShoppingBag, Tag, Trash2, Truck } from "lucide-react";
 import { getCustomerHome } from "@/services/api";
 import { useCart, selectCartSubtotal } from "@/stores/cart";
+import { imageFallback, resolveMediaUrl } from "@/lib/media";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Cart - Ankapur Dhaba" }] }),
@@ -51,7 +52,7 @@ function CartPage() {
 
           {lines.map((line) => (
             <article key={line.lineId || line.id} className="flex gap-3 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-zinc-100">
-              <img src={line.image} alt={line.name} className="h-24 w-24 rounded-3xl object-cover" />
+              <img src={resolveMediaUrl(line.image)} alt={line.name} onError={imageFallback} className="h-24 w-24 rounded-3xl object-cover" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div>
