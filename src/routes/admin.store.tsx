@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { Eye, Megaphone, Palette, Pencil, Save, Ticket, Trash2, Upload, Wifi, WifiOff, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Eye, GripVertical, ImagePlus, Megaphone, Monitor, Palette, Pencil, Save, Smartphone, Ticket, Trash2, Upload, Wifi, WifiOff, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   createAdminAnnouncement,
@@ -127,10 +127,17 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previewMedia, setPreviewMedia] = useState<{ image?: string; mobileImage?: string }>({});
   const [uploadingField, setUploadingField] = useState<"image" | "mobileImage" | null>(null);
+  const [step, setStep] = useState<"media" | "content" | "actions" | "display">("media");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [orderedBanners, setOrderedBanners] = useState<CustomerBanner[]>([]);
   const sorted = useMemo(() => [...banners].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)), [banners]);
+  const orderChanged = orderedBanners.some((item, index) => item.id !== sorted[index]?.id);
+  const previewBanner = { ...defaultBannerForm, ...form, image: previewMedia.image || form.image, mobileImage: previewMedia.mobileImage || form.mobileImage } as CustomerBanner;
   const saving = useMutation({
     mutationFn: async () => {
       const payload = bannerPayload(form);
+      if (!form.title?.trim()) throw new Error("Add a banner title first.");
+      if (!payload.image.trim()) throw new Error("Upload or paste banner media first.");
       if (editingId) return updateAdminBanner(editingId, payload);
       return createAdminBanner(payload);
     },
@@ -138,13 +145,30 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
       setForm(defaultBannerForm);
       setPreviewMedia({});
       setEditingId(null);
+      setStep("media");
       refresh();
       toast.success("Hero banner synced");
     },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Could not save banner"),
   });
+  const saveOrder = useMutation({
+    mutationFn: async () => Promise.all(orderedBanners.map((item, index) => updateAdminBanner(item.id, { priority: index }))),
+    onSuccess: () => {
+      refresh();
+      toast.success("Banner order saved");
+    },
+  });
+
+  useEffect(() => {
+    setOrderedBanners(sorted);
+  }, [sorted]);
 
   async function upload(file: File | undefined, field: "image" | "mobileImage") {
     if (!file) return;
+    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+      toast.error("Only image and video files are supported.");
+      return;
+    }
     const localUrl = URL.createObjectURL(file);
     setPreviewMedia((current) => ({ ...current, [field]: localUrl }));
     setUploadingField(field);
@@ -171,6 +195,7 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
     setEditingId(item.id);
     setPreviewMedia({});
     setForm({ ...defaultBannerForm, ...item, startsAt: toInputDateTime(item.startsAt), endsAt: toInputDateTime(item.endsAt) });
+    setStep("media");
   }
 
   async function toggle(item: CustomerBanner) {
@@ -183,77 +208,182 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
     refresh();
   }
 
+  function resetForm() {
+    setEditingId(null);
+    setForm(defaultBannerForm);
+    setPreviewMedia({});
+    setStep("media");
+  }
+
+  function moveBanner(sourceId: string, targetId: string) {
+    if (sourceId === targetId) return;
+    setOrderedBanners((current) => {
+      const next = [...current];
+      const from = next.findIndex((item) => item.id === sourceId);
+      const to = next.findIndex((item) => item.id === targetId);
+      if (from < 0 || to < 0) return current;
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }
+
+  const steps = [
+    { id: "media", label: "Media", caption: "Upload image or video" },
+    { id: "content", label: "Content", caption: "Title and message" },
+    { id: "actions", label: "Actions", caption: "CTA buttons" },
+    { id: "display", label: "Display", caption: "Schedule and layout" },
+  ] as const;
+
   return (
-    <div className="rounded-xl border border-border bg-surface p-5">
+    <div className="rounded-xl border border-border bg-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl tracking-widest">Hero banners</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Create responsive app banners with schedule, CTAs and layout controls.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Build a responsive banner in four quick steps, then save it live to the customer app.</p>
         </div>
         {editingId && (
-          <button onClick={() => { setEditingId(null); setForm(defaultBannerForm); setPreviewMedia({}); }} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
+          <button onClick={resetForm} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
             <X className="h-4 w-4" /> Cancel edit
           </button>
         )}
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
-        <div className="grid gap-3">
-          <div className="grid gap-3 md:grid-cols-2">
-            <MiniInput label="Title" value={form.title || ""} onChange={(title) => setForm({ ...form, title })} />
-            <MiniInput label="Badge / type" value={form.type || "hero"} onChange={(type) => setForm({ ...form, type })} />
-            <MiniInput label="Subtitle" value={form.subtitle || ""} onChange={(subtitle) => setForm({ ...form, subtitle })} className="md:col-span-2" />
-            <ToggleField label="Primary CTA" checked={form.ctaEnabled !== false} onChange={(ctaEnabled) => setForm({ ...form, ctaEnabled })} />
-            <ToggleField label="Secondary CTA" checked={form.secondaryCtaEnabled !== false} onChange={(secondaryCtaEnabled) => setForm({ ...form, secondaryCtaEnabled })} />
-            <MiniInput label="Primary CTA label" value={form.ctaLabel || ""} onChange={(ctaLabel) => setForm({ ...form, ctaLabel })} />
-            <MiniInput label="Primary CTA link" value={form.ctaLink || ""} onChange={(ctaLink) => setForm({ ...form, ctaLink })} />
-            <MiniInput label="Secondary CTA label" value={form.secondaryCtaLabel || ""} onChange={(secondaryCtaLabel) => setForm({ ...form, secondaryCtaLabel })} />
-            <MiniInput label="Secondary CTA link" value={form.secondaryCtaLink || ""} onChange={(secondaryCtaLink) => setForm({ ...form, secondaryCtaLink })} />
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <div className="overflow-hidden rounded-2xl border border-border bg-background">
+          <div className="grid border-b border-border bg-muted/30 sm:grid-cols-4">
+            {steps.map((item, index) => (
+              <button
+                key={item.id}
+                onClick={() => setStep(item.id)}
+                className={`flex min-h-16 items-center gap-3 px-4 py-3 text-left transition ${step === item.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black ${step === item.id ? "bg-white/20" : "bg-surface text-primary"}`}>{index + 1}</span>
+                <span className="min-w-0">
+                  <span className="block font-display text-xs tracking-widest">{item.label.toUpperCase()}</span>
+                  <span className={`block truncate text-xs ${step === item.id ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{item.caption}</span>
+                </span>
+              </button>
+            ))}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background p-3 text-sm"><Upload className="h-4 w-4" /> {uploadingField === "image" ? "Uploading..." : "Upload desktop media"}<input type="file" className="hidden" accept="image/*,video/*" onChange={(e) => upload(e.target.files?.[0], "image")} /></label>
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background p-3 text-sm"><Upload className="h-4 w-4" /> {uploadingField === "mobileImage" ? "Uploading..." : "Upload mobile media"}<input type="file" className="hidden" accept="image/*,video/*" onChange={(e) => upload(e.target.files?.[0], "mobileImage")} /></label>
-            <MiniInput label="Desktop media URL" value={form.image || ""} onChange={(image) => setForm({ ...form, image })} />
-            <MiniInput label="Mobile media URL" value={form.mobileImage || ""} onChange={(mobileImage) => setForm({ ...form, mobileImage })} />
+          <div className="p-4 sm:p-5">
+            {step === "media" && (
+              <div className="grid gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <MediaDropZone
+                    icon={Monitor}
+                    title="Desktop media"
+                    description="Drop image/video here or click to upload"
+                    value={previewMedia.image || form.image}
+                    busy={uploadingField === "image"}
+                    onFile={(file) => upload(file, "image")}
+                  />
+                  <MediaDropZone
+                    icon={Smartphone}
+                    title="Mobile media"
+                    description="Optional. Uses desktop media if empty."
+                    value={previewMedia.mobileImage || form.mobileImage}
+                    busy={uploadingField === "mobileImage"}
+                    onFile={(file) => upload(file, "mobileImage")}
+                  />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <MiniInput label="Desktop media URL" value={form.image || ""} onChange={(image) => setForm({ ...form, image })} />
+                  <MiniInput label="Mobile media URL" value={form.mobileImage || ""} onChange={(mobileImage) => setForm({ ...form, mobileImage })} />
+                </div>
+              </div>
+            )}
+
+            {step === "content" && (
+              <div className="grid gap-3 md:grid-cols-2">
+                <MiniInput label="Title" value={form.title || ""} onChange={(title) => setForm({ ...form, title })} />
+                <MiniInput label="Badge / type" value={form.type || "hero"} onChange={(type) => setForm({ ...form, type })} />
+                <MiniInput label="Subtitle" value={form.subtitle || ""} onChange={(subtitle) => setForm({ ...form, subtitle })} className="md:col-span-2" />
+              </div>
+            )}
+
+            {step === "actions" && (
+              <div className="grid gap-3 md:grid-cols-2">
+                <ToggleField label="Primary CTA" checked={form.ctaEnabled !== false} onChange={(ctaEnabled) => setForm({ ...form, ctaEnabled })} />
+                <ToggleField label="Secondary CTA" checked={form.secondaryCtaEnabled !== false} onChange={(secondaryCtaEnabled) => setForm({ ...form, secondaryCtaEnabled })} />
+                <MiniInput label="Primary CTA label" value={form.ctaLabel || ""} onChange={(ctaLabel) => setForm({ ...form, ctaLabel })} />
+                <MiniInput label="Primary CTA link" value={form.ctaLink || ""} onChange={(ctaLink) => setForm({ ...form, ctaLink })} />
+                <MiniInput label="Secondary CTA label" value={form.secondaryCtaLabel || ""} onChange={(secondaryCtaLabel) => setForm({ ...form, secondaryCtaLabel })} />
+                <MiniInput label="Secondary CTA link" value={form.secondaryCtaLink || ""} onChange={(secondaryCtaLink) => setForm({ ...form, secondaryCtaLink })} />
+              </div>
+            )}
+
+            {step === "display" && (
+              <div className="grid gap-3 md:grid-cols-3">
+                <SelectField label="Mobile height" value={form.heightMobile || "compact"} options={["compact", "standard", "tall"]} onChange={(heightMobile) => setForm({ ...form, heightMobile })} />
+                <SelectField label="Desktop height" value={form.heightDesktop || "standard"} options={["compact", "standard", "tall"]} onChange={(heightDesktop) => setForm({ ...form, heightDesktop })} />
+                <SelectField label="Text align" value={form.textAlign || "left"} options={["left", "center", "right"]} onChange={(textAlign) => setForm({ ...form, textAlign })} />
+                <SelectField label="Overlay" value={form.overlayStrength || "dark"} options={["light", "medium", "dark"]} onChange={(overlayStrength) => setForm({ ...form, overlayStrength })} />
+                <SelectField label="Text color" value={form.textColorMode || "light"} options={["light", "dark"]} onChange={(textColorMode) => setForm({ ...form, textColorMode })} />
+                <MiniInput label="Priority" value={form.priority ?? 0} onChange={(priority) => setForm({ ...form, priority: Number(priority) || 0 })} />
+                <MiniInput label="Starts at" type="datetime-local" value={toInputDateTime(form.startsAt)} onChange={(startsAt) => setForm({ ...form, startsAt: startsAt || null })} />
+                <MiniInput label="Ends at" type="datetime-local" value={toInputDateTime(form.endsAt)} onChange={(endsAt) => setForm({ ...form, endsAt: endsAt || null })} />
+                <label className="flex items-center justify-between rounded-md border border-border bg-background p-3 text-sm">
+                  <span>Active</span>
+                  <input type="checkbox" checked={form.active !== false} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+                </label>
+              </div>
+            )}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
-            <SelectField label="Mobile height" value={form.heightMobile || "compact"} options={["compact", "standard", "tall"]} onChange={(heightMobile) => setForm({ ...form, heightMobile })} />
-            <SelectField label="Desktop height" value={form.heightDesktop || "standard"} options={["compact", "standard", "tall"]} onChange={(heightDesktop) => setForm({ ...form, heightDesktop })} />
-            <SelectField label="Text align" value={form.textAlign || "left"} options={["left", "center", "right"]} onChange={(textAlign) => setForm({ ...form, textAlign })} />
-            <SelectField label="Overlay" value={form.overlayStrength || "dark"} options={["light", "medium", "dark"]} onChange={(overlayStrength) => setForm({ ...form, overlayStrength })} />
-            <SelectField label="Text color" value={form.textColorMode || "light"} options={["light", "dark"]} onChange={(textColorMode) => setForm({ ...form, textColorMode })} />
-            <MiniInput label="Priority" value={form.priority ?? 0} onChange={(priority) => setForm({ ...form, priority: Number(priority) || 0 })} />
-            <MiniInput label="Starts at" type="datetime-local" value={toInputDateTime(form.startsAt)} onChange={(startsAt) => setForm({ ...form, startsAt: startsAt || null })} />
-            <MiniInput label="Ends at" type="datetime-local" value={toInputDateTime(form.endsAt)} onChange={(endsAt) => setForm({ ...form, endsAt: endsAt || null })} />
-            <label className="flex items-center justify-between rounded-md border border-border bg-background p-3 text-sm">
-              <span>Active</span>
-              <input type="checkbox" checked={form.active !== false} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
-            </label>
+          <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface/95 p-4 backdrop-blur">
+            <div className="text-xs text-muted-foreground">
+              {uploadingField ? "Uploading media..." : editingId ? "Editing existing banner" : "Ready to create banner"}
+            </div>
+            <button onClick={() => saving.mutate()} disabled={saving.isPending || Boolean(uploadingField)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 font-display text-xs tracking-widest text-primary-foreground disabled:opacity-60">
+              <Save className="h-4 w-4" /> {editingId ? "SAVE BANNER" : "ADD BANNER"}
+            </button>
           </div>
-
-          <button onClick={() => saving.mutate()} disabled={saving.isPending || Boolean(uploadingField)} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 font-display text-xs tracking-widest text-primary-foreground disabled:opacity-60">
-            <Save className="h-4 w-4" /> {editingId ? "SAVE BANNER" : "ADD BANNER"}
-          </button>
         </div>
 
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-sm font-bold text-muted-foreground"><Eye className="h-4 w-4" /> Preview</div>
-          <BannerPreview banner={{ ...defaultBannerForm, ...form, image: previewMedia.image || form.image, mobileImage: previewMedia.mobileImage || form.mobileImage } as CustomerBanner} />
+        <div className="xl:sticky xl:top-6 xl:self-start">
+          <div className="mb-2 flex items-center gap-2 text-sm font-bold text-muted-foreground"><Eye className="h-4 w-4" /> Live preview</div>
+          <BannerPreview banner={previewBanner} />
         </div>
       </div>
 
-      <ul className="mt-6 grid gap-3 md:grid-cols-2">
-        {sorted.map((item) => (
-          <li key={item.id} className="rounded-lg border border-border bg-background p-3">
+      <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-display text-xl tracking-widest">Saved banners</h3>
+          <p className="text-sm text-muted-foreground">Drag cards to reorder, then save priorities.</p>
+        </div>
+        {orderChanged && (
+          <button onClick={() => saveOrder.mutate()} disabled={saveOrder.isPending} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 font-display text-xs tracking-widest text-primary-foreground disabled:opacity-60">
+            <Save className="h-4 w-4" /> SAVE ORDER
+          </button>
+        )}
+      </div>
+
+      <ul className="mt-3 grid gap-3 md:grid-cols-2">
+        {orderedBanners.map((item, index) => (
+          <li
+            key={item.id}
+            draggable
+            onDragStart={() => setDraggingId(item.id)}
+            onDragEnd={() => setDraggingId(null)}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              if (draggingId) moveBanner(draggingId, item.id);
+            }}
+            className={`rounded-lg border bg-background p-3 transition ${draggingId === item.id ? "border-primary opacity-60" : "border-border"}`}
+          >
             <div className="flex gap-3">
+              <div className="flex cursor-grab items-center text-muted-foreground active:cursor-grabbing">
+                <GripVertical className="h-5 w-5" />
+              </div>
               <MediaThumb url={item.mobileImage || item.image} />
               <div className="min-w-0 flex-1">
                 <div className="truncate font-display tracking-wide">{item.title}</div>
                 <div className="truncate text-xs text-muted-foreground">{item.type} - {item.subtitle}</div>
                 <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                  <span>#{item.priority}</span>
+                  <span>#{index + 1}</span>
                   <span>{item.textAlign || "left"}</span>
                   <span>{item.overlayStrength || "dark"}</span>
                   <span>{item.heightMobile || "compact"}/{item.heightDesktop || "standard"}</span>
@@ -368,6 +498,49 @@ function BannerPreview({ banner }: { banner: CustomerBanner }) {
         {banner.ctaEnabled !== false && <div className="mt-4 rounded-2xl bg-red-600 px-4 py-2 text-sm font-black text-white">{banner.ctaLabel || "Order Now"}</div>}
       </div>
     </div>
+  );
+}
+
+function MediaDropZone({ icon: Icon, title, description, value, busy, onFile }: { icon: React.ElementType; title: string; description: string; value?: string | null; busy: boolean; onFile: (file: File) => void }) {
+  const media = value ? resolveMediaUrl(value) : "";
+
+  function handleDrop(event: React.DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (file) onFile(file);
+  }
+
+  return (
+    <label
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={handleDrop}
+      className="group relative flex min-h-[220px] cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border-2 border-dashed border-border bg-muted/30 p-4 transition hover:border-primary hover:bg-primary/5"
+    >
+      {media ? (
+        <div className="absolute inset-0">
+          {isVideoUrl(media) ? <video src={media} muted autoPlay loop playsInline className="h-full w-full object-cover" /> : <img src={media} alt="" onError={imageFallback} className="h-full w-full object-cover" />}
+          <div className="absolute inset-0 bg-black/45" />
+        </div>
+      ) : null}
+      <div className="relative flex items-center justify-between">
+        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/90 text-primary shadow-sm">
+          <Icon className="h-5 w-5" />
+        </span>
+        {busy && <span className="rounded-full bg-primary px-3 py-1 text-xs font-black text-primary-foreground">Uploading</span>}
+      </div>
+      <div className="relative">
+        <div className={`font-display text-lg tracking-wide ${media ? "text-white" : "text-foreground"}`}>{title}</div>
+        <div className={`mt-1 text-sm ${media ? "text-white/80" : "text-muted-foreground"}`}>{description}</div>
+        <div className={`mt-4 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-black ${media ? "bg-white text-zinc-950" : "bg-surface text-primary"}`}>
+          <ImagePlus className="h-4 w-4" /> {media ? "Replace media" : "Choose media"}
+        </div>
+      </div>
+      <input type="file" className="hidden" accept="image/*,video/*" onChange={(event) => {
+        const file = event.target.files?.[0];
+        if (file) onFile(file);
+        event.currentTarget.value = "";
+      }} />
+    </label>
   );
 }
 
