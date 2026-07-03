@@ -32,6 +32,7 @@ import { Route as AdminTablesRouteImport } from './routes/admin.tables'
 import { Route as AdminStoreRouteImport } from './routes/admin.store'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
+import { Route as AdminMarketingRouteImport } from './routes/admin.marketing'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 
 const TrackRoute = TrackRouteImport.update({
@@ -149,6 +150,11 @@ const AdminMenuRoute = AdminMenuRouteImport.update({
   path: '/menu',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMarketingRoute = AdminMarketingRouteImport.update({
+  id: '/marketing',
+  path: '/marketing',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBillingRoute = AdminBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/track': typeof TrackRouteWithChildren
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/marketing': typeof AdminMarketingRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/store': typeof AdminStoreRoute
@@ -196,6 +203,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/track': typeof TrackRouteWithChildren
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/marketing': typeof AdminMarketingRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/store': typeof AdminStoreRoute
@@ -223,6 +231,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/track': typeof TrackRouteWithChildren
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/marketing': typeof AdminMarketingRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/store': typeof AdminStoreRoute
@@ -251,6 +260,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/track'
     | '/admin/billing'
+    | '/admin/marketing'
     | '/admin/menu'
     | '/admin/orders'
     | '/admin/store'
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/track'
     | '/admin/billing'
+    | '/admin/marketing'
     | '/admin/menu'
     | '/admin/orders'
     | '/admin/store'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/track'
     | '/admin/billing'
+    | '/admin/marketing'
     | '/admin/menu'
     | '/admin/orders'
     | '/admin/store'
@@ -494,6 +506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMenuRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/marketing': {
+      id: '/admin/marketing'
+      path: '/marketing'
+      fullPath: '/admin/marketing'
+      preLoaderRoute: typeof AdminMarketingRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/billing': {
       id: '/admin/billing'
       path: '/billing'
@@ -506,6 +525,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminBillingRoute: typeof AdminBillingRoute
+  AdminMarketingRoute: typeof AdminMarketingRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminStoreRoute: typeof AdminStoreRoute
@@ -516,6 +536,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBillingRoute: AdminBillingRoute,
+  AdminMarketingRoute: AdminMarketingRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminStoreRoute: AdminStoreRoute,

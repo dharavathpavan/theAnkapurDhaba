@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Eye, GripVertical, ImagePlus, Megaphone, Monitor, Palette, Pencil, Save, Smartphone, Ticket, Trash2, Upload, Wifi, WifiOff, X } from "lucide-react";
+import { Bell, Eye, GripVertical, ImagePlus, Megaphone, Monitor, Pencil, Save, Smartphone, Sparkles, Ticket, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   createAdminAnnouncement,
@@ -14,7 +14,6 @@ import {
   updateAdminAnnouncement,
   updateAdminBanner,
   updateAdminCoupon,
-  updateAdminCustomerStore,
   uploadCatalogFile,
   type CustomerAnnouncement,
   type CustomerBanner,
@@ -22,9 +21,9 @@ import {
 } from "@/services/api";
 import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
 
-export const Route = createFileRoute("/admin/store")({
-  head: () => ({ meta: [{ title: "Customer App Setup - Ankapur Dhaba" }] }),
-  component: StorePage,
+export const Route = createFileRoute("/admin/marketing")({
+  head: () => ({ meta: [{ title: "Marketing - Ankapur Dhaba" }] }),
+  component: MarketingPage,
 });
 
 const defaultBannerForm: Partial<CustomerBanner> = {
@@ -50,72 +49,122 @@ const defaultBannerForm: Partial<CustomerBanner> = {
   endsAt: null,
 };
 
-function StorePage() {
+function MarketingPage() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["admin-customer-content"], queryFn: getAdminCustomerContent });
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin-customer-content"] });
-  const saveStore = useMutation({ mutationFn: updateAdminCustomerStore, onSuccess: () => { refresh(); toast.success("Customer app synced"); } });
 
-  if (isLoading || !data) return <div className="p-8 text-muted-foreground">Loading customer app settings...</div>;
-  const store = data.store;
+  if (isLoading || !data) return <div className="p-8 text-muted-foreground">Loading marketing settings...</div>;
+  const heroCount = data.banners.filter((banner) => !isAdBanner(banner.type)).length;
+  const adCount = data.banners.filter((banner) => isAdBanner(banner.type)).length;
+  const activeAnnouncements = data.announcements.filter((item) => item.active).length;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 md:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl tracking-wide">Customer App Setup</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Control store status, delivery rules, timings, splash content and customer app theme.</p>
+          <h1 className="font-display text-4xl tracking-wide">Marketing</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage app banners, announcements, ad spaces, offers and push-style notifications.</p>
         </div>
-        <span className={`rounded-full px-3 py-1.5 font-display text-xs tracking-widest ${store.status === "online" ? "bg-veg/10 text-veg" : store.status === "busy" ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}>
-          {store.status.toUpperCase()}
-        </span>
+        <span className="rounded-full bg-primary/10 px-3 py-1.5 font-display text-xs tracking-widest text-primary">CUSTOMER APP</span>
       </div>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_420px]">
-        <div className="rounded-xl border border-border bg-surface p-6">
-          <h2 className="font-display text-2xl tracking-wide">Store & delivery rules</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <Field label="Restaurant name" value={store.name} onChange={(name) => saveStore.mutate({ name })} />
-            <Field label="Phone" value={store.phone} onChange={(phone) => saveStore.mutate({ phone })} />
-            <Field label="Address" value={store.address} onChange={(address) => saveStore.mutate({ address })} className="md:col-span-2" />
-            <Field label="Open time" value={store.openTime} onChange={(openTime) => saveStore.mutate({ openTime })} type="time" />
-            <Field label="Close time" value={store.closeTime} onChange={(closeTime) => saveStore.mutate({ closeTime })} type="time" />
-            <NumberField label="Min order" value={store.minimumOrder} onChange={(minimumOrder) => saveStore.mutate({ minimumOrder })} />
-            <NumberField label="Delivery charge" value={store.deliveryCharge} onChange={(deliveryCharge) => saveStore.mutate({ deliveryCharge })} />
-            <NumberField label="Free delivery above" value={store.freeDeliveryAbove} onChange={(freeDeliveryAbove) => saveStore.mutate({ freeDeliveryAbove })} />
-            <NumberField label="Average delivery min" value={store.averageDeliveryMin} onChange={(averageDeliveryMin) => saveStore.mutate({ averageDeliveryMin })} />
-            <NumberField label="Packing charge" value={store.packingCharge} onChange={(packingCharge) => saveStore.mutate({ packingCharge })} />
-            <NumberField label="Radius KM" value={store.zoneRadiusKm} onChange={(zoneRadiusKm) => saveStore.mutate({ zoneRadiusKm })} />
-            <Field label="Status message" value={store.statusMessage} onChange={(statusMessage) => saveStore.mutate({ statusMessage })} className="md:col-span-2" />
-          </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <StatusButton icon={Wifi} label="Online" active={store.status === "online"} onClick={() => saveStore.mutate({ status: "online", statusMessage: "" })} />
-            <StatusButton icon={Megaphone} label="Busy" active={store.status === "busy"} onClick={() => saveStore.mutate({ status: "busy", statusMessage: "Kitchen is busy. Expect a little delay." })} />
-            <StatusButton icon={WifiOff} label="Offline" active={store.status === "offline"} onClick={() => saveStore.mutate({ status: "offline", statusMessage: "We are closed right now. See you soon!" })} />
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-border bg-surface p-6">
-          <h2 className="flex items-center gap-2 font-display text-2xl tracking-wide"><Palette className="h-5 w-5 text-primary" /> Theme & splash</h2>
-          <div className="mt-5 grid gap-4">
-            <Field label="Splash title" value={store.splashTitle} onChange={(splashTitle) => saveStore.mutate({ splashTitle })} />
-            <Field label="Splash subtitle" value={store.splashSubtitle} onChange={(splashSubtitle) => saveStore.mutate({ splashSubtitle })} />
-            {(["primary", "secondary", "accent", "background"] as const).map((key) => (
-              <label key={key} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
-                <span className="font-display text-xs tracking-widest text-muted-foreground">{key.toUpperCase()}</span>
-                <input type="color" value={store.theme[key] || "#C62828"} onChange={(e) => saveStore.mutate({ theme: { ...store.theme, [key]: e.target.value } })} />
-              </label>
-            ))}
-          </div>
-        </div>
+      <section className="mt-8 grid gap-3 md:grid-cols-4">
+        <MarketingStat icon={Sparkles} label="Hero Banners" value={heroCount} />
+        <MarketingStat icon={Upload} label="Ad Spaces" value={adCount} />
+        <MarketingStat icon={Megaphone} label="Announcements" value={activeAnnouncements} />
+        <MarketingStat icon={Ticket} label="Coupons" value={data.coupons.length} />
       </section>
 
-      <section className="mt-6 rounded-xl border border-border bg-surface p-6">
-        <h2 className="font-display text-2xl tracking-wide">Marketing moved</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Hero banners, ad spaces, announcements, push notifications and coupons are now managed from the Marketing page.</p>
+      <section className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+        <BannerManager banners={data.banners} refresh={refresh} />
+        <div className="grid gap-6">
+          <AdSpacePanel banners={data.banners} />
+          <PushNotificationPanel />
+          <ContentPanel title="Announcements" items={data.announcements} kind="announcement" refresh={refresh} />
+          <ContentPanel title="Coupons" items={data.coupons} kind="coupon" refresh={refresh} />
+        </div>
       </section>
     </div>
   );
+}
+
+function MarketingStat({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></span>
+        <span className="font-display text-3xl tracking-wide">{value}</span>
+      </div>
+      <div className="mt-3 font-display text-xs tracking-widest text-muted-foreground">{label.toUpperCase()}</div>
+    </div>
+  );
+}
+
+function AdSpacePanel({ banners }: { banners: CustomerBanner[] }) {
+  const adBanners = banners.filter((banner) => isAdBanner(banner.type));
+  return (
+    <div className="rounded-xl border border-border bg-surface p-5">
+      <h2 className="flex items-center gap-2 font-display text-xl tracking-widest"><Upload className="h-5 w-5 text-primary" /> Ad Space Settings</h2>
+      <p className="mt-2 text-sm text-muted-foreground">Create ads in the banner builder by setting badge/type to ad, brand, or sponsored.</p>
+      <div className="mt-4 grid gap-3">
+        <div className="rounded-lg border border-border bg-background p-3">
+          <div className="font-display text-xs tracking-widest text-muted-foreground">VISIBLE AREAS</div>
+          <div className="mt-2 text-sm">Order tracking bottom area, offer strips, and sponsored customer placements.</div>
+        </div>
+        <div className="rounded-lg border border-border bg-background p-3">
+          <div className="font-display text-xs tracking-widest text-muted-foreground">ACTIVE AD BANNERS</div>
+          <div className="mt-2 text-2xl font-black">{adBanners.filter((banner) => banner.active).length}</div>
+        </div>
+        <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 text-sm text-primary">
+          For brand ads, upload image/video media and use CTA links for sponsor landing pages.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PushNotificationPanel() {
+  const [title, setTitle] = useState("Ankapur Dhaba");
+  const [message, setMessage] = useState("New offer is live. Order now!");
+  const [target, setTarget] = useState("All customers");
+
+  async function sendPreview() {
+    if (!message.trim()) {
+      toast.error("Add notification message");
+      return;
+    }
+    if (!("Notification" in window)) {
+      toast.error("This browser does not support notifications");
+      return;
+    }
+    const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+    if (permission !== "granted") {
+      toast.error("Notification permission not granted");
+      return;
+    }
+    new Notification(title || "Ankapur Dhaba", { body: message, icon: "/favicon.ico" });
+    toast.success(`Preview sent to this device for ${target}`);
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-surface p-5">
+      <h2 className="flex items-center gap-2 font-display text-xl tracking-widest"><Bell className="h-5 w-5 text-primary" /> Push Notifications</h2>
+      <p className="mt-2 text-sm text-muted-foreground">Create a notification message and preview it on this admin device. Real push delivery can connect to a provider later.</p>
+      <div className="mt-4 grid gap-3">
+        <MiniInput label="Title" value={title} onChange={setTitle} />
+        <MiniInput label="Message" value={message} onChange={setMessage} />
+        <SelectField label="Target" value={target} options={["All customers", "Active orders", "Loyalty customers", "Inactive customers"]} onChange={setTarget} />
+        <button onClick={sendPreview} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 font-display text-xs tracking-widest text-primary-foreground">
+          <Bell className="h-4 w-4" /> SEND PREVIEW
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function isAdBanner(type?: string | null) {
+  return /^(ad|ads|brand|sponsored)$/i.test(type || "");
 }
 
 function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refresh: () => void }) {
