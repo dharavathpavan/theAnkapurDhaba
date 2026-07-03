@@ -88,10 +88,16 @@ function KitchenDisplaySystem() {
   const { hasRole, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (!isAuthenticated() || !hasRole("ADMIN", "KITCHEN")) navigate({ to: "/login" });
-  }, [hasRole, isAuthenticated, navigate]);
+  }, [mounted, hasRole, isAuthenticated, navigate]);
 
   const { data: orders = [], dataUpdatedAt } = useQuery({
     queryKey: ["orders"],
@@ -200,7 +206,7 @@ function KitchenDisplaySystem() {
   const stations = unique(["all", ...orders.map((o) => meta(o).station || inferStation(o))]);
   const currentPrint = printQueue[0];
 
-  if (!isAuthenticated() || !hasRole("ADMIN", "KITCHEN")) {
+  if (!mounted || !isAuthenticated() || !hasRole("ADMIN", "KITCHEN")) {
     return (
       <div className="grid min-h-screen place-items-center bg-[#121212] text-white">
         <p className="font-display text-2xl tracking-widest">OPENING KDS...</p>

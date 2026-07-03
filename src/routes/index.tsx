@@ -28,7 +28,7 @@ const categoryIcons: Record<string, string> = {
 };
 
 function Home() {
-  const { data, isLoading } = useQuery({ queryKey: ["customer-home"], queryFn: getCustomerHome, staleTime: 30_000 });
+  const { data, isLoading } = useQuery({ queryKey: ["customer-home"], queryFn: getCustomerHome, staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true });
   const [bannerIndex, setBannerIndex] = useState(0);
   const add = useCart((s) => s.add);
 

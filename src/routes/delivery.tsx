@@ -33,10 +33,16 @@ export const Route = createFileRoute("/delivery")({
 function DeliveryPortal() {
   const { hasRole, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (!isAuthenticated() || !hasRole('ADMIN', 'DELIVERY')) navigate({ to: '/login' });
-  }, [isAuthenticated, hasRole, navigate]);
-  if (!isAuthenticated() || !hasRole('ADMIN', 'DELIVERY')) {
+  }, [mounted, isAuthenticated, hasRole, navigate]);
+  if (!mounted || !isAuthenticated() || !hasRole('ADMIN', 'DELIVERY')) {
     return <div className="flex min-h-screen items-center justify-center bg-background"><p className="text-muted-foreground font-display tracking-widest">REDIRECTING...</p></div>;
   }
 

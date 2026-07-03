@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, UtensilsCrossed, ClipboardList, ArrowLeft, ChefHat, QrCode, Bike, Store, Users, ReceiptText } from "lucide-react";
 import { useAuth } from "@/stores/auth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin · Ankapur Dhaba" }, { name: "robots", content: "noindex" }] }),
@@ -24,14 +24,20 @@ function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { hasRole, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (!isAuthenticated() || !hasRole('ADMIN')) {
       navigate({ to: '/login' });
     }
-  }, [isAuthenticated, hasRole, navigate]);
+  }, [mounted, isAuthenticated, hasRole, navigate]);
 
-  if (!isAuthenticated() || !hasRole('ADMIN')) {
+  if (!mounted || !isAuthenticated() || !hasRole('ADMIN')) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-muted-foreground font-display tracking-widest">REDIRECTING...</p>

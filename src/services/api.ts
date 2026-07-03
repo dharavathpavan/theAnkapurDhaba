@@ -280,7 +280,10 @@ export interface CustomerAddress {
 }
 
 export async function getCustomerHome(): Promise<CustomerHome> {
-  const res = await fetch(`${API_BASE}/customer/home`);
+  const res = await fetch(`${API_BASE}/customer/home?t=${Date.now()}`, {
+    cache: "no-store",
+    headers: SUPABASE_PUBLISHABLE_KEY ? { apikey: SUPABASE_PUBLISHABLE_KEY } : undefined,
+  });
   if (!res.ok) throw new Error("Failed to fetch customer home");
   const data = await res.json();
   return {
