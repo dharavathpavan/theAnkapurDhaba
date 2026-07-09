@@ -89,6 +89,8 @@ export interface Order {
   updatedAt: string;
 }
 
+export type CreateOrderInput = Omit<Order, "id" | "status" | "paymentStatus" | "createdAt" | "updatedAt">;
+
 export interface DeliveryLocation {
   lat: number; lng: number; label?: string; updatedAt: string;
 }
@@ -761,9 +763,7 @@ export async function getOrder(id: string): Promise<Order | null> {
   return res.json();
 }
 
-export async function createOrder(
-  input: Omit<Order, "id" | "status" | "paymentStatus" | "createdAt" | "updatedAt">
-): Promise<Order> {
+export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const res = await apiFetch(`${API_BASE}/orders`, { method: "POST", body: JSON.stringify(input) });
   if (!res.ok) {
     const json = await res.json().catch(() => ({}));
@@ -772,15 +772,15 @@ export async function createOrder(
   return res.json();
 }
 
-export async function createCashfreePaymentSession(orderId: string): Promise<{ orderId: string; paymentSessionId?: string; mode: "sandbox" | "production"; alreadyPaid?: boolean; order?: Order }> {
-  const res = await apiFetch(`${API_BASE}/payments/cashfree/session`, { method: "POST", body: JSON.stringify({ orderId }) });
+export async function createCashfreePaymentSession(order: CreateOrderInput): Promise<{ orderId: string; paymentSessionId?: string; mode: "sandbox" | "production"; alreadyPaid?: boolean; order?: Order }> {
+  const res = await apiFetch(`${API_BASE}/payments/cashfree/session`, { method: "POST", body: JSON.stringify({ order }) });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to start Cashfree payment");
   return json;
 }
 
-export async function verifyCashfreePayment(orderId: string): Promise<{ status: string; order: Order }> {
-  const res = await apiFetch(`${API_BASE}/payments/cashfree/verify/${orderId}`, { method: "POST" });
+export async function verifyCashfreePayment(orderId: string, order?: CreateOrderInput): Promise<{ status: string; order: Order | null }> {
+  const res = await apiFetch(`${API_BASE}/payments/cashfree/verify/${orderId}`, { method: "POST", body: JSON.stringify({ order }) });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to verify Cashfree payment");
   return json;

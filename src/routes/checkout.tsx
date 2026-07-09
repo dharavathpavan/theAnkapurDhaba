@@ -7,6 +7,7 @@ import { createCashfreePaymentSession, createOrder, createCustomerAddress, getCu
 import { useAuth } from "@/stores/auth";
 import { useCart } from "@/stores/cart";
 import { saveActiveOrder } from "@/stores/active-order";
+import type { CreateOrderInput } from "@/services/api";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout - Ankapur Dhaba" }] }),
@@ -76,7 +77,7 @@ function CheckoutPage() {
       if (savingAddress && isAuthenticated() && type === "delivery" && enteredAddress) {
         await createCustomerAddress({ id: "", label: "Home", name, phone, address: enteredAddress, landmark: String(fd.get("landmark") || ""), notes: String(fd.get("notes") || ""), isDefault: addresses.length === 0 });
       }
-      const order = await createOrder({
+      const orderInput: CreateOrderInput = {
         items,
         subtotal,
         tax,
@@ -92,18 +93,23 @@ function CheckoutPage() {
         type,
         tableNumber: tableNumber ?? undefined,
         paymentMethod,
-      });
+      };
+      let order;
       if (paymentMethod === "cashfree") {
-        const session = await createCashfreePaymentSession(order.id);
+        const session = await createCashfreePaymentSession(orderInput);
         if (!session.alreadyPaid) {
           if (!session.paymentSessionId) throw new Error("Cashfree payment session was not created");
           await openCashfreeCheckout(session.paymentSessionId, session.mode);
         }
-        const verified = await verifyCashfreePayment(order.id);
+        const verified = await verifyCashfreePayment(session.orderId, orderInput);
         if (String(verified.status).toUpperCase() !== "PAID") {
-          toast.error("Payment is not complete yet. You can retry from checkout.");
+          toast.error("Payment is not complete. Order was not placed.");
           return;
         }
+        if (!verified.order) throw new Error("Payment verified but order was not created");
+        order = verified.order;
+      } else {
+        order = await createOrder(orderInput);
       }
       clear();
       saveActiveOrder(order.id);
