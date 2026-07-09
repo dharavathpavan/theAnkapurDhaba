@@ -5,7 +5,7 @@ import { LogIn, UtensilsCrossed, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 import type { UserRole, AuthUser } from '@/stores/auth';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+const API_BASE = 'http://localhost:4000/api';
 
 export const Route = createFileRoute('/login')({
   head: () => ({ meta: [{ title: 'Login · Ankapur Dhaba' }] }),
@@ -143,7 +143,7 @@ function redirectFor(role: UserRole): string {
   switch (role) {
     case 'ADMIN': return '/admin';
     case 'KITCHEN': return '/kitchen';
-    case 'DELIVERY': return '/delivery';
+    case 'DELIVERY': return '/restaurant/delivery';
     default: return '/';
   }
 }

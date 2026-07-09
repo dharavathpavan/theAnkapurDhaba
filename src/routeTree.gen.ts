@@ -26,6 +26,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 import { Route as TTableIdRouteImport } from './routes/t.$tableId'
+import { Route as RestaurantDeliveryRouteImport } from './routes/restaurant.delivery'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders.$orderId'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTablesRouteImport } from './routes/admin.tables'
@@ -120,6 +121,11 @@ const TTableIdRoute = TTableIdRouteImport.update({
   path: '/t/$tableId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RestaurantDeliveryRoute = RestaurantDeliveryRouteImport.update({
+  id: '/restaurant/delivery',
+  path: '/restaurant/delivery',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
   id: '/$orderId',
   path: '/$orderId',
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/admin/tables': typeof AdminTablesRoute
   '/admin/users': typeof AdminUsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/restaurant/delivery': typeof RestaurantDeliveryRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -210,6 +217,7 @@ export interface FileRoutesByTo {
   '/admin/tables': typeof AdminTablesRoute
   '/admin/users': typeof AdminUsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/restaurant/delivery': typeof RestaurantDeliveryRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin': typeof AdminIndexRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/admin/tables': typeof AdminTablesRoute
   '/admin/users': typeof AdminUsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
+  '/restaurant/delivery': typeof RestaurantDeliveryRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -267,6 +276,7 @@ export interface FileRouteTypes {
     | '/admin/tables'
     | '/admin/users'
     | '/orders/$orderId'
+    | '/restaurant/delivery'
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/admin/tables'
     | '/admin/users'
     | '/orders/$orderId'
+    | '/restaurant/delivery'
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin'
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | '/admin/tables'
     | '/admin/users'
     | '/orders/$orderId'
+    | '/restaurant/delivery'
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
@@ -340,6 +352,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   SignupRoute: typeof SignupRoute
   TrackRoute: typeof TrackRouteWithChildren
+  RestaurantDeliveryRoute: typeof RestaurantDeliveryRoute
   TTableIdRoute: typeof TTableIdRoute
 }
 
@@ -464,6 +477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TTableIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/restaurant/delivery': {
+      id: '/restaurant/delivery'
+      path: '/restaurant/delivery'
+      fullPath: '/restaurant/delivery'
+      preLoaderRoute: typeof RestaurantDeliveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orders/$orderId': {
       id: '/orders/$orderId'
       path: '/$orderId'
@@ -583,6 +603,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   SignupRoute: SignupRoute,
   TrackRoute: TrackRouteWithChildren,
+  RestaurantDeliveryRoute: RestaurantDeliveryRoute,
   TTableIdRoute: TTableIdRoute,
 }
 export const routeTree = rootRouteImport

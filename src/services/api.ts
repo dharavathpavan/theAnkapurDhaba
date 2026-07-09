@@ -92,11 +92,25 @@ export interface Order {
 export type CreateOrderInput = Omit<Order, "id" | "status" | "paymentStatus" | "createdAt" | "updatedAt">;
 
 export interface DeliveryLocation {
-  lat: number; lng: number; label?: string; updatedAt: string;
+  lat: number; lng: number; label?: string; updatedAt?: string;
 }
 
 export interface DeliveryDetails {
   partnerName?: string; partnerPhone?: string; vehicleNumber?: string;
+  assignedRiderId?: string;
+  assignedRiderName?: string;
+  reservedBy?: string;
+  reservedByName?: string;
+  reservedAt?: string;
+  reserveExpiresAt?: string | null;
+  pickupPin?: string;
+  deliveryOtp?: string;
+  deliveryStage?: "reserved" | "heading_to_restaurant" | "arrived_restaurant" | "on_the_way" | "nearby" | "almost_there" | "outside" | "delivered" | string;
+  arrivedRestaurantAt?: string;
+  pickupVerifiedAt?: string;
+  nearbyAt?: string;
+  almostThereAt?: string;
+  outsideAt?: string;
   etaMinutes?: number; currentLocation?: DeliveryLocation;
   orderPlacedAt?: string;
   pickedUpAt?: string;
@@ -110,6 +124,8 @@ export interface DeliveryDetails {
   distanceKm?: number;
   routeProgress?: number;
   gpsAccuracy?: number;
+  speed?: number;
+  heading?: number;
   trackingPaused?: boolean;
   prepEtaMinutes?: number;
   acceptedAt?: string;
@@ -125,6 +141,23 @@ export interface DeliveryDetails {
   expectedPickup?: string;
   managerAlert?: boolean;
   kdsNote?: string;
+  tip?: number;
+  bonus?: number;
+}
+
+export interface DeliveryProfile {
+  user: { id: string; name: string; phone: string; role: string };
+  branch: string;
+  todayDeliveries: number;
+  todayEarnings: number;
+  activeOrders: number;
+  completedOrders: number;
+  averageDeliveryTime: number;
+  rating: number;
+  acceptanceRate: number;
+  completionRate: number;
+  distanceTravelled: number;
+  bonusEarned: number;
 }
 
 export type OrderRealtimeEvent = {
@@ -796,6 +829,62 @@ export async function updateOrderDelivery(id: string, delivery: Partial<Delivery
   const res = await apiFetch(`${API_BASE}/orders/${id}/delivery`, { method: "PATCH", body: JSON.stringify(delivery) });
   if (!res.ok) throw new Error("Failed to update delivery info");
   return res.json();
+}
+
+async function deliveryRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await apiFetch(`${API_BASE}/delivery/${path}`, init);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Delivery request failed");
+  return json;
+}
+
+export async function listDeliveryOrders(): Promise<Order[]> {
+  return deliveryRequest<Order[]>("orders");
+}
+
+export async function listDeliveryHistory(): Promise<Order[]> {
+  return deliveryRequest<Order[]>("history");
+}
+
+export async function getDeliveryProfile(): Promise<DeliveryProfile> {
+  return deliveryRequest<DeliveryProfile>("profile");
+}
+
+export async function reserveDeliveryOrder(orderId: string): Promise<Order> {
+  return deliveryRequest<Order>("reserve", { method: "POST", body: JSON.stringify({ orderId }) });
+}
+
+export async function pickDeliveryOrder(
+  orderId: string,
+  input: Partial<DeliveryDetails> & { currentLocation?: DeliveryLocation } = {},
+): Promise<Order> {
+  return deliveryRequest<Order>("pick", { method: "POST", body: JSON.stringify({ orderId, ...input }) });
+}
+
+export async function verifyDeliveryPickup(orderId: string, pickupPin: string): Promise<Order> {
+  return deliveryRequest<Order>("pickup-verify", { method: "POST", body: JSON.stringify({ orderId, pickupPin }) });
+}
+
+export async function completeDeliveryOrder(
+  orderId: string,
+  deliveryOtp: string,
+  input: Partial<DeliveryDetails> & { currentLocation?: DeliveryLocation } = {},
+): Promise<Order> {
+  return deliveryRequest<Order>("deliver", { method: "POST", body: JSON.stringify({ orderId, deliveryOtp, ...input }) });
+}
+
+export async function updateDeliveryLocation(
+  orderId: string,
+  input: Partial<DeliveryDetails> & { currentLocation: DeliveryLocation },
+): Promise<Order> {
+  return deliveryRequest<Order>("location", { method: "PUT", body: JSON.stringify({ orderId, ...input }) });
+}
+
+export async function updateDeliveryPortalStatus(
+  orderId: string,
+  input: Pick<DeliveryDetails, "deliveryStage" | "delayReason" | "etaMinutes">,
+): Promise<Order> {
+  return deliveryRequest<Order>("status", { method: "POST", body: JSON.stringify({ orderId, ...input }) });
 }
 
 export async function updateOrderKds(
