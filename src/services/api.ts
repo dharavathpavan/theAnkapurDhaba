@@ -54,7 +54,7 @@ export type OrderStatus =
   | "out_for_delivery" | "delivered" | "cancelled";
 
 export type OrderType = "delivery" | "pickup" | "dinein";
-export type PaymentMethod = "cod" | "upi" | "razorpay";
+export type PaymentMethod = "cod" | "upi" | "cashfree" | "razorpay";
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
 export interface OrderItem {
@@ -770,6 +770,20 @@ export async function createOrder(
     throw new Error(json.error || "Failed to create order");
   }
   return res.json();
+}
+
+export async function createCashfreePaymentSession(orderId: string): Promise<{ orderId: string; paymentSessionId?: string; mode: "sandbox" | "production"; alreadyPaid?: boolean; order?: Order }> {
+  const res = await apiFetch(`${API_BASE}/payments/cashfree/session`, { method: "POST", body: JSON.stringify({ orderId }) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to start Cashfree payment");
+  return json;
+}
+
+export async function verifyCashfreePayment(orderId: string): Promise<{ status: string; order: Order }> {
+  const res = await apiFetch(`${API_BASE}/payments/cashfree/verify/${orderId}`, { method: "POST" });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to verify Cashfree payment");
+  return json;
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {

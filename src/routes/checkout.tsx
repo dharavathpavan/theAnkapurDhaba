@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { CheckCircle2, CreditCard, Home, MapPin, Plus, Ticket, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { createOrder, createCustomerAddress, getCustomerHome, getCustomerLoyalty, listCustomerAddresses, listCustomerCoupons, validateCustomerCoupon, type OrderType, type PaymentMethod } from "@/services/api";
+import { createCashfreePaymentSession, createOrder, createCustomerAddress, getCustomerHome, getCustomerLoyalty, listCustomerAddresses, listCustomerCoupons, validateCustomerCoupon, verifyCashfreePayment, type OrderType, type PaymentMethod } from "@/services/api";
 import { useAuth } from "@/stores/auth";
 import { useCart } from "@/stores/cart";
 import { saveActiveOrder } from "@/stores/active-order";
@@ -93,6 +93,18 @@ function CheckoutPage() {
         tableNumber: tableNumber ?? undefined,
         paymentMethod,
       });
+      if (paymentMethod === "cashfree") {
+        const session = await createCashfreePaymentSession(order.id);
+        if (!session.alreadyPaid) {
+          if (!session.paymentSessionId) throw new Error("Cashfree payment session was not created");
+          await openCashfreeCheckout(session.paymentSessionId, session.mode);
+        }
+        const verified = await verifyCashfreePayment(order.id);
+        if (String(verified.status).toUpperCase() !== "PAID") {
+          toast.error("Payment is not complete yet. You can retry from checkout.");
+          return;
+        }
+      }
       clear();
       saveActiveOrder(order.id);
       setSuccessId(order.id);
@@ -156,7 +168,7 @@ function CheckoutPage() {
               {([
                 ["cod", "Cash"],
                 ["upi", "UPI"],
-                ["razorpay", "Card"],
+                ["cashfree", "Card / UPI"],
               ] as Array<[PaymentMethod, string]>).map(([value, label]) => (
                 <button key={value} type="button" onClick={() => setPaymentMethod(value)} className={`min-h-16 rounded-2xl px-4 text-left font-black ${paymentMethod === value ? "bg-green-600 text-white" : "bg-zinc-100 text-zinc-700"}`}>
                   <CreditCard className="mb-1 h-5 w-5" /> {label}
@@ -232,4 +244,39 @@ function Field({ name, label, defaultValue, placeholder, inputMode }: { name: st
 
 function Row({ label, value }: { label: string; value: string }) {
   return <div className="flex justify-between"><dt className="text-zinc-500">{label}</dt><dd className="font-bold">{value}</dd></div>;
+}
+
+declare global {
+  interface Window {
+    Cashfree?: (options: { mode: "sandbox" | "production" }) => {
+      checkout: (options: { paymentSessionId: string; redirectTarget: "_modal" | "_self" | "_top" | "_blank" }) => Promise<{ error?: unknown; redirect?: boolean; paymentDetails?: unknown }>;
+    };
+    __cashfreeScriptLoading?: Promise<void>;
+  }
+}
+
+async function loadCashfreeScript() {
+  if (typeof window === "undefined") throw new Error("Cashfree checkout is available only in browser");
+  if (window.Cashfree) return;
+  if (!window.__cashfreeScriptLoading) {
+    window.__cashfreeScriptLoading = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Unable to load Cashfree checkout"));
+      document.head.appendChild(script);
+    });
+  }
+  await window.__cashfreeScriptLoading;
+  if (!window.Cashfree) throw new Error("Cashfree checkout did not initialize");
+}
+
+async function openCashfreeCheckout(paymentSessionId: string, mode: "sandbox" | "production") {
+  await loadCashfreeScript();
+  const cashfree = window.Cashfree?.({ mode });
+  if (!cashfree) throw new Error("Cashfree checkout is unavailable");
+  const result = await cashfree.checkout({ paymentSessionId, redirectTarget: "_modal" });
+  if (result.error) throw new Error("Payment was not completed");
+  if (result.redirect) return;
 }
