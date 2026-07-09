@@ -5,7 +5,8 @@ import { LogIn, UtensilsCrossed, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 import type { UserRole, AuthUser } from '@/stores/auth';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
 
 export const Route = createFileRoute('/login')({
   head: () => ({ meta: [{ title: 'Login · Ankapur Dhaba' }] }),
@@ -34,7 +35,10 @@ function LoginPage() {
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(SUPABASE_PUBLISHABLE_KEY ? { apikey: SUPABASE_PUBLISHABLE_KEY } : {}),
+        },
         body: JSON.stringify({ phone, password }),
       });
       const data = await res.json();
