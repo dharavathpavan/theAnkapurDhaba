@@ -29,6 +29,7 @@ import {
   listDeliveryOrders,
   pickDeliveryOrder,
   reserveDeliveryOrder,
+  updateOrderDelivery,
   updateDeliveryLocation,
   updateDeliveryPortalStatus,
   verifyDeliveryPickup,
@@ -288,6 +289,7 @@ function ActiveTrip({ order, online, gpsState, lastPosition, onDone }: { order: 
 
 function DeliveryOrderCard({ order, mode, online, onDone }: { order: Order; mode: "available" | "mine" | "history"; online: boolean; onDone: () => Promise<void> }) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [pickupPin, setPickupPin] = useState("");
   const [deliveryOtp, setDeliveryOtp] = useState("");
   const [partnerName, setPartnerName] = useState(order.delivery?.partnerName || "");
@@ -311,7 +313,26 @@ function DeliveryOrderCard({ order, mode, online, onDone }: { order: Order; mode
   });
 
   const pick = useMutation({
-    mutationFn: () => pickDeliveryOrder(order.id, { partnerName, partnerPhone, vehicleNumber, currentLocation: manualLocation(manualLat, manualLng) }),
+    mutationFn: () => {
+      if (order.status === "out_for_delivery") {
+        const now = new Date().toISOString();
+        return updateOrderDelivery(order.id, {
+          assignedRiderId: user?.id,
+          assignedRiderName: user?.name || partnerName || "Delivery Partner",
+          partnerName: partnerName || user?.name || "Delivery Partner",
+          partnerPhone: partnerPhone || user?.phone,
+          vehicleNumber: vehicleNumber || order.delivery?.vehicleNumber,
+          pickedUpAt: order.delivery?.pickedUpAt || now,
+          pickupVerifiedAt: order.delivery?.pickupVerifiedAt || now,
+          deliveryStage: "on_the_way",
+          deliveryOtp: order.delivery?.deliveryOtp || generateOtp(),
+          routeProgress: Math.max(Number(order.delivery?.routeProgress || 0), 0.35),
+          trackingPaused: false,
+          currentLocation: manualLocation(manualLat, manualLng),
+        });
+      }
+      return pickDeliveryOrder(order.id, { partnerName, partnerPhone, vehicleNumber, currentLocation: manualLocation(manualLat, manualLng) });
+    },
     onSuccess: async () => {
       toast.success("Order assigned. Head to restaurant.");
       await refresh();
@@ -684,6 +705,10 @@ function reserveSeconds(order: Order) {
   const expires = order.delivery?.reserveExpiresAt;
   if (!expires) return 0;
   return Math.max(0, Math.ceil((new Date(expires).getTime() - Date.now()) / 1000));
+}
+
+function generateOtp() {
+  return String(Math.floor(1000 + Math.random() * 9000));
 }
 
 function manualLocation(lat: string, lng: string): DeliveryLocation | undefined {
