@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listOrders, updateOrderDelivery, updateOrderStatus, type Order, type OrderStatus } from "@/services/api";
+import { listOrders, listStaff, updateOrderDelivery, updateOrderStatus, type Order, type OrderStatus, type StaffUser } from "@/services/api";
 import { StatusPill } from "./admin.index";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -23,6 +23,7 @@ function AdminOrders() {
   useOrderRealtime();
   const qc = useQueryClient();
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: listOrders, refetchInterval: 4000 });
+  const { data: staff = [] } = useQuery({ queryKey: ["staff"], queryFn: listStaff, refetchInterval: 10000 });
   const [showAll, setShowAll] = useState(false);
 
   const visible = showAll ? orders : orders.filter((o) => !["delivered", "cancelled"].includes(o.status));
@@ -91,6 +92,10 @@ function AdminOrders() {
                     <DeliveryMap order={o} compact />
                     <ManualLocationEditor order={o} />
                   </div>
+                )}
+
+                {o.type === "delivery" && ["ready", "out_for_delivery"].includes(o.status) && (
+                  <DeliveryPartnerAssigner order={o} orders={orders} staff={staff} />
                 )}
 
                 <div className="mt-3 border-t border-border pt-3 text-sm">
@@ -190,4 +195,129 @@ function ManualLocationEditor({ order }: { order: Order }) {
       </button>
     </div>
   );
+}
+
+function DeliveryPartnerAssigner({ order, orders, staff }: { order: Order; orders: Order[]; staff: StaffUser[] }) {
+  const qc = useQueryClient();
+  const riders = staff.filter((member) => member.role === "DELIVERY");
+  const assignedId = order.delivery?.assignedRiderId || "";
+  const [riderId, setRiderId] = useState(assignedId);
+  const [saving, setSaving] = useState(false);
+  const selectedRider = riders.find((rider) => rider.id === riderId);
+
+  async function assign() {
+    if (!selectedRider) {
+      toast.error("Select a delivery partner");
+      return;
+    }
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const alreadyPicked = order.status === "out_for_delivery";
+      await updateOrderDelivery(order.id, {
+        assignedRiderId: selectedRider.id,
+        assignedRiderName: selectedRider.name,
+        partnerName: selectedRider.name,
+        partnerPhone: selectedRider.phone,
+        pickupPin: order.delivery?.pickupPin || generateCode(),
+        deliveryOtp: order.delivery?.deliveryOtp || generateCode(),
+        deliveryStage: alreadyPicked ? "on_the_way" : "heading_to_restaurant",
+        reservedBy: selectedRider.id,
+        reservedByName: selectedRider.name,
+        reservedAt: order.delivery?.reservedAt || now,
+        reserveExpiresAt: null,
+        pickedUpAt: alreadyPicked ? order.delivery?.pickedUpAt || now : order.delivery?.pickedUpAt,
+        pickupVerifiedAt: alreadyPicked ? order.delivery?.pickupVerifiedAt || now : order.delivery?.pickupVerifiedAt,
+        routeProgress: Math.max(Number(order.delivery?.routeProgress || 0), alreadyPicked ? 0.35 : 0.12),
+        trackingPaused: false,
+      });
+      await qc.invalidateQueries({ queryKey: ["orders"] });
+      toast.success(`Assigned to ${selectedRider.name}`);
+    } catch {
+      toast.error("Couldn't assign delivery partner");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-border bg-background/60 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div>
+          <p className="font-display text-xs tracking-widest text-muted-foreground">DELIVERY PARTNER</p>
+          {order.delivery?.assignedRiderName && (
+            <p className="mt-1 text-sm font-semibold text-foreground">Assigned: {order.delivery.assignedRiderName}</p>
+          )}
+        </div>
+        {order.delivery?.assignedRiderId && <span className="rounded-full bg-veg/10 px-2 py-1 text-[10px] font-bold uppercase text-veg">Assigned</span>}
+      </div>
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <select
+          value={riderId}
+          onChange={(event) => setRiderId(event.target.value)}
+          className="rounded-md border border-input bg-background px-3 py-2 text-xs outline-none focus:border-primary"
+        >
+          <option value="">Select online / active rider</option>
+          {riders
+            .slice()
+            .sort((a, b) => riderRank(a, orders) - riderRank(b, orders))
+            .map((rider) => {
+              const status = riderStatus(rider, orders);
+              return (
+                <option key={rider.id} value={rider.id}>
+                  {rider.name} - {rider.phone} - {status.label}
+                </option>
+              );
+            })}
+        </select>
+        <button
+          disabled={saving || !riderId}
+          onClick={assign}
+          className="rounded-md bg-primary px-4 py-2 font-display text-xs tracking-widest text-primary-foreground hover:bg-primary-glow disabled:opacity-50"
+        >
+          ASSIGN
+        </button>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {riders.slice(0, 6).map((rider) => {
+          const status = riderStatus(rider, orders);
+          return (
+            <button
+              key={rider.id}
+              type="button"
+              onClick={() => setRiderId(rider.id)}
+              className={`rounded-full border px-2 py-1 text-[10px] font-bold uppercase ${status.className}`}
+            >
+              {rider.name}: {status.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function riderStatus(rider: StaffUser, orders: Order[]) {
+  const active = orders.find((order) => order.delivery?.assignedRiderId === rider.id && !["delivered", "cancelled"].includes(order.status));
+  if (active) return { label: `Online ${active.status.replace(/_/g, " ")}`, className: "border-veg/30 bg-veg/10 text-veg" };
+  const lastTracked = orders
+    .filter((order) => order.delivery?.assignedRiderId === rider.id || order.delivery?.partnerPhone === rider.phone)
+    .map((order) => order.delivery?.lastLocationAt || order.delivery?.currentLocation?.updatedAt)
+    .filter(Boolean)
+    .map((value) => new Date(String(value)).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a)[0];
+  if (lastTracked && Date.now() - lastTracked < 15 * 60 * 1000) return { label: "Recently online", className: "border-accent/30 bg-accent/10 text-accent" };
+  return { label: "Available", className: "border-border bg-surface text-muted-foreground" };
+}
+
+function riderRank(rider: StaffUser, orders: Order[]) {
+  const status = riderStatus(rider, orders).label;
+  if (status.startsWith("Online")) return 0;
+  if (status === "Recently online") return 1;
+  return 2;
+}
+
+function generateCode() {
+  return String(Math.floor(1000 + Math.random() * 9000));
 }
