@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isStaff = pathname.startsWith("/admin") || pathname.startsWith("/kitchen") || pathname.startsWith("/delivery");
+  const isStaff = pathname.startsWith("/admin") || pathname.startsWith("/kitchen") || pathname.startsWith("/delivery") || pathname.startsWith("/restaurant/delivery");
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;

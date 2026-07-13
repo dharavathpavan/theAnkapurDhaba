@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Heart, Home, Package, Search, ShoppingBag, User, UtensilsCrossed } from "lucide-react";
+import { Heart, Home, Mail, MapPin, Package, Phone, Search, ShieldCheck, ShoppingBag, User, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "@/stores/auth";
 import { useCart, selectCartCount, selectCartSubtotal } from "@/stores/cart";
 import { useCustomerRealtime } from "@/hooks/use-customer-realtime";
@@ -11,6 +11,22 @@ const NAV = [
   { to: "/orders", label: "Orders", icon: Package },
   { to: "/favorites", label: "Favorites", icon: Heart },
   { to: "/profile", label: "Profile", icon: User },
+];
+
+const QUICK_LINKS = [
+  { to: "/", label: "Home" },
+  { to: "/menu", label: "Menu" },
+  { to: "/orders", label: "Orders" },
+  { to: "/cart", label: "Cart" },
+  { to: "/profile", label: "Profile" },
+];
+
+const LEGAL_LINKS = [
+  { to: "/privacy-policy", label: "Privacy Policy" },
+  { to: "/terms-and-conditions", label: "Terms & Conditions" },
+  { to: "/cancellation-refund-policy", label: "Cancellation & Refund" },
+  { to: "/shipping-delivery-policy", label: "Shipping & Delivery" },
+  { to: "/contact-us", label: "Contact Us" },
 ];
 
 export function CustomerShell({ children }: { children: React.ReactNode }) {
@@ -27,9 +43,9 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-40 hidden border-b border-white/60 bg-white/82 shadow-[0_12px_40px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:block">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <Link to="/" className="flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-red-600 font-black text-white shadow-lg shadow-red-600/25">AD</span>
+            <img src="/the-ankapure-dhaba-logo.png" alt="The Ankapure Dhaba logo" className="h-11 w-11 rounded-2xl object-cover shadow-lg shadow-red-600/20" />
             <span>
-              <span className="block text-[11px] font-black uppercase tracking-[0.24em] text-red-600">Ankapur Dhaba</span>
+              <span className="block text-[11px] font-black uppercase tracking-[0.24em] text-red-600">The Ankapure Dhaba</span>
               <span className="block text-sm font-semibold text-zinc-500">Telangana classics delivered hot</span>
             </span>
           </Link>
@@ -64,7 +80,9 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="min-h-screen pb-36 md:pb-10">{children}</main>
+      <main className="min-h-screen pb-16 md:pb-10">{children}</main>
+
+      <CustomerFooter />
 
       {showLiveOrder && order && (
         <Link
@@ -119,5 +137,74 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
     </div>
+  );
+}
+
+function CustomerFooter() {
+  return (
+    <footer className="border-t border-zinc-200 bg-zinc-950 px-4 pb-32 pt-10 text-white md:px-6 md:pb-10">
+      <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1fr]">
+        <section>
+          <Link to="/" className="inline-flex items-center gap-3">
+            <img src="/the-ankapure-dhaba-logo.png" alt="The Ankapure Dhaba logo" className="h-16 w-16 rounded-3xl object-cover ring-1 ring-white/10" />
+            <span>
+              <span className="block text-xl font-black tracking-tight">The Ankapure Dhaba</span>
+              <span className="block text-xs font-black uppercase tracking-[0.22em] text-red-300">Fresh food ordering</span>
+            </span>
+          </Link>
+          <p className="mt-5 max-w-sm text-sm leading-6 text-white/65">
+            Order Telangana classics, biryani, starters, breads and family meals from The Ankapure Dhaba. Built for secure checkout, live order tracking, pickup, dine-in and self delivery.
+          </p>
+          <div className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-200">
+            <ShieldCheck className="h-4 w-4" />
+            Secure payments via Cashfree, UPI, cards and COD where available
+          </div>
+        </section>
+
+        <FooterLinkGroup title="Explore" links={QUICK_LINKS} />
+        <FooterLinkGroup title="Legal" links={LEGAL_LINKS} />
+
+        <section>
+          <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/45">Restaurant Info</h2>
+          <div className="mt-4 grid gap-3 text-sm text-white/70">
+            <a href="tel:+919000000000" className="flex items-start gap-3 hover:text-white">
+              <Phone className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
+              +91 90000 00000
+            </a>
+            <a href="mailto:support@theankapuredhaba.com" className="flex items-start gap-3 break-all hover:text-white">
+              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
+              support@theankapuredhaba.com
+            </a>
+            <p className="flex items-start gap-3">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
+              Ankapur Village, Nizamabad District, Telangana 503217
+            </p>
+            <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 font-semibold text-white/80">
+              Open daily: 10:00 AM to 11:00 PM
+            </p>
+          </div>
+        </section>
+      </div>
+
+      <div className="mx-auto mt-8 flex max-w-7xl flex-col gap-3 border-t border-white/10 pt-5 text-xs font-semibold text-white/45 md:flex-row md:items-center md:justify-between">
+        <p>© {new Date().getFullYear()} The Ankapure Dhaba. All rights reserved.</p>
+        <p>Food images are for representation. Prices, taxes, delivery charges and availability may change.</p>
+      </div>
+    </footer>
+  );
+}
+
+function FooterLinkGroup({ title, links }: { title: string; links: { to: string; label: string }[] }) {
+  return (
+    <section>
+      <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/45">{title}</h2>
+      <nav className="mt-4 grid gap-3">
+        {links.map((link) => (
+          <Link key={link.to} to={link.to} className="text-sm font-bold text-white/70 transition hover:text-white">
+            {link.label}
+          </Link>
+        ))}
+      </nav>
+    </section>
   );
 }
