@@ -8,6 +8,7 @@ import { useAuth } from "@/stores/auth";
 import { useCart } from "@/stores/cart";
 import { saveActiveOrder } from "@/stores/active-order";
 import type { CreateOrderInput } from "@/services/api";
+import { buildOrderItemName } from "@/lib/order-items";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout - Ankapur Dhaba" }] }),
@@ -43,7 +44,7 @@ function CheckoutPage() {
 
   const items = useMemo(() => lines.map((line) => ({
     id: line.id,
-    name: line.name,
+    name: buildOrderItemName(line),
     price: line.price,
     qty: line.qty,
     isVeg: line.isVeg,
@@ -71,6 +72,7 @@ function CheckoutPage() {
     const enteredAddress = String(fd.get("address") || "").trim();
     if (!name || !/^[6-9]\d{9}$/.test(phone)) return toast.error("Enter valid customer details");
     if (type === "delivery" && !address && enteredAddress.length < 5) return toast.error("Delivery address is required");
+    if (type === "delivery" && subtotal < (home?.store.minimumOrder ?? 0)) return toast.error(`Minimum delivery order is ₹${home?.store.minimumOrder ?? 0}`);
 
     setSubmitting(true);
     try {
@@ -172,15 +174,15 @@ function CheckoutPage() {
           <Panel title="Payment">
             <div className="grid gap-2 md:grid-cols-3">
               {([
-                ["cod", "Cash"],
-                ["upi", "UPI"],
-                ["cashfree", "Card / UPI"],
+                ["cod", "Cash on Delivery"],
+                ["cashfree", "UPI / Card / Wallet"],
               ] as Array<[PaymentMethod, string]>).map(([value, label]) => (
                 <button key={value} type="button" onClick={() => setPaymentMethod(value)} className={`min-h-16 rounded-2xl px-4 text-left font-black ${paymentMethod === value ? "bg-green-600 text-white" : "bg-zinc-100 text-zinc-700"}`}>
                   <CreditCard className="mb-1 h-5 w-5" /> {label}
                 </button>
               ))}
             </div>
+            <p className="mt-3 text-sm font-semibold text-zinc-500">Online orders are placed only after Cashfree confirms successful payment.</p>
           </Panel>
 
           <Panel title="Order notes">
@@ -219,7 +221,7 @@ function CheckoutPage() {
           </dl>
           <div className="my-4 border-t border-zinc-200" />
           <div className="flex items-center justify-between"><span className="text-lg font-black">To pay</span><span className="text-3xl font-black text-red-600">₹{total}</span></div>
-          <button disabled={submitting || home?.store.status === "offline"} className="mt-5 min-h-14 w-full rounded-3xl bg-red-600 font-black text-white disabled:bg-zinc-300">{submitting ? "Placing..." : "Place order"}</button>
+          <button disabled={submitting || home?.store.status === "offline" || (type === "delivery" && subtotal < (home?.store.minimumOrder ?? 0))} className="mt-5 min-h-14 w-full rounded-3xl bg-red-600 font-black text-white disabled:bg-zinc-300">{submitting ? "Placing..." : paymentMethod === "cashfree" ? "Pay & place order" : "Place order"}</button>
         </aside>
       </form>
 

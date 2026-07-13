@@ -1,9 +1,11 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Package, RotateCcw } from "lucide-react";
 import { listMyOrders } from "@/services/api";
 import { useOrderRealtime } from "@/hooks/use-order-realtime";
 import { useActiveOrderTracking } from "@/stores/active-order";
+import { useCart } from "@/stores/cart";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/orders")({
   head: () => ({ meta: [{ title: "Orders - Ankapur Dhaba" }] }),
@@ -12,6 +14,8 @@ export const Route = createFileRoute("/orders")({
 
 function OrdersPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const navigate = useNavigate();
+  const add = useCart((state) => state.add);
   useOrderRealtime();
   const { order: activeOrder } = useActiveOrderTracking();
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["my-orders"], queryFn: listMyOrders, refetchInterval: 5000 });
@@ -40,15 +44,15 @@ function OrdersPage() {
               </div>
             </Link>
           )}
-          <OrderGroup title="Current orders" orders={current} />
-          <OrderGroup title="Order history" orders={past} />
+          <OrderGroup title="Current orders" orders={current} onReorder={(order) => reorder(order, add, navigate)} />
+          <OrderGroup title="Order history" orders={past} onReorder={(order) => reorder(order, add, navigate)} />
         </div>
       )}
     </div>
   );
 }
 
-function OrderGroup({ title, orders }: { title: string; orders: Awaited<ReturnType<typeof listMyOrders>> }) {
+function OrderGroup({ title, orders, onReorder }: { title: string; orders: Awaited<ReturnType<typeof listMyOrders>>; onReorder: (order: Awaited<ReturnType<typeof listMyOrders>>[number]) => void }) {
   if (!orders.length) return null;
   return (
     <section>
@@ -66,13 +70,36 @@ function OrderGroup({ title, orders }: { title: string; orders: Awaited<ReturnTy
             <div className="mt-4 text-sm text-zinc-600">{order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}</div>
             <div className="mt-4 flex items-center justify-between">
               <span className="text-2xl font-black">₹{order.total}</span>
-              <Link to="/menu" className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-4 py-2 text-sm font-black text-red-600"><RotateCcw className="h-4 w-4" /> Reorder</Link>
+              <button onClick={() => onReorder(order)} className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-4 py-2 text-sm font-black text-red-600"><RotateCcw className="h-4 w-4" /> Reorder</button>
             </div>
           </article>
         ))}
       </div>
     </section>
   );
+}
+
+function reorder(
+  order: Awaited<ReturnType<typeof listMyOrders>>[number],
+  add: ReturnType<typeof useCart.getState>["add"],
+  navigate: ReturnType<typeof useNavigate>,
+) {
+  order.items.forEach((item) => {
+    const menuItem = {
+      id: item.id,
+      name: item.name,
+      description: "Reordered item",
+      price: item.price,
+      category: "Reorder",
+      image: "/logo-192.png",
+      isVeg: item.isVeg,
+      spiceLevel: 1,
+      available: true,
+    };
+    for (let i = 0; i < item.qty; i += 1) add(menuItem);
+  });
+  toast.success("Previous order added to cart");
+  navigate({ to: "/cart" });
 }
 
 function Empty() {

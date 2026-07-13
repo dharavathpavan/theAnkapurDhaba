@@ -63,6 +63,10 @@ export interface OrderItem {
   price: number;
   qty: number;
   isVeg: boolean;
+  size?: string;
+  addons?: Array<{ id?: string; name: string; price?: number }>;
+  variants?: Array<{ group: string; option: string; price?: number }>;
+  instructions?: string;
 }
 
 export interface Order {
