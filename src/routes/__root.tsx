@@ -11,6 +11,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { getFirebaseAnalytics } from "../lib/firebase";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CustomerShell } from "@/components/site/CustomerShell";
 import { Toaster } from "@/components/ui/sonner";
@@ -125,6 +126,10 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isStaff = pathname.startsWith("/admin") || pathname.startsWith("/kitchen") || pathname.startsWith("/delivery") || pathname.startsWith("/restaurant/delivery");
+
+  useEffect(() => {
+    void getFirebaseAnalytics();
+  }, []);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
