@@ -104,7 +104,7 @@ function EnterpriseDeliveryPortal() {
     () =>
       orders.filter((order) => {
         const delivery = order.delivery || {};
-        return order.status === "ready" && !delivery.assignedRiderId && (!delivery.reservedBy || reservationExpired(order));
+        return (order.status === "ready" || order.status === "out_for_delivery") && !delivery.assignedRiderId && (!delivery.reservedBy || reservationExpired(order));
       }),
     [orders],
   );
@@ -229,7 +229,7 @@ function EnterpriseDeliveryPortal() {
         )}
 
         {tab === "Available Orders" && (
-          <OrderGrid empty={ordersLoading ? "Loading ready orders..." : online ? "No ready delivery orders right now" : "Go online to receive delivery orders"}>
+          <OrderGrid empty={ordersLoading ? "Loading delivery orders..." : online ? "No ready or out-for-delivery orders right now" : "Go online to receive delivery orders"}>
             {available.map((order) => (
               <DeliveryOrderCard key={order.id} order={order} mode="available" online={online} onDone={invalidate} />
             ))}
