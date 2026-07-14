@@ -85,16 +85,16 @@ function Dashboard() {
         <Panel className="lg:col-span-3" title="Live Order Pipeline" action={<Link to="/admin/orders" className="text-sm font-bold text-red-600">View all</Link>}>
           <div className="grid gap-3 sm:grid-cols-5">
             {byStatus.map((item) => (
-              <div key={item.status} className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div key={item.status} className="rounded-2xl border border-border bg-background p-4">
                 <div className="text-2xl font-black">{item.count}</div>
-                <div className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500">{labelStatus(item.status)}</div>
+                <div className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">{labelStatus(item.status)}</div>
               </div>
             ))}
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             {byType.map((item) => (
-              <div key={item.type} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="text-sm font-bold capitalize text-slate-600">{item.type === "dinein" ? "Dine in" : item.type}</span>
+              <div key={item.type} className="flex items-center justify-between rounded-2xl bg-background px-4 py-3">
+                <span className="text-sm font-bold capitalize text-muted-foreground">{item.type === "dinein" ? "Dine in" : item.type}</span>
                 <span className="text-lg font-black">{item.count}</span>
               </div>
             ))}
@@ -116,21 +116,21 @@ function Dashboard() {
           {latestOrders.length === 0 ? (
             <EmptyState text="No orders yet." />
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-200">
+            <div className="overflow-hidden rounded-2xl border border-border">
               {latestOrders.map((order) => (
-                <Link key={order.id} to="/admin/orders" className="grid gap-3 border-b border-slate-100 bg-white p-4 last:border-b-0 hover:bg-red-50/50 md:grid-cols-[1fr_auto]">
+                <Link key={order.id} to="/admin/orders" className="grid gap-3 border-b border-border bg-background p-4 last:border-b-0 hover:bg-primary/10 md:grid-cols-[1fr_auto]">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-black text-red-600">#{order.id}</span>
                       <StatusPill status={order.status} />
-                      <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">{order.type}</span>
+                      <span className="rounded-full bg-surface px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{order.type}</span>
                     </div>
-                    <div className="mt-2 truncate text-sm font-semibold text-slate-700">{order.customer.name} · {order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}</div>
-                    <div className="mt-1 text-xs text-slate-500">{formatTime(order.createdAt)} · {order.paymentStatus.toUpperCase()} · {order.paymentMethod.toUpperCase()}</div>
+                    <div className="mt-2 truncate text-sm font-semibold text-foreground">{order.customer.name} · {order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{formatTime(order.createdAt)} · {order.paymentStatus.toUpperCase()} · {order.paymentMethod.toUpperCase()}</div>
                   </div>
                   <div className="text-left md:text-right">
                     <div className="text-xl font-black">{money(order.total)}</div>
-                    <div className="text-xs font-bold text-slate-500">{minutesSince(order.createdAt)} min ago</div>
+                    <div className="text-xs font-bold text-muted-foreground">{minutesSince(order.createdAt)} min ago</div>
                   </div>
                 </Link>
               ))}
@@ -144,12 +144,12 @@ function Dashboard() {
           ) : (
             <div className="space-y-3">
               {top.map((item, index) => (
-                <div key={item.name} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4">
+                <div key={item.name} className="flex items-center justify-between rounded-2xl border border-border bg-background p-4">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="grid h-10 w-10 place-items-center rounded-2xl bg-red-50 font-black text-red-600">{index + 1}</span>
                     <div className="min-w-0">
                       <div className="truncate font-bold">{item.name}</div>
-                      <div className="text-xs text-slate-500">{item.qty} sold</div>
+                      <div className="text-xs text-muted-foreground">{item.qty} sold</div>
                     </div>
                   </div>
                   <div className="font-black">{money(item.revenue)}</div>
@@ -180,7 +180,7 @@ function Dashboard() {
             <InfoBlock label="Delivery radius" value={`${customerContent?.store?.zoneRadiusKm ?? 8} km`} />
             <InfoBlock label="Delivery fee" value={money(customerContent?.store?.deliveryCharge ?? 10)} />
             <InfoBlock label="Minimum order" value={money(customerContent?.store?.minimumOrder ?? 199)} />
-            <Link to="/admin/store" className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-slate-950 px-4 text-sm font-bold text-white">Edit store settings</Link>
+            <Link to="/admin/store" className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-primary px-4 text-sm font-bold text-primary-foreground">Edit store settings</Link>
           </div>
         </Panel>
       </section>
@@ -190,7 +190,7 @@ function Dashboard() {
 
 function Panel({ title, action, children, className = "" }: { title: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm md:p-5 ${className}`}>
+    <section className={`rounded-[24px] border border-border bg-surface p-4 shadow-sm md:p-5 ${className}`}>
       <header className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-lg font-black">{title}</h2>
         {action}
@@ -202,13 +202,13 @@ function Panel({ title, action, children, className = "" }: { title: string; act
 
 function StatCard({ icon: Icon, label, value, detail }: { icon: React.ElementType; label: string; value: string; detail: string }) {
   return (
-    <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-[24px] border border-border bg-surface p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-black uppercase tracking-widest text-slate-500">{label}</span>
+        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">{label}</span>
         <span className="grid h-11 w-11 place-items-center rounded-2xl bg-red-50 text-red-600"><Icon className="h-5 w-5" /></span>
       </div>
       <div className="mt-4 text-3xl font-black">{value}</div>
-      <div className="mt-1 text-sm font-semibold text-slate-500">{detail}</div>
+      <div className="mt-1 text-sm font-semibold text-muted-foreground">{detail}</div>
     </div>
   );
 }
@@ -233,7 +233,7 @@ function QuickAction({ to, icon: Icon, label }: { to: string; icon: React.Elemen
 }
 
 function AlertRow({ icon: Icon, label, value, tone = "neutral" }: { icon: React.ElementType; label: string; value: string; tone?: "neutral" | "red" | "green" }) {
-  const className = tone === "red" ? "bg-red-50 text-red-700" : tone === "green" ? "bg-emerald-50 text-emerald-700" : "bg-slate-50 text-slate-700";
+  const className = tone === "red" ? "bg-red-500/10 text-red-300" : tone === "green" ? "bg-emerald-500/10 text-emerald-300" : "bg-background text-muted-foreground";
   return (
     <div className={`flex items-center justify-between rounded-2xl px-4 py-3 ${className}`}>
       <span className="flex items-center gap-2 text-sm font-bold"><Icon className="h-4 w-4" /> {label}</span>
@@ -244,15 +244,15 @@ function AlertRow({ icon: Icon, label, value, tone = "neutral" }: { icon: React.
 
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <div className="text-xs font-black uppercase tracking-widest text-slate-500">{label}</div>
+    <div className="rounded-2xl bg-background p-4">
+      <div className="text-xs font-black uppercase tracking-widest text-muted-foreground">{label}</div>
       <div className="mt-1 text-2xl font-black">{value}</div>
     </div>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <p className="rounded-2xl bg-slate-50 px-6 py-12 text-center text-sm font-semibold text-slate-500">{text}</p>;
+  return <p className="rounded-2xl bg-background px-6 py-12 text-center text-sm font-semibold text-muted-foreground">{text}</p>;
 }
 
 function topItems(orders: Order[]) {

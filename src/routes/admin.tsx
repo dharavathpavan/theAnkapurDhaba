@@ -88,7 +88,7 @@ function AdminLayout() {
   const current = NAV.find((n) => (n.exact ? pathname === n.to : pathname.startsWith(n.to)));
 
   return (
-    <div className="min-h-screen bg-[#f6f7fb] text-slate-950">
+    <div className="min-h-screen bg-background text-foreground">
       <aside className={`fixed inset-y-0 left-0 z-50 w-[292px] border-r border-white/10 bg-[#110f12] text-white shadow-2xl transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-full flex-col">
           <div className="border-b border-white/10 p-5">
@@ -146,10 +146,10 @@ function AdminLayout() {
       {sidebarOpen && <button aria-label="Close admin menu" className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <div className="lg:pl-[292px]">
-        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-xl">
           <div className="flex min-h-20 items-center justify-between gap-3 px-4 md:px-6">
             <div className="flex min-w-0 items-center gap-3">
-              <button type="button" onClick={() => setSidebarOpen(true)} className="grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm lg:hidden">
+              <button type="button" onClick={() => setSidebarOpen(true)} className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-surface text-foreground shadow-sm lg:hidden">
                 <PanelLeft className="h-5 w-5" />
               </button>
               <div className="min-w-0">
@@ -158,8 +158,8 @@ function AdminLayout() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link to="/" className="hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm hover:text-red-600 md:inline-flex">View website</Link>
-              <button type="button" className="relative grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <Link to="/" className="hidden rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold text-muted-foreground shadow-sm hover:text-primary md:inline-flex">View website</Link>
+              <button type="button" className="relative grid h-11 w-11 place-items-center rounded-2xl border border-border bg-surface shadow-sm">
                 <Bell className="h-5 w-5" />
                 <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white" />
               </button>
