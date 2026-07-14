@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, UtensilsCrossed, ClipboardList, ArrowLeft, ChefHat, QrCode, Bike, Store, Users, ReceiptText, Megaphone } from "lucide-react";
+import { LayoutDashboard, UtensilsCrossed, ClipboardList, ChefHat, QrCode, Bike, Store, Users, ReceiptText, Megaphone, Bell, LogOut, PanelLeft, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/stores/auth";
 import { subscribeToCustomerContent, subscribeToOrderEvents } from "@/services/api";
 import { useEffect, useState } from "react";
@@ -26,10 +26,11 @@ const NAV = [
 
 function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { hasRole, isAuthenticated } = useAuth();
+  const { hasRole, isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [mounted, setMounted] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -84,38 +85,89 @@ function AdminLayout() {
     );
   }
 
+  const current = NAV.find((n) => (n.exact ? pathname === n.to : pathname.startsWith(n.to)));
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="font-display text-sm tracking-widest">ANKAPUR DHABA</span>
+    <div className="min-h-screen bg-[#f6f7fb] text-slate-950">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[292px] border-r border-white/10 bg-[#110f12] text-white shadow-2xl transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex h-full flex-col">
+          <div className="border-b border-white/10 p-5">
+            <Link to="/admin" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3">
+              <img src="/the-ankapure-dhaba-logo.png" alt="The Ankapure Dhaba" className="h-14 w-14 rounded-2xl border border-white/10 bg-black object-cover shadow-lg" />
+              <div>
+                <div className="font-display text-sm tracking-[0.24em] text-red-300">THE ANKAPURE</div>
+                <div className="text-lg font-black leading-tight">Dhaba Admin</div>
+                <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-200">
+                  <ShieldCheck className="h-3 w-3" /> Live Control
+                </div>
+              </div>
             </Link>
-            <span className="hidden h-6 w-px bg-border md:block" />
-            <span className="hidden font-display text-xs tracking-[0.4em] text-primary md:inline">ADMIN</span>
           </div>
-          <nav className="flex gap-1">
+
+          <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
             {NAV.map((n) => {
               const active = n.exact ? pathname === n.to : pathname.startsWith(n.to);
               return (
                 <Link
                   key={n.to}
                   to={n.to}
-                  className={`inline-flex items-center gap-2 rounded-md px-3 py-2 font-display text-xs tracking-widest transition ${
-                    active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-surface hover:text-foreground"
+                  onClick={() => setSidebarOpen(false)}
+                  className={`group flex min-h-12 items-center gap-3 rounded-2xl px-4 text-sm font-bold transition ${
+                    active ? "bg-red-600 text-white shadow-lg shadow-red-950/30" : "text-white/70 hover:bg-white/10 hover:text-white"
                   }`}
                 >
-                  <n.icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{n.label.toUpperCase()}</span>
+                  <n.icon className="h-5 w-5 shrink-0" />
+                  <span>{n.label}</span>
                 </Link>
               );
             })}
           </nav>
+
+          <div className="border-t border-white/10 p-4">
+            <div className="rounded-2xl bg-white/8 p-4">
+              <div className="text-xs uppercase tracking-widest text-white/45">Signed in</div>
+              <div className="mt-1 truncate text-sm font-bold">{user?.name || "Admin"}</div>
+              <div className="text-xs text-white/55">{user?.phone || "Restaurant control"}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                navigate({ to: "/login" });
+              }}
+              className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/10 text-sm font-bold text-white/70 hover:bg-white/10 hover:text-white"
+            >
+              <LogOut className="h-4 w-4" /> Logout
+            </button>
+          </div>
         </div>
-      </header>
-      <Outlet />
+      </aside>
+
+      {sidebarOpen && <button aria-label="Close admin menu" className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+
+      <div className="lg:pl-[292px]">
+        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
+          <div className="flex min-h-20 items-center justify-between gap-3 px-4 md:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <button type="button" onClick={() => setSidebarOpen(true)} className="grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm lg:hidden">
+                <PanelLeft className="h-5 w-5" />
+              </button>
+              <div className="min-w-0">
+                <div className="font-display text-[11px] tracking-[0.24em] text-red-600">THE ANKAPURE DHABA</div>
+                <h1 className="truncate text-xl font-black md:text-2xl">{current?.label || "Admin"} Console</h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link to="/" className="hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm hover:text-red-600 md:inline-flex">View website</Link>
+              <button type="button" className="relative grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <Bell className="h-5 w-5" />
+                <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white" />
+              </button>
+            </div>
+          </div>
+        </header>
+        <Outlet />
+      </div>
     </div>
   );
 }
