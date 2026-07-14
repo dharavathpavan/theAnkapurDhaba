@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, Headphones, HelpCircle, MessageCircle, Package, Search, Truck, Wallet } from "lucide-react";
+import { CreditCard, Headphones, HelpCircle, MessageCircle, Package, Paperclip, Search, Truck, Wallet, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { createSupportTicket, listMyOrders, listSupportFaqs, listSupportTickets, type SupportPriority } from "@/services/api";
+import { createSupportTicket, listMyOrders, listSupportFaqs, listSupportTickets, uploadCatalogFile, type SupportPriority } from "@/services/api";
 import { useAuth } from "@/stores/auth";
 
 export const Route = createFileRoute("/support")({
@@ -29,6 +29,8 @@ function SupportPage() {
   const [description, setDescription] = useState("");
   const [orderId, setOrderId] = useState("");
   const [priority, setPriority] = useState<SupportPriority>("normal");
+  const [media, setMedia] = useState<string[]>([]);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   const { data: faqs = [] } = useQuery({ queryKey: ["support-faqs"], queryFn: listSupportFaqs, staleTime: 60_000 });
   const { data: tickets = [] } = useQuery({ queryKey: ["support-tickets"], queryFn: listSupportTickets, enabled: isAuthenticated() });
@@ -43,7 +45,7 @@ function SupportPage() {
   }, [category, faqs, query]);
 
   const createTicket = useMutation({
-    mutationFn: () => createSupportTicket({ category, subject, description, orderId: orderId || null, priority }),
+    mutationFn: () => createSupportTicket({ category, subject, description, orderId: orderId || null, priority, media }),
     onSuccess: (ticket) => {
       qc.invalidateQueries({ queryKey: ["support-tickets"] });
       toast.success("Support ticket created");
@@ -51,6 +53,23 @@ function SupportPage() {
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to create ticket"),
   });
+
+  const uploadMedia = async (files: FileList | null) => {
+    const selected = Array.from(files ?? []).slice(0, 6 - media.length);
+    if (selected.length === 0) return;
+    setUploadingMedia(true);
+    try {
+      const uploaded = await Promise.all(selected.map((file) => uploadCatalogFile(file)));
+      setMedia((current) => [...current, ...uploaded.map((file) => file.url)].slice(0, 6));
+      toast.success("Media attached");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Media upload failed");
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  const removeMedia = (url: string) => setMedia((current) => current.filter((item) => item !== url));
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-32 pt-5 md:px-6 md:py-8">
@@ -131,11 +150,30 @@ function SupportPage() {
                 <option value="high">High priority</option>
                 <option value="urgent">Urgent</option>
               </select>
-              <button onClick={() => createTicket.mutate()} disabled={createTicket.isPending || !subject || !description} className="min-h-14 w-full rounded-2xl bg-red-600 font-black text-white disabled:opacity-50">{createTicket.isPending ? "Creating..." : "Create Ticket"}</button>
+              <label className={`flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 ${uploadingMedia ? "opacity-60" : ""}`}>
+                <Paperclip className="h-4 w-4" />
+                {uploadingMedia ? "Uploading media..." : "Attach photos or videos"}
+                <input type="file" accept="image/*,video/*" multiple disabled={uploadingMedia || media.length >= 6} onChange={(event) => uploadMedia(event.target.files)} className="hidden" />
+              </label>
+              {media.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {media.map((url) => (
+                    <div key={url} className="relative overflow-hidden rounded-2xl bg-zinc-100 ring-1 ring-zinc-200">
+                      {isVideoMedia(url) ? <video src={url} className="h-20 w-full object-cover" muted playsInline /> : <img src={url} alt="Attached support media" className="h-20 w-full object-cover" />}
+                      <button type="button" onClick={() => removeMedia(url)} className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-white"><X className="h-3 w-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button onClick={() => createTicket.mutate()} disabled={createTicket.isPending || uploadingMedia || !subject || !description} className="min-h-14 w-full rounded-2xl bg-red-600 font-black text-white disabled:opacity-50">{createTicket.isPending ? "Creating..." : "Create Ticket"}</button>
             </div>
           )}
         </aside>
       </div>
     </div>
   );
+}
+
+function isVideoMedia(url: string) {
+  return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
 }
