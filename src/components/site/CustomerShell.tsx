@@ -348,7 +348,7 @@ function contentNoticeTitle(type: string) {
 
 function CustomerFooter() {
   return (
-    <footer className="border-t border-zinc-200 bg-zinc-950 px-4 pb-32 pt-10 text-white md:px-6 md:pb-10">
+    <footer className="hidden border-t border-zinc-200 bg-zinc-950 px-4 pb-32 pt-10 text-white md:block md:px-6 md:pb-10">
       <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1fr]">
         <section>
           <Link to="/" className="inline-flex items-center gap-3">
