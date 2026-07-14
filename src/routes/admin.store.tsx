@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { Eye, GripVertical, ImagePlus, Megaphone, Monitor, Palette, Pencil, Save, Smartphone, Ticket, Trash2, Upload, Wifi, WifiOff, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Crosshair, Eye, GripVertical, ImagePlus, LocateFixed, MapPin, Megaphone, Monitor, Navigation, Palette, Pencil, Save, Smartphone, Ticket, Trash2, Upload, Wifi, WifiOff, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   createAdminAnnouncement,
@@ -21,6 +21,7 @@ import {
   type CustomerCoupon,
 } from "@/services/api";
 import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
+import { hasGoogleMapsKey, loadGoogleMaps } from "@/lib/google-maps";
 
 export const Route = createFileRoute("/admin/store")({
   head: () => ({ meta: [{ title: "Customer App Setup - Ankapur Dhaba" }] }),
@@ -108,6 +109,17 @@ function StorePage() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="mt-6 rounded-xl border border-border bg-surface p-6">
+        <ZoneSettings
+          lat={store.lat}
+          lng={store.lng}
+          radiusKm={store.zoneRadiusKm}
+          address={store.address}
+          saving={saveStore.isPending}
+          onSave={(patch) => saveStore.mutate(patch)}
+        />
       </section>
 
       <section className="mt-6 rounded-xl border border-border bg-surface p-6">
@@ -599,6 +611,154 @@ function SelectField({ label, value, options, onChange }: { label: string; value
 
 function ToggleField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
   return <label className="flex items-center justify-between rounded-md border border-border bg-background p-3 text-sm"><span>{label}</span><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /></label>;
+}
+
+function ZoneSettings({
+  lat,
+  lng,
+  radiusKm,
+  address,
+  saving,
+  onSave,
+}: {
+  lat: number;
+  lng: number;
+  radiusKm: number;
+  address: string;
+  saving: boolean;
+  onSave: (patch: { lat?: number; lng?: number; zoneRadiusKm?: number }) => void;
+}) {
+  const mapEl = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const circleRef = useRef<any>(null);
+  const [draft, setDraft] = useState({ lat: String(lat ?? ""), lng: String(lng ?? ""), radius: String(radiusKm ?? 8) });
+  const [mapReady, setMapReady] = useState(false);
+
+  const coords = useMemo(() => {
+    const parsedLat = Number(draft.lat);
+    const parsedLng = Number(draft.lng);
+    if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) return null;
+    return { lat: parsedLat, lng: parsedLng };
+  }, [draft.lat, draft.lng]);
+  const radius = Math.max(0.1, Number(draft.radius) || 0);
+
+  useEffect(() => {
+    setDraft({ lat: String(lat ?? ""), lng: String(lng ?? ""), radius: String(radiusKm ?? 8) });
+  }, [lat, lng, radiusKm]);
+
+  useEffect(() => {
+    if (!hasGoogleMapsKey() || !mapEl.current || !coords) return;
+    let cancelled = false;
+    loadGoogleMaps()
+      .then((google) => {
+        if (cancelled || !mapEl.current) return;
+        const map = mapRef.current || new google.maps.Map(mapEl.current, {
+          center: coords,
+          zoom: 12,
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: "greedy",
+        });
+        mapRef.current = map;
+        if (!markerRef.current) {
+          markerRef.current = new google.maps.Marker({ position: coords, map, draggable: true, title: "Restaurant location" });
+          markerRef.current.addListener("dragend", () => {
+            const pos = markerRef.current?.getPosition();
+            if (!pos) return;
+            setDraft((current) => ({ ...current, lat: String(pos.lat()), lng: String(pos.lng()) }));
+          });
+        }
+        if (!circleRef.current) {
+          circleRef.current = new google.maps.Circle({
+            map,
+            center: coords,
+            radius: radius * 1000,
+            strokeColor: "#16A34A",
+            strokeOpacity: 0.9,
+            strokeWeight: 2,
+            fillColor: "#16A34A",
+            fillOpacity: 0.13,
+          });
+        }
+        markerRef.current.setPosition(coords);
+        circleRef.current.setCenter(coords);
+        circleRef.current.setRadius(radius * 1000);
+        map.panTo(coords);
+        setMapReady(true);
+      })
+      .catch(() => setMapReady(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [coords?.lat, coords?.lng, radius]);
+
+  function useCurrentLocation() {
+    if (!navigator.geolocation) return toast.error("Location permission is not supported on this device");
+    toast.info("Allow location permission to set the restaurant location");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setDraft((current) => ({ ...current, lat: String(position.coords.latitude), lng: String(position.coords.longitude) }));
+        toast.success("Current location selected. Save to publish it.");
+      },
+      () => toast.error("Location permission was denied. Enter coordinates manually."),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 },
+    );
+  }
+
+  function save() {
+    if (!coords) return toast.error("Enter valid restaurant latitude and longitude");
+    onSave({ lat: coords.lat, lng: coords.lng, zoneRadiusKm: radius });
+  }
+
+  const mapsUrl = coords
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${coords.lat},${coords.lng}`)}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || "Ankapur Dhaba Telangana")}`;
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+      <div>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="flex items-center gap-2 font-display text-2xl tracking-wide"><MapPin className="h-5 w-5 text-primary" /> Restaurant location & geofence</h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Set the exact restaurant pickup point and delivery zone. Checkout ETA, delivery rider navigation, and customer tracking use these coordinates.</p>
+          </div>
+          <a href={mapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-semibold"><Navigation className="h-4 w-4" /> Open Maps</a>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <label className="block"><span className="mb-1 block font-display text-xs tracking-widest text-muted-foreground">LATITUDE</span><input value={draft.lat} onChange={(event) => setDraft((current) => ({ ...current, lat: event.target.value }))} className="h-11 w-full rounded-md border border-border bg-background px-3" placeholder="18.7283" /></label>
+          <label className="block"><span className="mb-1 block font-display text-xs tracking-widest text-muted-foreground">LONGITUDE</span><input value={draft.lng} onChange={(event) => setDraft((current) => ({ ...current, lng: event.target.value }))} className="h-11 w-full rounded-md border border-border bg-background px-3" placeholder="78.4477" /></label>
+          <label className="block"><span className="mb-1 block font-display text-xs tracking-widest text-muted-foreground">ZONE RADIUS KM</span><input value={draft.radius} onChange={(event) => setDraft((current) => ({ ...current, radius: event.target.value }))} className="h-11 w-full rounded-md border border-border bg-background px-3" placeholder="8" /></label>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <button type="button" onClick={useCurrentLocation} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-primary px-4 font-display text-xs tracking-widest text-primary-foreground"><LocateFixed className="h-4 w-4" /> USE CURRENT</button>
+          <button type="button" onClick={save} disabled={saving} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-veg px-4 font-display text-xs tracking-widest text-black disabled:opacity-60"><Save className="h-4 w-4" /> SAVE ZONE</button>
+          <div className="rounded-md border border-border bg-background px-4 py-3"><div className="font-display text-[11px] tracking-widest text-muted-foreground">CURRENT GEOFENCE</div><div className="mt-1 font-display text-lg tracking-wide">{radius.toFixed(1)} KM</div></div>
+        </div>
+
+        <div className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-3">
+          <InfoPill icon={Crosshair} label="Restaurant pin" value={coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : "Not set"} />
+          <InfoPill icon={MapPin} label="Address" value={address || "Address pending"} />
+          <InfoPill icon={Navigation} label="Customer delivery" value={`Allowed inside ${radius.toFixed(1)} km zone`} />
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-border bg-background">
+        {hasGoogleMapsKey() && coords ? (
+          <div ref={mapEl} className="h-[360px] w-full" />
+        ) : (
+          <div className="grid h-[360px] place-items-center p-6 text-center"><div><MapPin className="mx-auto h-10 w-10 text-primary" /><h3 className="mt-3 font-display text-xl tracking-wide">Geofence preview</h3><p className="mt-2 text-sm text-muted-foreground">{coords ? "Google Maps key is required for live circle preview. Coordinates are still saved and used by delivery tracking." : "Enter latitude and longitude to create the restaurant delivery zone."}</p></div></div>
+        )}
+        <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground">{mapReady ? "Drag the marker to refine the pickup point, then save." : "Zone is used for ETA, delivery navigation and live order tracking."}</div>
+      </div>
+    </div>
+  );
+}
+
+function InfoPill({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+  return <div className="rounded-lg border border-border bg-background p-3"><div className="flex items-center gap-2 font-display text-[11px] tracking-widest text-muted-foreground"><Icon className="h-4 w-4 text-primary" /> {label.toUpperCase()}</div><div className="mt-1 line-clamp-2 font-semibold text-foreground">{value}</div></div>;
 }
 
 function StatusButton({ icon: Icon, label, active, onClick }: { icon: React.ElementType; label: string; active: boolean; onClick: () => void }) {
