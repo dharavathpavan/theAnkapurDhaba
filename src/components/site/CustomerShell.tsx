@@ -49,7 +49,10 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   const subtotal = useCart(selectCartSubtotal);
   const { order } = useActiveOrderTracking();
   const { user, isAuthenticated } = useAuth();
-  const showLiveOrder = Boolean(order && !pathname.startsWith("/orders"));
+  const isCheckoutSurface = pathname === "/cart" || pathname === "/checkout";
+  const isOrderDetail = /^\/orders\/[^/]+/.test(pathname);
+  const showLiveOrder = Boolean(order && !isOrderDetail && !isCheckoutSurface);
+  const showCartTray = count > 0 && !isCheckoutSurface;
 
   return (
     <div className="min-h-screen bg-[#F8F9FB] text-zinc-950">
@@ -92,27 +95,27 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between gap-3">
             <BrandMark compact />
             <div className="flex items-center gap-2">
-              <div className="hidden max-w-[120px] items-center gap-1 rounded-2xl bg-green-50 px-2.5 py-2 text-xs font-black text-green-700 min-[380px]:flex">
+              <div className="flex items-center gap-1 rounded-2xl bg-green-50 px-2.5 py-2 text-xs font-black text-green-700">
                 <Clock3 className="h-3.5 w-3.5" />
                 30 min
               </div>
               <NotificationBell {...notifications} compact />
             </div>
           </div>
-          <div className="mt-2 flex items-center gap-2">
-            <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/70 bg-white/80 px-3 py-2 text-xs font-bold text-zinc-600 shadow-sm">
-              <MapPin className="h-4 w-4 shrink-0 text-red-600" />
+          <div className="mt-2 grid gap-2">
+            <Link to="/menu" className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-white/80 bg-white/92 px-4 text-sm font-black text-zinc-700 shadow-lg shadow-zinc-950/5 backdrop-blur-2xl">
+              <Search className="h-4 w-4" />
+              Search biryani, chicken, naan...
+            </Link>
+            <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-2xl border border-white/70 bg-white/80 px-3 py-2 text-[11px] font-black text-zinc-600 shadow-sm">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-red-600" />
               <span className="truncate">Ankapur - Open now</span>
             </div>
-            <Link to="/menu" className="flex min-h-11 flex-1 items-center gap-2 rounded-2xl bg-zinc-950 px-3 text-sm font-black text-white shadow-lg shadow-zinc-950/15">
-              <Search className="h-4 w-4" />
-              Search food
-            </Link>
           </div>
         </div>
       </header>
 
-      <main className="min-h-screen pb-16 md:pb-10">{children}</main>
+      <main className="min-h-screen pb-32 md:pb-10">{children}</main>
 
       <CustomerFooter />
 
@@ -133,18 +136,28 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
         </Link>
       )}
 
-      {count > 0 && (
+      {showCartTray && !showLiveOrder && (
         <Link
           to="/cart"
-          className={`fixed left-4 right-4 z-50 mx-auto flex max-w-md items-center justify-between rounded-[26px] border border-white/20 bg-red-600/95 px-4 py-3 text-white shadow-2xl shadow-red-600/30 backdrop-blur-2xl md:left-auto md:right-8 md:w-96 ${showLiveOrder ? "bottom-48 md:bottom-28" : "bottom-28 md:bottom-8"}`}
+          className="fixed bottom-28 left-4 right-4 z-50 mx-auto flex max-w-md items-center justify-between rounded-[22px] border border-white/20 bg-red-600/95 px-4 py-2.5 text-white shadow-2xl shadow-red-600/30 backdrop-blur-2xl md:bottom-8 md:left-auto md:right-8 md:w-96"
         >
           <span className="flex min-w-0 items-center gap-3 font-bold">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/18">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white/18">
               <ShoppingBag className="h-5 w-5" />
             </span>
             <span className="truncate">{count} item{count > 1 ? "s" : ""} added</span>
           </span>
           <span className="shrink-0 font-black">Rs {subtotal} - Cart</span>
+        </Link>
+      )}
+
+      {showCartTray && showLiveOrder && (
+        <Link
+          to="/cart"
+          className="fixed bottom-[6.7rem] right-4 z-[51] inline-flex min-h-11 items-center gap-2 rounded-2xl bg-red-600 px-4 text-sm font-black text-white shadow-xl shadow-red-600/25 md:bottom-[6.4rem] md:right-8"
+        >
+          <ShoppingBag className="h-4 w-4" />
+          {count} - Rs {subtotal}
         </Link>
       )}
 

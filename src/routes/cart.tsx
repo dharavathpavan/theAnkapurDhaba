@@ -37,13 +37,13 @@ function CartPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-5 md:px-6 md:py-8">
+    <div className="mx-auto max-w-5xl px-4 pb-32 pt-5 md:px-6 md:py-8">
       <h1 className="text-3xl font-black md:text-5xl">Your cart</h1>
       <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_380px]">
         <section className="space-y-3">
           {freeGap > 0 ? (
             <div className="rounded-3xl bg-green-50 p-4 text-green-800">
-              <div className="flex items-center gap-2 font-black"><Truck className="h-5 w-5" /> Spend ₹{freeGap} more for free delivery</div>
+              <div className="flex items-center gap-2 font-black"><Truck className="h-5 w-5" /> Spend Rs {freeGap} more for free delivery</div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-green-100"><div className="h-full bg-green-600" style={{ width: `${Math.min(100, (subtotal / (store?.freeDeliveryAbove ?? 499)) * 100)}%` }} /></div>
             </div>
           ) : (
@@ -57,7 +57,7 @@ function CartPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h2 className="line-clamp-2 font-black">{line.name}</h2>
-                    <p className="text-sm text-zinc-500">₹{line.price} each</p>
+                    <p className="text-sm text-zinc-500">Rs {line.price} each</p>
                   </div>
                   <button onClick={() => remove(line.lineId || line.id)} className="grid h-9 w-9 place-items-center rounded-full bg-zinc-100 text-zinc-500"><Trash2 className="h-4 w-4" /></button>
                 </div>
@@ -65,7 +65,7 @@ function CartPage() {
                   <div className="mt-2 text-xs text-zinc-500">
                     {line.variants?.map((v) => v.option).join(", ")}
                     {line.addons?.length ? ` + ${line.addons.map((a) => a.name).join(", ")}` : ""}
-                    {line.instructions ? ` • ${line.instructions}` : ""}
+                    {line.instructions ? ` - ${line.instructions}` : ""}
                   </div>
                 )}
                 <div className="mt-3 flex items-center justify-between">
@@ -74,7 +74,7 @@ function CartPage() {
                     <span className="min-w-7 text-center font-black">{line.qty}</span>
                     <button onClick={() => setQty(line.lineId || line.id, line.qty + 1)} className="grid h-9 w-9 place-items-center"><Plus className="h-4 w-4" /></button>
                   </div>
-                  <span className="font-black">₹{line.price * line.qty}</span>
+                  <span className="font-black">Rs {line.price * line.qty}</span>
                 </div>
               </div>
             </article>
@@ -86,20 +86,21 @@ function CartPage() {
           <div className="my-5 border-t border-dashed border-zinc-200" />
           <h2 className="text-xl font-black">Bill details</h2>
           <dl className="mt-4 space-y-3 text-sm">
-            <Row label="Item total" value={`₹${subtotal}`} />
-            <Row label="GST" value={`₹${tax}`} />
-            <Row label="Packing charge" value={`₹${packing}`} />
-            <Row label="Delivery" value={deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`} />
+            <Row label="Item total" value={`Rs ${subtotal}`} />
+            <Row label="GST" value={`Rs ${tax}`} />
+            <Row label="Packing charge" value={`Rs ${packing}`} />
+            <Row label="Delivery" value={deliveryFee === 0 ? "FREE" : `Rs ${deliveryFee}`} />
           </dl>
           <div className="my-5 border-t border-zinc-200" />
           <div className="flex items-center justify-between">
             <span className="text-lg font-black">Grand total</span>
-            <span className="text-3xl font-black text-red-600">₹{total}</span>
+            <span className="text-3xl font-black text-red-600">Rs {total}</span>
           </div>
-          <Link to="/checkout" className="mt-5 flex min-h-14 w-full items-center justify-center rounded-3xl bg-red-600 font-black text-white">Proceed to checkout</Link>
+          <Link to="/checkout" className="mt-5 hidden min-h-14 w-full items-center justify-center rounded-3xl bg-red-600 font-black text-white md:flex">Proceed to checkout</Link>
           <Link to="/menu" className="mt-3 block text-center text-sm font-bold text-zinc-500">Add more items</Link>
         </aside>
       </div>
+      <Link to="/checkout" className="fixed bottom-24 left-4 right-4 z-40 mx-auto flex min-h-14 max-w-md items-center justify-center rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 md:hidden">Proceed to checkout - Rs {total}</Link>
     </div>
   );
 }
@@ -107,3 +108,4 @@ function CartPage() {
 function Row({ label, value }: { label: string; value: string }) {
   return <div className="flex justify-between"><dt className="text-zinc-500">{label}</dt><dd className="font-bold">{value}</dd></div>;
 }
+

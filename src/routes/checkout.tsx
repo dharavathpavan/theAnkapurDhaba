@@ -130,7 +130,7 @@ function CheckoutPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-5 md:px-6 md:py-8">
+    <div className="mx-auto max-w-6xl px-4 pb-32 pt-5 md:px-6 md:py-8">
       <h1 className="text-3xl font-black md:text-5xl">Checkout</h1>
       <form onSubmit={submit} className="mt-5 grid gap-5 lg:grid-cols-[1fr_390px]">
         <div className="space-y-5">
@@ -193,7 +193,7 @@ function CheckoutPage() {
         <aside className="h-fit rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
           <h2 className="text-xl font-black">Review order</h2>
           <ul className="mt-4 space-y-3">
-            {lines.map((line) => <li key={line.lineId || line.id} className="flex justify-between gap-3 text-sm"><span className="text-zinc-600">{line.qty}x {line.name}</span><span className="font-bold">₹{line.qty * line.price}</span></li>)}
+            {lines.map((line) => <li key={line.lineId || line.id} className="flex justify-between gap-3 text-sm"><span className="text-zinc-600">{line.qty}x {line.name}</span><span className="font-bold">Rs {line.qty * line.price}</span></li>)}
           </ul>
           <div className="my-4 border-t border-zinc-200" />
           {coupons.length > 0 && (
@@ -213,17 +213,18 @@ function CheckoutPage() {
           {loyalty && <div className="mt-4 rounded-2xl bg-yellow-50 p-3 text-sm"><Wallet className="mr-2 inline h-4 w-4 text-yellow-700" /> {loyalty.points} loyalty points available</div>}
           <div className="my-4 border-t border-zinc-200" />
           <dl className="space-y-2 text-sm">
-            <Row label="Subtotal" value={`₹${subtotal}`} />
-            <Row label="GST" value={`₹${tax}`} />
-            <Row label="Packing" value={`₹${home?.store.packingCharge ?? 10}`} />
-            <Row label="Delivery" value={deliveryFee ? `₹${deliveryFee}` : "FREE"} />
-            {discount > 0 && <Row label="Discount" value={`-₹${discount}`} />}
+            <Row label="Subtotal" value={`Rs ${subtotal}`} />
+            <Row label="GST" value={`Rs ${tax}`} />
+            <Row label="Packing" value={`Rs ${home?.store.packingCharge ?? 10}`} />
+            <Row label="Delivery" value={deliveryFee ? `Rs ${deliveryFee}` : "FREE"} />
+            {discount > 0 && <Row label="Discount" value={`-Rs ${discount}`} />}
           </dl>
           <div className="my-4 border-t border-zinc-200" />
-          <div className="flex items-center justify-between"><span className="text-lg font-black">To pay</span><span className="text-3xl font-black text-red-600">₹{total}</span></div>
-          <button disabled={submitting || home?.store.status === "offline" || (type === "delivery" && subtotal < (home?.store.minimumOrder ?? 0))} className="mt-5 min-h-14 w-full rounded-3xl bg-red-600 font-black text-white disabled:bg-zinc-300">{submitting ? "Placing..." : paymentMethod === "cashfree" ? "Pay & place order" : "Place order"}</button>
+          <div className="flex items-center justify-between"><span className="text-lg font-black">To pay</span><span className="text-3xl font-black text-red-600">Rs {total}</span></div>
+          <button disabled={submitting || home?.store.status === "offline" || (type === "delivery" && subtotal < (home?.store.minimumOrder ?? 0))} className="mt-5 hidden min-h-14 w-full rounded-3xl bg-red-600 font-black text-white disabled:bg-zinc-300 md:block">{submitting ? "Placing..." : paymentMethod === "cashfree" ? "Pay & place order" : "Place order"}</button>
         </aside>
       </form>
+      <button type="button" onClick={() => document.querySelector<HTMLFormElement>("form")?.requestSubmit()} disabled={submitting || home?.store.status === "offline" || (type === "delivery" && subtotal < (home?.store.minimumOrder ?? 0))} className="fixed bottom-24 left-4 right-4 z-40 mx-auto min-h-14 max-w-md rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 disabled:bg-zinc-300 md:hidden">{submitting ? "Placing..." : paymentMethod === "cashfree" ? `Pay Rs ${total}` : `Place order - Rs ${total}`}</button>
 
       {successId && (
         <div className="fixed inset-0 z-[80] grid place-items-center bg-[#F8F9FB] p-5">
@@ -288,3 +289,4 @@ async function openCashfreeCheckout(paymentSessionId: string, mode: "sandbox" | 
   if (result.error) throw new Error("Payment was not completed");
   if (result.redirect) return;
 }
+

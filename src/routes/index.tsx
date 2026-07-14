@@ -60,8 +60,8 @@ function Home() {
   return (
     <div className="bg-[#F8F9FB]">
       <div className="mx-auto max-w-7xl px-3 pb-10 pt-3 sm:px-4 md:px-6 md:pt-6">
-        <section className="rounded-[28px] border border-white/70 bg-white/78 p-3 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:p-5">
-          <div className="flex items-center justify-between gap-3">
+        <section>
+          <div className="hidden">
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-red-600">
                 <MapPin className="h-4 w-4" /> Ankapur Dhaba
@@ -75,7 +75,7 @@ function Home() {
 
           <Link
             to="/menu"
-            className="sticky top-3 z-30 mt-4 flex min-h-13 items-center gap-3 rounded-[22px] border border-white/80 bg-white/92 px-4 text-sm font-semibold text-zinc-500 shadow-lg shadow-zinc-950/5 backdrop-blur-2xl md:hidden"
+            className="hidden"
           >
             <Search className="h-5 w-5 text-red-500" />
             Search biryani, chicken, naan...
@@ -83,7 +83,7 @@ function Home() {
 
           {banner && hero && (
             <section
-              className={`relative mt-4 overflow-hidden rounded-[26px] bg-zinc-950 shadow-2xl shadow-zinc-950/15 md:rounded-[34px] ${showBannerContent ? hero.textColor : "text-white"}`}
+              className={`relative overflow-hidden rounded-[24px] bg-zinc-950 shadow-2xl shadow-zinc-950/12 md:rounded-[34px] ${showBannerContent ? hero.textColor : "text-white"}`}
               onTouchStart={(event) => setTouchStart(event.touches[0]?.clientX ?? null)}
               onTouchEnd={(event) => {
                 if (touchStart === null) return;
@@ -110,9 +110,9 @@ function Home() {
                     </div>
                   </>
                 ) : null}
-                <div className={`absolute bottom-3 flex gap-1.5 sm:bottom-5 sm:gap-2 ${showBannerContent ? hero.dots : "left-1/2 -translate-x-1/2"}`}>
+                <div className={`absolute bottom-3 flex gap-1.5 rounded-full bg-black/20 px-2 py-1 backdrop-blur sm:bottom-5 sm:gap-2 ${showBannerContent ? hero.dots : "left-1/2 -translate-x-1/2"}`}>
                   {visibleBanners.map((item, i) => (
-                    <button key={item.id} onClick={() => setBannerIndex(i)} className={`h-1.5 rounded-full transition-all sm:h-2 ${i === bannerIndex ? "w-7 bg-white sm:w-9" : "w-1.5 bg-white/50 sm:w-2"}`} aria-label={`Show banner ${i + 1}`} />
+                    <button key={item.id} onClick={() => setBannerIndex(i)} className={`h-1.5 rounded-full transition-all sm:h-2 ${i === bannerIndex ? "w-7 bg-white sm:w-9" : "w-1.5 bg-white/55 sm:w-2"}`} aria-label={`Show banner ${i + 1}`} />
                   ))}
                 </div>
               </div>
@@ -284,7 +284,7 @@ function heroClasses(banner: CustomerBanner) {
   const align = banner.textAlign === "center" ? "items-center text-center" : banner.textAlign === "right" ? "items-end text-right" : "items-start text-left";
   const ctaAlign = banner.textAlign === "center" ? "justify-center" : banner.textAlign === "right" ? "justify-end" : "justify-start";
   const dots = banner.textAlign === "center" ? "left-1/2 -translate-x-1/2" : banner.textAlign === "right" ? "left-4 sm:left-auto sm:right-6 md:right-8 lg:right-10" : "right-4 sm:left-6 sm:right-auto md:left-8 lg:left-10";
-  const mobileHeight = banner.heightMobile === "tall" ? "min-h-[310px]" : banner.heightMobile === "standard" ? "min-h-[255px]" : "min-h-[215px]";
+  const mobileHeight = banner.heightMobile === "tall" ? "min-h-[230px]" : banner.heightMobile === "standard" ? "min-h-[205px]" : "min-h-[180px]";
   const desktopHeight = banner.heightDesktop === "tall" ? "md:min-h-[470px] lg:min-h-[520px]" : banner.heightDesktop === "compact" ? "md:min-h-[310px] lg:min-h-[340px]" : "md:min-h-[380px] lg:min-h-[430px]";
   const darkText = banner.textColorMode === "dark";
   const overlay = banner.overlayStrength === "light"
