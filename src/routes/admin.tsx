@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, UtensilsCrossed, ClipboardList, ChefHat, QrCode, Bike, Store, Users, ReceiptText, Megaphone, Bell, LogOut, PanelLeft, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, UtensilsCrossed, ClipboardList, ChefHat, QrCode, Bike, Store, Users, ReceiptText, Megaphone, Bell, LogOut, PanelLeft, ShieldCheck, Headphones } from "lucide-react";
 import { useAuth } from "@/stores/auth";
 import { subscribeToCustomerContent, subscribeToOrderEvents } from "@/services/api";
 import { useEffect, useState } from "react";
@@ -20,6 +20,7 @@ const NAV = [
   { to: "/admin/store", label: "Store", icon: Store },
   { to: "/admin/marketing", label: "Marketing", icon: Megaphone },
   { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/support", label: "Support", icon: Headphones },
   { to: "/kitchen", label: "Kitchen", icon: ChefHat },
   { to: "/delivery", label: "Delivery", icon: Bike },
 ];

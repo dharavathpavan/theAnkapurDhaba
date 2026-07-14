@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Bell, Gift, Headphones, LogOut, MapPin, ShieldCheck, Star, User, Wallet } from "lucide-react";
+import { Bell, Gift, Headphones, LogOut, ShieldCheck, Star, User, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { createWalletTopupSession, getCustomerLoyalty, getCustomerProfile, getCustomerWallet, updateCustomerProfile, verifyWalletTopup } from "@/services/api";
+import { getCustomerLoyalty, getCustomerProfile, getCustomerWallet, updateCustomerProfile } from "@/services/api";
 import { useAuth } from "@/stores/auth";
 
 export const Route = createFileRoute("/profile")({
@@ -25,28 +25,10 @@ function ProfilePage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user, isAuthenticated, logout } = useAuth();
-  const [topupAmount, setTopupAmount] = useState("500");
   const { data: profileData } = useQuery({ queryKey: ["customer-profile"], queryFn: getCustomerProfile, enabled: isAuthenticated() });
   const { data: loyalty } = useQuery({ queryKey: ["customer-loyalty"], queryFn: getCustomerLoyalty, enabled: isAuthenticated() });
   const { data: wallet } = useQuery({ queryKey: ["customer-wallet"], queryFn: getCustomerWallet, enabled: isAuthenticated() });
   const saveProfile = useMutation({ mutationFn: updateCustomerProfile, onSuccess: () => { qc.invalidateQueries({ queryKey: ["customer-profile"] }); toast.success("Preferences saved"); } });
-  const topup = useMutation({
-    mutationFn: async () => {
-      const amount = Number(topupAmount);
-      if (!Number.isFinite(amount) || amount < 1) throw new Error("Enter a valid amount");
-      const session = await createWalletTopupSession(amount);
-      if (!session.paymentSessionId) throw new Error("Wallet top-up session was not created");
-      await openCashfreeCheckout(session.paymentSessionId, session.mode);
-      const verified = await verifyWalletTopup(session.orderId, amount);
-      if (String(verified.status).toUpperCase() !== "PAID") throw new Error("Payment was not completed");
-      return verified;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["customer-wallet"] });
-      toast.success("Money added to Main Wallet");
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Wallet top-up failed"),
-  });
 
   if (!isAuthenticated() || !user) {
     return (
@@ -96,8 +78,8 @@ function ProfilePage() {
       <section className="mt-5 grid gap-3 md:grid-cols-4">
         <QuickLink to="/orders" icon={Star} title="Orders" />
         <QuickLink to="/favorites" icon={Gift} title="Favorites" />
-        <QuickLink to="/checkout" icon={MapPin} title="Addresses" />
-        <QuickLink to="/orders" icon={Headphones} title="Support" />
+        <QuickLink to="/wallet" icon={Wallet} title="Wallet" />
+        <QuickLink to="/support" icon={Headphones} title="Support" />
       </section>
 
       <section className="mt-5 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
@@ -111,16 +93,11 @@ function ProfilePage() {
               <div className="text-4xl font-black">Rs {Math.round(wallet?.balance ?? 0)}</div>
             </div>
           </div>
-          <div className="rounded-3xl bg-zinc-50 p-4 md:w-72">
-            <div className="text-sm font-black">Add money</div>
-            <div className="mt-3 flex gap-2">
-              <input value={topupAmount} onChange={(event) => setTopupAmount(event.target.value.replace(/[^\d.]/g, ""))} className="min-w-0 flex-1 rounded-2xl bg-white px-4 font-black outline-none ring-1 ring-zinc-200" />
-              <button onClick={() => topup.mutate()} disabled={topup.isPending} className="rounded-2xl bg-red-600 px-4 py-3 font-black text-white disabled:opacity-60">{topup.isPending ? "..." : "Add"}</button>
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {[200, 500, 1000].map((amount) => <button key={amount} onClick={() => setTopupAmount(String(amount))} className="rounded-xl bg-white py-2 text-xs font-black ring-1 ring-zinc-200">Rs {amount}</button>)}
-            </div>
-          </div>
+          <Link to="/wallet" className="rounded-3xl bg-zinc-950 p-4 text-white md:w-72">
+            <div className="text-sm font-black uppercase tracking-widest text-white/60">Wallet actions</div>
+            <div className="mt-3 text-xl font-black">Add money, verify payments and view full history</div>
+            <div className="mt-4 inline-flex rounded-2xl bg-red-600 px-4 py-3 text-sm font-black">Open Wallet</div>
+          </Link>
         </div>
         <div className="mt-5">
           <h3 className="font-black">Recent wallet activity</h3>
@@ -175,38 +152,4 @@ function QuickLink({ to, icon: Icon, title }: { to: string; icon: React.ElementT
 
 function InfoPanel({ icon: Icon, title, text }: { icon: React.ElementType; title: string; text: string }) {
   return <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100"><Icon className="h-6 w-6 text-red-600" /><h3 className="mt-3 font-black">{title}</h3><p className="mt-1 text-sm text-zinc-500">{text}</p></div>;
-}
-
-declare global {
-  interface Window {
-    Cashfree?: (options: { mode: "sandbox" | "production" }) => {
-      checkout: (options: { paymentSessionId: string; redirectTarget: "_modal" | "_self" | "_top" | "_blank" }) => Promise<{ error?: unknown; redirect?: boolean; paymentDetails?: unknown }>;
-    };
-    __cashfreeScriptLoading?: Promise<void>;
-  }
-}
-
-async function loadCashfreeScript() {
-  if (typeof window === "undefined") throw new Error("Cashfree checkout is available only in browser");
-  if (window.Cashfree) return;
-  if (!window.__cashfreeScriptLoading) {
-    window.__cashfreeScriptLoading = new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Unable to load Cashfree checkout"));
-      document.head.appendChild(script);
-    });
-  }
-  await window.__cashfreeScriptLoading;
-  if (!window.Cashfree) throw new Error("Cashfree checkout did not initialize");
-}
-
-async function openCashfreeCheckout(paymentSessionId: string, mode: "sandbox" | "production") {
-  await loadCashfreeScript();
-  const cashfree = window.Cashfree?.({ mode });
-  if (!cashfree) throw new Error("Cashfree checkout is unavailable");
-  const result = await cashfree.checkout({ paymentSessionId, redirectTarget: "_modal" });
-  if (result.error) throw new Error("Payment was not completed");
 }

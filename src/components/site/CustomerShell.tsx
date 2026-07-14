@@ -21,6 +21,8 @@ const QUICK_LINKS = [
   { to: "/menu", label: "Menu" },
   { to: "/orders", label: "Orders" },
   { to: "/cart", label: "Cart" },
+  { to: "/wallet", label: "Wallet" },
+  { to: "/support", label: "Support" },
   { to: "/profile", label: "Profile" },
 ];
 

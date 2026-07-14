@@ -9,8 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ShippingDeliveryPolicyRouteImport } from './routes/shipping-delivery-policy'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -31,16 +33,23 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 import { Route as TTableIdRouteImport } from './routes/t.$tableId'
+import { Route as SupportTicketIdRouteImport } from './routes/support.$ticketId'
 import { Route as RestaurantDeliveryRouteImport } from './routes/restaurant.delivery'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders.$orderId'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTablesRouteImport } from './routes/admin.tables'
+import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminStoreRouteImport } from './routes/admin.store'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminMarketingRouteImport } from './routes/admin.marketing'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 
+const WalletRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
   path: '/track',
@@ -49,6 +58,11 @@ const TrackRoute = TrackRouteImport.update({
 const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
   id: '/terms-and-conditions',
   path: '/terms-and-conditions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -152,6 +166,11 @@ const TTableIdRoute = TTableIdRouteImport.update({
   path: '/t/$tableId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupportTicketIdRoute = SupportTicketIdRouteImport.update({
+  id: '/$ticketId',
+  path: '/$ticketId',
+  getParentRoute: () => SupportRoute,
+} as any)
 const RestaurantDeliveryRoute = RestaurantDeliveryRouteImport.update({
   id: '/restaurant/delivery',
   path: '/restaurant/delivery',
@@ -170,6 +189,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
 const AdminTablesRoute = AdminTablesRouteImport.update({
   id: '/tables',
   path: '/tables',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSupportRoute = AdminSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminStoreRoute = AdminStoreRouteImport.update({
@@ -216,17 +240,21 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/shipping-delivery-policy': typeof ShippingDeliveryPolicyRoute
   '/signup': typeof SignupRoute
+  '/support': typeof SupportRouteWithChildren
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/track': typeof TrackRouteWithChildren
+  '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/store': typeof AdminStoreRoute
+  '/admin/support': typeof AdminSupportRoute
   '/admin/tables': typeof AdminTablesRoute
   '/admin/users': typeof AdminUsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
+  '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -248,17 +276,21 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/shipping-delivery-policy': typeof ShippingDeliveryPolicyRoute
   '/signup': typeof SignupRoute
+  '/support': typeof SupportRouteWithChildren
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/track': typeof TrackRouteWithChildren
+  '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/store': typeof AdminStoreRoute
+  '/admin/support': typeof AdminSupportRoute
   '/admin/tables': typeof AdminTablesRoute
   '/admin/users': typeof AdminUsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
+  '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin': typeof AdminIndexRoute
@@ -282,17 +314,21 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/shipping-delivery-policy': typeof ShippingDeliveryPolicyRoute
   '/signup': typeof SignupRoute
+  '/support': typeof SupportRouteWithChildren
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/track': typeof TrackRouteWithChildren
+  '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/store': typeof AdminStoreRoute
+  '/admin/support': typeof AdminSupportRoute
   '/admin/tables': typeof AdminTablesRoute
   '/admin/users': typeof AdminUsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
+  '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -317,17 +353,21 @@ export interface FileRouteTypes {
     | '/profile'
     | '/shipping-delivery-policy'
     | '/signup'
+    | '/support'
     | '/terms-and-conditions'
     | '/track'
+    | '/wallet'
     | '/admin/billing'
     | '/admin/marketing'
     | '/admin/menu'
     | '/admin/orders'
     | '/admin/store'
+    | '/admin/support'
     | '/admin/tables'
     | '/admin/users'
     | '/orders/$orderId'
     | '/restaurant/delivery'
+    | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
@@ -349,17 +389,21 @@ export interface FileRouteTypes {
     | '/profile'
     | '/shipping-delivery-policy'
     | '/signup'
+    | '/support'
     | '/terms-and-conditions'
     | '/track'
+    | '/wallet'
     | '/admin/billing'
     | '/admin/marketing'
     | '/admin/menu'
     | '/admin/orders'
     | '/admin/store'
+    | '/admin/support'
     | '/admin/tables'
     | '/admin/users'
     | '/orders/$orderId'
     | '/restaurant/delivery'
+    | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin'
@@ -382,17 +426,21 @@ export interface FileRouteTypes {
     | '/profile'
     | '/shipping-delivery-policy'
     | '/signup'
+    | '/support'
     | '/terms-and-conditions'
     | '/track'
+    | '/wallet'
     | '/admin/billing'
     | '/admin/marketing'
     | '/admin/menu'
     | '/admin/orders'
     | '/admin/store'
+    | '/admin/support'
     | '/admin/tables'
     | '/admin/users'
     | '/orders/$orderId'
     | '/restaurant/delivery'
+    | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
@@ -416,14 +464,23 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   ShippingDeliveryPolicyRoute: typeof ShippingDeliveryPolicyRoute
   SignupRoute: typeof SignupRoute
+  SupportRoute: typeof SupportRouteWithChildren
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
   TrackRoute: typeof TrackRouteWithChildren
+  WalletRoute: typeof WalletRoute
   RestaurantDeliveryRoute: typeof RestaurantDeliveryRoute
   TTableIdRoute: typeof TTableIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/track': {
       id: '/track'
       path: '/track'
@@ -436,6 +493,13 @@ declare module '@tanstack/react-router' {
       path: '/terms-and-conditions'
       fullPath: '/terms-and-conditions'
       preLoaderRoute: typeof TermsAndConditionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -578,6 +642,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TTableIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/support/$ticketId': {
+      id: '/support/$ticketId'
+      path: '/$ticketId'
+      fullPath: '/support/$ticketId'
+      preLoaderRoute: typeof SupportTicketIdRouteImport
+      parentRoute: typeof SupportRoute
+    }
     '/restaurant/delivery': {
       id: '/restaurant/delivery'
       path: '/restaurant/delivery'
@@ -604,6 +675,13 @@ declare module '@tanstack/react-router' {
       path: '/tables'
       fullPath: '/admin/tables'
       preLoaderRoute: typeof AdminTablesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/support': {
+      id: '/admin/support'
+      path: '/support'
+      fullPath: '/admin/support'
+      preLoaderRoute: typeof AdminSupportRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/store': {
@@ -650,6 +728,7 @@ interface AdminRouteChildren {
   AdminMenuRoute: typeof AdminMenuRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminStoreRoute: typeof AdminStoreRoute
+  AdminSupportRoute: typeof AdminSupportRoute
   AdminTablesRoute: typeof AdminTablesRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -661,6 +740,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMenuRoute: AdminMenuRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminStoreRoute: AdminStoreRoute,
+  AdminSupportRoute: AdminSupportRoute,
   AdminTablesRoute: AdminTablesRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -678,6 +758,17 @@ const OrdersRouteChildren: OrdersRouteChildren = {
 
 const OrdersRouteWithChildren =
   OrdersRoute._addFileChildren(OrdersRouteChildren)
+
+interface SupportRouteChildren {
+  SupportTicketIdRoute: typeof SupportTicketIdRoute
+}
+
+const SupportRouteChildren: SupportRouteChildren = {
+  SupportTicketIdRoute: SupportTicketIdRoute,
+}
+
+const SupportRouteWithChildren =
+  SupportRoute._addFileChildren(SupportRouteChildren)
 
 interface TrackRouteChildren {
   TrackOrderIdRoute: typeof TrackOrderIdRoute
@@ -707,8 +798,10 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   ShippingDeliveryPolicyRoute: ShippingDeliveryPolicyRoute,
   SignupRoute: SignupRoute,
+  SupportRoute: SupportRouteWithChildren,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
   TrackRoute: TrackRouteWithChildren,
+  WalletRoute: WalletRoute,
   RestaurantDeliveryRoute: RestaurantDeliveryRoute,
   TTableIdRoute: TTableIdRoute,
 }

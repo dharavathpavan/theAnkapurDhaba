@@ -182,7 +182,7 @@ function RootComponent() {
 
 function isCustomerAppPath(pathname: string) {
   if (pathname === "/") return true;
-  return ["/menu", "/cart", "/checkout", "/orders", "/favorites", "/profile", "/account", "/track", "/t"].some((prefix) =>
+  return ["/menu", "/cart", "/checkout", "/orders", "/favorites", "/profile", "/wallet", "/support", "/account", "/track", "/t"].some((prefix) =>
     pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 }

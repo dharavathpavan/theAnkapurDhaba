@@ -544,6 +544,125 @@ export async function listAdminUserWalletTransactions(id: string): Promise<Walle
   return res.json();
 }
 
+export type SupportStatus = "open" | "waiting_customer" | "in_review" | "resolved" | "closed";
+export type SupportPriority = "low" | "normal" | "high" | "urgent";
+
+export interface SupportFaq {
+  id: string;
+  category: string;
+  question: string;
+  answer: string;
+  keywords: string[];
+  priority: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface SupportTicketMessage {
+  id: string;
+  ticketId: string;
+  userId?: string | null;
+  sender: "customer" | "admin" | string;
+  message: string;
+  media: string[];
+  createdAt: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  userId: string;
+  category: string;
+  subject: string;
+  description: string;
+  orderId?: string | null;
+  priority: SupportPriority;
+  status: SupportStatus;
+  resolution?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: { id: string; name: string; phone: string; role: string };
+  messages: SupportTicketMessage[];
+}
+
+export async function listSupportFaqs(): Promise<SupportFaq[]> {
+  const res = await apiFetch(`${API_BASE}/customer/support/faqs`, { skipAuthRedirect: true });
+  if (!res.ok) throw new Error("Failed to fetch support FAQs");
+  return res.json();
+}
+
+export async function listSupportTickets(): Promise<SupportTicket[]> {
+  const res = await apiFetch(`${API_BASE}/customer/support/tickets`);
+  if (!res.ok) throw new Error("Failed to fetch support tickets");
+  return res.json();
+}
+
+export async function createSupportTicket(input: { category: string; subject: string; description: string; orderId?: string | null; priority?: SupportPriority; media?: string[] }): Promise<SupportTicket> {
+  const res = await apiFetch(`${API_BASE}/customer/support/tickets`, { method: "POST", body: JSON.stringify(input) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to create support ticket");
+  return json;
+}
+
+export async function getSupportTicket(id: string): Promise<SupportTicket> {
+  const res = await apiFetch(`${API_BASE}/customer/support/tickets/${id}`);
+  if (!res.ok) throw new Error("Failed to fetch support ticket");
+  return res.json();
+}
+
+export async function addSupportTicketMessage(id: string, input: { message: string; media?: string[] }): Promise<{ message: SupportTicketMessage; ticket: SupportTicket }> {
+  const res = await apiFetch(`${API_BASE}/customer/support/tickets/${id}/messages`, { method: "POST", body: JSON.stringify(input) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to send message");
+  return json;
+}
+
+export async function listAdminSupportTickets(status?: SupportStatus | "all"): Promise<SupportTicket[]> {
+  const qs = status && status !== "all" ? `?status=${encodeURIComponent(status)}` : "";
+  const res = await apiFetch(`${API_BASE}/customer/admin/support/tickets${qs}`);
+  if (!res.ok) throw new Error("Failed to fetch support tickets");
+  return res.json();
+}
+
+export async function updateAdminSupportTicket(id: string, patch: Partial<Pick<SupportTicket, "status" | "priority" | "resolution">>): Promise<SupportTicket> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/support/tickets/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to update ticket");
+  return json;
+}
+
+export async function addAdminSupportTicketMessage(id: string, input: { message: string; media?: string[] }): Promise<{ message: SupportTicketMessage; ticket: SupportTicket }> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/support/tickets/${id}/messages`, { method: "POST", body: JSON.stringify(input) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to send reply");
+  return json;
+}
+
+export async function listAdminSupportFaqs(): Promise<SupportFaq[]> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/support/faqs`);
+  if (!res.ok) throw new Error("Failed to fetch support FAQs");
+  return res.json();
+}
+
+export async function createAdminSupportFaq(input: Partial<SupportFaq> & { category: string; question: string; answer: string }): Promise<SupportFaq> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/support/faqs`, { method: "POST", body: JSON.stringify(input) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to create FAQ");
+  return json;
+}
+
+export async function updateAdminSupportFaq(id: string, patch: Partial<SupportFaq>): Promise<SupportFaq> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/support/faqs/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to update FAQ");
+  return json;
+}
+
+export async function deleteAdminSupportFaq(id: string): Promise<void> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/support/faqs/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete FAQ");
+}
+
 export async function getAdminCustomerContent(): Promise<{ store: CustomerStore; banners: CustomerBanner[]; announcements: CustomerAnnouncement[]; coupons: CustomerCoupon[] }> {
   const res = await apiFetch(`${API_BASE}/customer/admin/content`);
   if (!res.ok) throw new Error("Failed to fetch customer app content");
