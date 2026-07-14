@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Bell, CheckCircle2, ChevronDown, Clock3, Heart, Home, Mail, MapPin, Package, Phone, Search, ShieldCheck, ShoppingBag, User, UtensilsCrossed } from "lucide-react";
+import { Bell, CheckCircle2, ChevronDown, Clock3, Heart, Home, Mail, MapPin, Package, Phone, ShieldCheck, ShoppingBag, User, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/stores/auth";
 import { useCart, selectCartCount, selectCartSubtotal } from "@/stores/cart";
@@ -51,7 +51,8 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const isCheckoutSurface = pathname === "/cart" || pathname === "/checkout";
   const isOrderDetail = /^\/orders\/[^/]+/.test(pathname);
-  const showLiveOrder = Boolean(order && !isOrderDetail && !isCheckoutSurface);
+  const allowLiveOrderTray = pathname === "/" || pathname === "/orders";
+  const showLiveOrder = Boolean(order && allowLiveOrderTray && !isOrderDetail && !isCheckoutSurface);
   const showCartTray = count > 0 && !isCheckoutSurface;
 
   return (
@@ -69,13 +70,8 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
             <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
           </div>
 
-          <Link to="/menu" className="mx-2 flex min-h-12 flex-1 items-center gap-3 rounded-2xl border border-white/70 bg-white/85 px-4 text-sm font-semibold text-zinc-500 shadow-sm backdrop-blur-xl transition hover:border-red-200 hover:text-zinc-700">
-            <Search className="h-5 w-5 text-red-500" />
-            Search biryani, chicken, naan...
-          </Link>
-
-          <nav className="flex items-center gap-1 rounded-2xl border border-white/70 bg-white/70 p-1 shadow-sm backdrop-blur-xl">
-            {NAV.slice(0, 4).map((item) => <NavLink key={item.to} item={item} pathname={pathname} />)}
+          <nav className="ml-auto flex items-center gap-1 rounded-2xl border border-white/70 bg-white/70 p-1 shadow-sm backdrop-blur-xl">
+            {NAV.map((item) => <NavLink key={item.to} item={item} pathname={pathname} />)}
           </nav>
 
           <NotificationBell {...notifications} />
@@ -102,11 +98,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
               <NotificationBell {...notifications} compact />
             </div>
           </div>
-          <div className="mt-2 grid gap-2">
-            <Link to="/menu" className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-white/80 bg-white/92 px-4 text-sm font-black text-zinc-700 shadow-lg shadow-zinc-950/5 backdrop-blur-2xl">
-              <Search className="h-4 w-4" />
-              Search biryani, chicken, naan...
-            </Link>
+          <div className="mt-2">
             <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-2xl border border-white/70 bg-white/80 px-3 py-2 text-[11px] font-black text-zinc-600 shadow-sm">
               <MapPin className="h-3.5 w-3.5 shrink-0 text-red-600" />
               <span className="truncate">Ankapur - Open now</span>
@@ -123,14 +115,14 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
         <Link
           to="/orders/$orderId"
           params={{ orderId: order.id }}
-          className="fixed bottom-28 left-4 right-4 z-50 mx-auto flex max-w-md items-center justify-between rounded-[26px] border border-white/15 bg-zinc-950/92 px-4 py-3 text-white shadow-2xl shadow-zinc-950/30 backdrop-blur-2xl md:bottom-8 md:left-auto md:right-8 md:w-96"
+          className="fixed bottom-28 left-4 right-4 z-50 mx-auto flex max-w-md items-center justify-between rounded-[22px] border border-white/15 bg-zinc-950/94 px-3.5 py-2.5 text-white shadow-2xl shadow-zinc-950/30 backdrop-blur-2xl md:bottom-8 md:left-auto md:right-8 md:w-96"
         >
           <span className="min-w-0">
-            <span className="block truncate text-xs font-black uppercase tracking-[0.16em] text-white/55">Live order #{order.id}</span>
-            <span className="block truncate text-lg font-black capitalize leading-tight">{order.status.replace(/_/g, " ")}</span>
-            <span className="mt-0.5 block text-xs font-bold text-white/70">Tap to view full tracking</span>
+            <span className="block truncate text-[10px] font-black uppercase tracking-[0.16em] text-white/55">Current order #{order.id}</span>
+            <span className="block truncate text-base font-black capitalize leading-tight">{order.status.replace(/_/g, " ")}</span>
+            <span className="mt-0.5 block text-[11px] font-bold text-white/70">View tracking</span>
           </span>
-          <span className="ml-3 shrink-0 rounded-2xl bg-green-400 px-3 py-2 text-sm font-black text-zinc-950">
+          <span className="ml-3 shrink-0 rounded-2xl bg-green-400 px-3 py-1.5 text-sm font-black text-zinc-950">
             {order.delivery?.etaMinutes || order.delivery?.prepEtaMinutes || 20} min
           </span>
         </Link>
@@ -335,7 +327,14 @@ function useLocalNotifications() {
       });
     });
     const unsubscribeOrders = subscribeToOrderEvents((event) => {
-      if (!event.order) return;
+      if (!event.order) {
+        pushNotice({
+          title: "Order update",
+          body: "An order changed. Open Orders for the latest status.",
+          tone: "order",
+        });
+        return;
+      }
       pushNotice({
         title: `Order #${event.order.id}`,
         body: `Status updated to ${event.order.status.replace(/_/g, " ")}.`,

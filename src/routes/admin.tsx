@@ -1,7 +1,10 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { LayoutDashboard, UtensilsCrossed, ClipboardList, ArrowLeft, ChefHat, QrCode, Bike, Store, Users, ReceiptText, Megaphone } from "lucide-react";
 import { useAuth } from "@/stores/auth";
+import { subscribeToCustomerContent, subscribeToOrderEvents } from "@/services/api";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin · Ankapur Dhaba" }, { name: "robots", content: "noindex" }] }),
@@ -25,6 +28,7 @@ function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { hasRole, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -37,6 +41,40 @@ function AdminLayout() {
       navigate({ to: '/login' });
     }
   }, [mounted, isAuthenticated, hasRole, navigate]);
+
+  useEffect(() => {
+    if (!mounted || !isAuthenticated() || !hasRole("ADMIN")) return;
+
+    const notify = (title: string, body: string) => {
+      toast.info(body);
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body, icon: "/favicon.ico" });
+      }
+    };
+
+    const unsubscribeOrders = subscribeToOrderEvents((event) => {
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["my-orders"] });
+      qc.invalidateQueries({ queryKey: ["delivery-orders"] });
+      if (event.order?.id) qc.invalidateQueries({ queryKey: ["order", event.order.id] });
+      notify(
+        "Admin order update",
+        event.order ? `Order #${event.order.id} updated to ${event.order.status.replace(/_/g, " ")}.` : "Orders changed. Refreshing admin queues.",
+      );
+    });
+
+    const unsubscribeContent = subscribeToCustomerContent((event) => {
+      qc.invalidateQueries({ queryKey: ["admin-customer-content"] });
+      qc.invalidateQueries({ queryKey: ["customer-home"] });
+      qc.invalidateQueries({ queryKey: ["customer-menu"] });
+      notify("Admin content update", adminContentNotice(event.type));
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeContent();
+    };
+  }, [mounted, isAuthenticated, hasRole, qc]);
 
   if (!mounted || !isAuthenticated() || !hasRole('ADMIN')) {
     return (
@@ -80,4 +118,12 @@ function AdminLayout() {
       <Outlet />
     </div>
   );
+}
+
+function adminContentNotice(type: string) {
+  if (type === "banner") return "Banner changes are live on the customer app.";
+  if (type === "coupon") return "Coupon changes are live on the customer app.";
+  if (type === "announcement") return "Announcement changes are live on the customer app.";
+  if (type === "store") return "Store settings changed and customer screens are refreshing.";
+  return "Customer app content changed and screens are refreshing.";
 }

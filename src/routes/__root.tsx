@@ -126,6 +126,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isStaff = pathname.startsWith("/admin") || pathname.startsWith("/kitchen") || pathname.startsWith("/delivery") || pathname.startsWith("/restaurant/delivery");
+  const isCustomerApp = isCustomerAppPath(pathname);
 
   useEffect(() => {
     void getFirebaseAnalytics();
@@ -152,12 +153,21 @@ function RootComponent() {
             <Outlet />
           </main>
         </div>
-      ) : (
+      ) : isCustomerApp ? (
         <CustomerShell>
           <Outlet />
         </CustomerShell>
+      ) : (
+        <Outlet />
       )}
       <Toaster richColors theme="dark" position="top-center" />
     </QueryClientProvider>
+  );
+}
+
+function isCustomerAppPath(pathname: string) {
+  if (pathname === "/") return true;
+  return ["/menu", "/cart", "/checkout", "/orders", "/favorites", "/profile", "/account", "/track", "/t"].some((prefix) =>
+    pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 }

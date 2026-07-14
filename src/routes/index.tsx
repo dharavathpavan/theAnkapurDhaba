@@ -284,8 +284,8 @@ function heroClasses(banner: CustomerBanner) {
   const align = banner.textAlign === "center" ? "items-center text-center" : banner.textAlign === "right" ? "items-end text-right" : "items-start text-left";
   const ctaAlign = banner.textAlign === "center" ? "justify-center" : banner.textAlign === "right" ? "justify-end" : "justify-start";
   const dots = banner.textAlign === "center" ? "left-1/2 -translate-x-1/2" : banner.textAlign === "right" ? "left-4 sm:left-auto sm:right-6 md:right-8 lg:right-10" : "right-4 sm:left-6 sm:right-auto md:left-8 lg:left-10";
-  const mobileHeight = banner.heightMobile === "tall" ? "min-h-[230px]" : banner.heightMobile === "standard" ? "min-h-[205px]" : "min-h-[180px]";
-  const desktopHeight = banner.heightDesktop === "tall" ? "md:min-h-[470px] lg:min-h-[520px]" : banner.heightDesktop === "compact" ? "md:min-h-[310px] lg:min-h-[340px]" : "md:min-h-[380px] lg:min-h-[430px]";
+  const mobileHeight = banner.heightMobile === "tall" ? "min-h-[290px]" : banner.heightMobile === "standard" ? "min-h-[250px]" : "min-h-[220px]";
+  const desktopHeight = banner.heightDesktop === "tall" ? "md:min-h-[520px] lg:min-h-[560px]" : banner.heightDesktop === "compact" ? "md:min-h-[340px] lg:min-h-[380px]" : "md:min-h-[430px] lg:min-h-[470px]";
   const darkText = banner.textColorMode === "dark";
   const overlay = banner.overlayStrength === "light"
     ? darkText ? "bg-white/28" : "bg-black/32"
