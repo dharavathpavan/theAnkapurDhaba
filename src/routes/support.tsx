@@ -49,7 +49,7 @@ function SupportPage() {
     onSuccess: (ticket) => {
       qc.invalidateQueries({ queryKey: ["support-tickets"] });
       toast.success("Support ticket created");
-      navigate({ to: "/support/$ticketId", params: { ticketId: ticket.id } });
+      navigate({ to: "/support/chat/$ticketId", params: { ticketId: ticket.id } });
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to create ticket"),
   });
@@ -114,16 +114,22 @@ function SupportPage() {
               <h2 className="text-2xl font-black">Your tickets</h2>
               <div className="mt-3 space-y-2">
                 {tickets.length === 0 ? <p className="rounded-3xl bg-white p-5 text-sm font-semibold text-zinc-500">No tickets yet.</p> : tickets.map((ticket) => (
-                  <Link key={ticket.id} to="/support/$ticketId" params={{ ticketId: ticket.id }} className="block rounded-3xl bg-white p-5 shadow-sm ring-1 ring-zinc-100">
+                  <div key={ticket.id} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-zinc-100">
                     <div className="flex items-center justify-between gap-3">
                       <div className="font-black">{ticket.subject}</div>
                       <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black capitalize">{ticket.status.replace(/_/g, " ")}</span>
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-zinc-500">{ticket.category} · {new Date(ticket.updatedAt).toLocaleString()}</p>
-                      <span className="rounded-2xl bg-red-600 px-4 py-2 text-xs font-black text-white">Open chat</span>
+                      <button
+                        type="button"
+                        onClick={() => navigate({ to: "/support/chat/$ticketId", params: { ticketId: ticket.id } })}
+                        className="rounded-2xl bg-red-600 px-4 py-2 text-xs font-black text-white"
+                      >
+                        Open chat
+                      </button>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>

@@ -12,6 +12,10 @@ export const Route = createFileRoute("/support/$ticketId")({
 
 function TicketPage() {
   const { ticketId } = Route.useParams();
+  return <SupportTicketChat ticketId={ticketId} backTo="/support" />;
+}
+
+export function SupportTicketChat({ ticketId, backTo = "/support" }: { ticketId: string; backTo?: string }) {
   const qc = useQueryClient();
   const [message, setMessage] = useState("");
   const [media, setMedia] = useState<string[]>([]);
@@ -57,12 +61,12 @@ function TicketPage() {
   }, [ticket?.messages.length]);
 
   if (isLoading) return <div className="px-4 py-20 text-center font-black">Loading ticket...</div>;
-  if (!ticket) return <div className="px-4 py-20 text-center"><h1 className="text-3xl font-black">Ticket not found</h1><Link to="/support" className="mt-4 inline-flex rounded-2xl bg-red-600 px-4 py-3 font-black text-white">Back to support</Link></div>;
+  if (!ticket) return <div className="px-4 py-20 text-center"><h1 className="text-3xl font-black">Ticket not found</h1><Link to={backTo} className="mt-4 inline-flex rounded-2xl bg-red-600 px-4 py-3 font-black text-white">Back to support</Link></div>;
   const closed = ticket.status === "closed" || ticket.status === "resolved";
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-36 pt-5 md:px-6 md:py-8">
-      <Link to="/support" className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black ring-1 ring-zinc-100"><ArrowLeft className="h-4 w-4" /> Support</Link>
+      <Link to={backTo} className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black ring-1 ring-zinc-100"><ArrowLeft className="h-4 w-4" /> Support</Link>
       <section className="mt-4 rounded-[34px] bg-zinc-950 p-6 text-white">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

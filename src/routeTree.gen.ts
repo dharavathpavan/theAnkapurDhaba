@@ -44,6 +44,7 @@ import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminMarketingRouteImport } from './routes/admin.marketing'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
+import { Route as SupportChatTicketIdRouteImport } from './routes/support.chat.$ticketId'
 
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
@@ -221,6 +222,11 @@ const AdminBillingRoute = AdminBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AdminRoute,
 } as any)
+const SupportChatTicketIdRoute = SupportChatTicketIdRouteImport.update({
+  id: '/chat/$ticketId',
+  path: '/chat/$ticketId',
+  getParentRoute: () => SupportRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -258,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -294,6 +301,7 @@ export interface FileRoutesByTo {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin': typeof AdminIndexRoute
+  '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -332,6 +340,7 @@ export interface FileRoutesById {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -371,6 +380,7 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
+    | '/support/chat/$ticketId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -407,6 +417,7 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin'
+    | '/support/chat/$ticketId'
   id:
     | '__root__'
     | '/'
@@ -444,6 +455,7 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
+    | '/support/chat/$ticketId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -719,6 +731,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBillingRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/support/chat/$ticketId': {
+      id: '/support/chat/$ticketId'
+      path: '/chat/$ticketId'
+      fullPath: '/support/chat/$ticketId'
+      preLoaderRoute: typeof SupportChatTicketIdRouteImport
+      parentRoute: typeof SupportRoute
+    }
   }
 }
 
@@ -761,10 +780,12 @@ const OrdersRouteWithChildren =
 
 interface SupportRouteChildren {
   SupportTicketIdRoute: typeof SupportTicketIdRoute
+  SupportChatTicketIdRoute: typeof SupportChatTicketIdRoute
 }
 
 const SupportRouteChildren: SupportRouteChildren = {
   SupportTicketIdRoute: SupportTicketIdRoute,
+  SupportChatTicketIdRoute: SupportChatTicketIdRoute,
 }
 
 const SupportRouteWithChildren =
