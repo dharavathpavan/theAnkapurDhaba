@@ -27,23 +27,23 @@ export const Route = createFileRoute("/admin/marketing")({
 });
 
 const defaultBannerForm: Partial<CustomerBanner> = {
-  title: "",
+  title: "Banner",
   subtitle: "",
-  image: "/assets/hero-biryani.jpg",
+  image: "",
   mobileImage: "",
   type: "hero",
-  ctaEnabled: true,
-  ctaLabel: "Order Now",
-  ctaLink: "/menu",
-  secondaryCtaEnabled: true,
-  secondaryCtaLabel: "Your Orders",
-  secondaryCtaLink: "/orders",
+  ctaEnabled: false,
+  ctaLabel: "",
+  ctaLink: "",
+  secondaryCtaEnabled: false,
+  secondaryCtaLabel: "",
+  secondaryCtaLink: "",
   priority: 0,
   active: true,
   heightMobile: "compact",
   heightDesktop: "standard",
   textAlign: "left",
-  overlayStrength: "dark",
+  overlayStrength: "light",
   textColorMode: "light",
   startsAt: null,
   endsAt: null,
@@ -185,7 +185,6 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previewMedia, setPreviewMedia] = useState<{ image?: string; mobileImage?: string }>({});
   const [uploadingField, setUploadingField] = useState<"image" | "mobileImage" | null>(null);
-  const [step, setStep] = useState<"media" | "content" | "actions" | "display">("media");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [orderedBanners, setOrderedBanners] = useState<CustomerBanner[]>([]);
   const sorted = useMemo(() => [...banners].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)), [banners]);
@@ -194,18 +193,16 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
   const saving = useMutation({
     mutationFn: async () => {
       const payload = bannerPayload(form);
-      if (!form.title?.trim()) throw new Error("Add a banner title first.");
       if (!payload.image.trim()) throw new Error("Upload or paste banner media first.");
       if (editingId) return updateAdminBanner(editingId, payload);
       return createAdminBanner(payload);
     },
     onSuccess: () => {
-      setForm(defaultBannerForm);
+      setForm({ ...defaultBannerForm });
       setPreviewMedia({});
       setEditingId(null);
-      setStep("media");
       refresh();
-      toast.success("Banner synced");
+      toast.success("Banner published");
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Could not save banner"),
   });
@@ -253,7 +250,6 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
     setEditingId(item.id);
     setPreviewMedia({});
     setForm({ ...defaultBannerForm, ...item, startsAt: toInputDateTime(item.startsAt), endsAt: toInputDateTime(item.endsAt) });
-    setStep("media");
   }
 
   async function toggle(item: CustomerBanner) {
@@ -268,9 +264,8 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
 
   function resetForm() {
     setEditingId(null);
-    setForm(defaultBannerForm);
+    setForm({ ...defaultBannerForm });
     setPreviewMedia({});
-    setStep("media");
   }
 
   function moveBanner(sourceId: string, targetId: string) {
@@ -286,19 +281,12 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
     });
   }
 
-  const steps = [
-    { id: "media", label: "Media", caption: "Upload image or video" },
-    { id: "content", label: "Content", caption: "Title and message" },
-    { id: "actions", label: "Actions", caption: "CTA buttons" },
-    { id: "display", label: "Display", caption: "Schedule and layout" },
-  ] as const;
-
   return (
     <div className="rounded-xl border border-border bg-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl tracking-widest">Banner Studio</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Create hero banners, sponsored ads and brand placements from one guided builder.</p>
+          <h2 className="font-display text-2xl tracking-widest">Banner Space</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Upload an image or video, choose where it appears, and publish. No title, subtitle or CTA setup needed.</p>
         </div>
         {editingId && (
           <button onClick={resetForm} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
@@ -307,96 +295,56 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <BannerKindButton label="Hero" description="Home top carousel" active={!isAdBanner(form.type)} onClick={() => setForm({ ...form, type: "hero" })} />
-        <BannerKindButton label="Ad" description="Tracking ad space" active={form.type === "ad"} onClick={() => setForm({ ...form, type: "ad", ctaLabel: form.ctaLabel || "View Brand" })} />
-        <BannerKindButton label="Sponsored" description="Paid promotion" active={/^(brand|sponsored)$/i.test(form.type || "")} onClick={() => setForm({ ...form, type: "sponsored", ctaLabel: form.ctaLabel || "View Offer" })} />
-      </div>
-
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
         <div className="overflow-hidden rounded-2xl border border-border bg-background">
-          <div className="grid border-b border-border bg-muted/30 sm:grid-cols-4">
-            {steps.map((item, index) => (
-              <button
-                key={item.id}
-                onClick={() => setStep(item.id)}
-                className={`flex min-h-16 items-center gap-3 px-4 py-3 text-left transition ${step === item.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-              >
-                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black ${step === item.id ? "bg-white/20" : "bg-surface text-primary"}`}>{index + 1}</span>
-                <span className="min-w-0">
-                  <span className="block font-display text-xs tracking-widest">{item.label.toUpperCase()}</span>
-                  <span className={`block truncate text-xs ${step === item.id ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{item.caption}</span>
-                </span>
-              </button>
-            ))}
+          <div className="border-b border-border bg-muted/30 px-4 py-3 sm:px-5">
+            <div className="font-display text-xs tracking-widest text-muted-foreground">UPLOAD AND PUBLISH</div>
+            <div className="mt-1 text-sm text-muted-foreground">Images and videos are shown directly on the website/app banner area.</div>
           </div>
 
-          <div className="p-4 sm:p-5">
-            {step === "media" && (
-              <div className="grid gap-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <MediaDropZone
-                    icon={Monitor}
-                    title="Desktop media"
-                    description="Drop image/video here or click to upload"
-                    value={previewMedia.image || form.image}
-                    busy={uploadingField === "image"}
-                    onFile={(file) => upload(file, "image")}
-                  />
-                  <MediaDropZone
-                    icon={Smartphone}
-                    title="Mobile media"
-                    description="Optional. Uses desktop media if empty."
-                    value={previewMedia.mobileImage || form.mobileImage}
-                    busy={uploadingField === "mobileImage"}
-                    onFile={(file) => upload(file, "mobileImage")}
-                  />
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <MiniInput label="Desktop media URL" value={form.image || ""} onChange={(image) => setForm({ ...form, image })} />
-                  <MiniInput label="Mobile media URL" value={form.mobileImage || ""} onChange={(mobileImage) => setForm({ ...form, mobileImage })} />
-                </div>
-              </div>
-            )}
+          <div className="grid gap-5 p-4 sm:p-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <MediaDropZone
+                icon={Monitor}
+                title="Desktop media"
+                description="Drop image/video here or click to upload"
+                value={previewMedia.image || form.image}
+                busy={uploadingField === "image"}
+                onFile={(file) => upload(file, "image")}
+              />
+              <MediaDropZone
+                icon={Smartphone}
+                title="Mobile media"
+                description="Optional. Uses desktop media if empty."
+                value={previewMedia.mobileImage || form.mobileImage}
+                busy={uploadingField === "mobileImage"}
+                onFile={(file) => upload(file, "mobileImage")}
+              />
+            </div>
 
-            {step === "content" && (
-              <div className="grid gap-3 md:grid-cols-2">
-                <MiniInput label="Title" value={form.title || ""} onChange={(title) => setForm({ ...form, title })} />
-                <SelectField label="Banner type" value={form.type || "hero"} options={["hero", "ad", "sponsored", "brand", "festival-offer", "combo-offer", "weekend-offer"]} onChange={(type) => setForm({ ...form, type })} />
-                <MiniInput label="Subtitle" value={form.subtitle || ""} onChange={(subtitle) => setForm({ ...form, subtitle })} className="md:col-span-2" />
-                <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground md:col-span-2">
-                  {isAdBanner(form.type) ? "Ad and sponsored banners appear in ad spaces such as live order tracking." : "Hero banners appear in the customer home carousel."}
-                </div>
-              </div>
-            )}
+            <div className="grid gap-3 md:grid-cols-2">
+              <MiniInput label="Desktop media URL" value={form.image || ""} onChange={(image) => setForm({ ...form, image })} />
+              <MiniInput label="Mobile media URL" value={form.mobileImage || ""} onChange={(mobileImage) => setForm({ ...form, mobileImage })} />
+            </div>
 
-            {step === "actions" && (
-              <div className="grid gap-3 md:grid-cols-2">
-                <ToggleField label="Primary CTA" checked={form.ctaEnabled !== false} onChange={(ctaEnabled) => setForm({ ...form, ctaEnabled })} />
-                <ToggleField label="Secondary CTA" checked={form.secondaryCtaEnabled !== false} onChange={(secondaryCtaEnabled) => setForm({ ...form, secondaryCtaEnabled })} />
-                <MiniInput label="Primary CTA label" value={form.ctaLabel || ""} onChange={(ctaLabel) => setForm({ ...form, ctaLabel })} />
-                <MiniInput label="Primary CTA link" value={form.ctaLink || ""} onChange={(ctaLink) => setForm({ ...form, ctaLink })} />
-                <MiniInput label="Secondary CTA label" value={form.secondaryCtaLabel || ""} onChange={(secondaryCtaLabel) => setForm({ ...form, secondaryCtaLabel })} />
-                <MiniInput label="Secondary CTA link" value={form.secondaryCtaLink || ""} onChange={(secondaryCtaLink) => setForm({ ...form, secondaryCtaLink })} />
+            <div className="grid gap-3 md:grid-cols-3">
+              <SelectField
+                label="Placement"
+                value={isAdBanner(form.type) ? "ad" : "hero"}
+                options={["hero", "ad"]}
+                onChange={(type) => setForm({ ...form, type })}
+              />
+              <MiniInput label="Priority" value={form.priority ?? 0} onChange={(priority) => setForm({ ...form, priority: Number(priority) || 0 })} />
+              <label className="flex items-center justify-between rounded-md border border-border bg-background p-3 text-sm">
+                <span>Active</span>
+                <input type="checkbox" checked={form.active !== false} onChange={(event) => setForm({ ...form, active: event.target.checked })} />
+              </label>
+              <MiniInput label="Starts at" type="datetime-local" value={toInputDateTime(form.startsAt)} onChange={(startsAt) => setForm({ ...form, startsAt: startsAt || null })} />
+              <MiniInput label="Ends at" type="datetime-local" value={toInputDateTime(form.endsAt)} onChange={(endsAt) => setForm({ ...form, endsAt: endsAt || null })} />
+              <div className="rounded-md border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                {isAdBanner(form.type) ? "Ad banners appear in sponsored/tracking spaces." : "Home banners appear in the customer carousel."}
               </div>
-            )}
-
-            {step === "display" && (
-              <div className="grid gap-3 md:grid-cols-3">
-                <SelectField label="Mobile height" value={form.heightMobile || "compact"} options={["compact", "standard", "tall"]} onChange={(heightMobile) => setForm({ ...form, heightMobile })} />
-                <SelectField label="Desktop height" value={form.heightDesktop || "standard"} options={["compact", "standard", "tall"]} onChange={(heightDesktop) => setForm({ ...form, heightDesktop })} />
-                <SelectField label="Text align" value={form.textAlign || "left"} options={["left", "center", "right"]} onChange={(textAlign) => setForm({ ...form, textAlign })} />
-                <SelectField label="Overlay" value={form.overlayStrength || "dark"} options={["light", "medium", "dark"]} onChange={(overlayStrength) => setForm({ ...form, overlayStrength })} />
-                <SelectField label="Text color" value={form.textColorMode || "light"} options={["light", "dark"]} onChange={(textColorMode) => setForm({ ...form, textColorMode })} />
-                <MiniInput label="Priority" value={form.priority ?? 0} onChange={(priority) => setForm({ ...form, priority: Number(priority) || 0 })} />
-                <MiniInput label="Starts at" type="datetime-local" value={toInputDateTime(form.startsAt)} onChange={(startsAt) => setForm({ ...form, startsAt: startsAt || null })} />
-                <MiniInput label="Ends at" type="datetime-local" value={toInputDateTime(form.endsAt)} onChange={(endsAt) => setForm({ ...form, endsAt: endsAt || null })} />
-                <label className="flex items-center justify-between rounded-md border border-border bg-background p-3 text-sm">
-                  <span>Active</span>
-                  <input type="checkbox" checked={form.active !== false} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
-                </label>
-              </div>
-            )}
+            </div>
           </div>
 
           <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface/95 p-4 backdrop-blur">
@@ -404,7 +352,7 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
               {uploadingField ? "Uploading media..." : editingId ? "Editing existing banner" : "Ready to create banner"}
             </div>
             <button onClick={() => saving.mutate()} disabled={saving.isPending || Boolean(uploadingField)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 font-display text-xs tracking-widest text-primary-foreground disabled:opacity-60">
-              <Save className="h-4 w-4" /> {editingId ? "SAVE BANNER" : "ADD BANNER"}
+              <Save className="h-4 w-4" /> {editingId ? "SAVE BANNER" : "PUBLISH BANNER"}
             </button>
           </div>
         </div>
@@ -448,17 +396,17 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
               <MediaThumb url={item.mobileImage || item.image} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="truncate font-display tracking-wide">{item.title}</div>
+                  <div className="truncate font-display tracking-wide">{isAdBanner(item.type) ? "Ad / Sponsored Space" : "Website / App Home Banner"}</div>
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${isAdBanner(item.type) ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}>
                     {isAdBanner(item.type) ? "AD SPACE" : "HERO"}
                   </span>
                 </div>
-                <div className="truncate text-xs text-muted-foreground">{isAdBanner(item.type) ? "Tracking and sponsored placement" : "Home carousel"} - {item.subtitle}</div>
+                <div className="truncate text-xs text-muted-foreground">{isAdBanner(item.type) ? "Tracking and sponsored placement" : "Home carousel"}</div>
                 <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                   <span>#{index + 1}</span>
-                  <span>{item.textAlign || "left"}</span>
-                  <span>{item.overlayStrength || "dark"}</span>
-                  <span>{item.heightMobile || "compact"}/{item.heightDesktop || "standard"}</span>
+                  <span>Priority {item.priority ?? 0}</span>
+                  <span>{item.startsAt ? `From ${new Date(item.startsAt).toLocaleDateString()}` : "Starts now"}</span>
+                  <span>{item.endsAt ? `Ends ${new Date(item.endsAt).toLocaleDateString()}` : "No end date"}</span>
                 </div>
               </div>
             </div>
@@ -532,26 +480,26 @@ function ContentPanel({ title, items, kind, refresh }: { title: string; items: A
 
 function bannerPayload(form: Partial<CustomerBanner>): Partial<CustomerBanner> & { title: string; image: string } {
   return {
-    title: form.title?.trim() || "New offer",
-    subtitle: form.subtitle || "",
-    image: normalizeBannerMedia(form.image) || "/assets/hero-biryani.jpg",
+    title: "Banner",
+    subtitle: "",
+    image: normalizeBannerMedia(form.image) || "",
     mobileImage: normalizeBannerMedia(form.mobileImage) || null,
-    type: form.type || "hero",
-    ctaEnabled: form.ctaEnabled !== false,
-    ctaLabel: form.ctaLabel || "Order Now",
-    ctaLink: form.ctaLink || "/menu",
-    secondaryCtaEnabled: form.secondaryCtaEnabled !== false,
-    secondaryCtaLabel: form.secondaryCtaLabel || null,
-    secondaryCtaLink: form.secondaryCtaLink || null,
+    type: isAdBanner(form.type) ? "ad" : "hero",
+    ctaEnabled: false,
+    ctaLabel: "",
+    ctaLink: "",
+    secondaryCtaEnabled: false,
+    secondaryCtaLabel: null,
+    secondaryCtaLink: null,
     priority: Number(form.priority || 0),
     active: form.active !== false,
     startsAt: normalizeDateTime(form.startsAt),
     endsAt: normalizeDateTime(form.endsAt),
-    heightMobile: form.heightMobile || "compact",
-    heightDesktop: form.heightDesktop || "standard",
-    textAlign: form.textAlign || "left",
-    overlayStrength: form.overlayStrength || "dark",
-    textColorMode: form.textColorMode || "light",
+    heightMobile: "compact",
+    heightDesktop: "standard",
+    textAlign: "left",
+    overlayStrength: "light",
+    textColorMode: "light",
   };
 }
 
@@ -563,19 +511,21 @@ function normalizeBannerMedia(value?: string | null) {
 }
 
 function BannerPreview({ banner }: { banner: CustomerBanner }) {
-  const darkText = banner.textColorMode === "dark";
-  const align = banner.textAlign === "center" ? "items-center text-center" : banner.textAlign === "right" ? "items-end text-right" : "items-start text-left";
-  const overlay = banner.overlayStrength === "light" ? "bg-black/20" : banner.overlayStrength === "medium" ? "bg-black/45" : "bg-black/70";
   return (
-    <div className={`relative min-h-[230px] overflow-hidden rounded-2xl bg-zinc-950 p-4 ${darkText ? "text-zinc-950" : "text-white"}`}>
-      <MediaFill url={banner.mobileImage || banner.image} />
-      <div className={`absolute inset-0 ${darkText ? "bg-white/70" : overlay}`} />
-      <div className={`relative flex min-h-[200px] flex-col justify-end ${align}`}>
-        <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-black uppercase backdrop-blur">{banner.type || "hero"}</span>
-        <div className="mt-3 max-w-[240px] text-2xl font-black">{banner.title || "New offer"}</div>
-        <div className={`mt-2 max-w-[240px] text-sm ${darkText ? "text-zinc-700" : "text-white/75"}`}>{banner.subtitle || "Banner subtitle preview"}</div>
-        {banner.ctaEnabled !== false && <div className="mt-4 rounded-2xl bg-red-600 px-4 py-2 text-sm font-black text-white">{banner.ctaLabel || "Order Now"}</div>}
+    <div className="relative min-h-[230px] overflow-hidden rounded-2xl bg-zinc-950">
+      {banner.image ? <MediaFill url={banner.mobileImage || banner.image} /> : (
+        <div className="absolute inset-0 grid place-items-center bg-muted text-center text-sm text-muted-foreground">
+          Upload image or video to preview
+        </div>
+      )}
+      <div className="absolute left-3 top-3 rounded-full bg-black/65 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur">
+        {isAdBanner(banner.type) ? "Ad / Sponsored" : "Home Banner"}
       </div>
+      {banner.mobileImage ? (
+        <div className="absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-950 shadow">
+          Mobile media ready
+        </div>
+      ) : null}
     </div>
   );
 }

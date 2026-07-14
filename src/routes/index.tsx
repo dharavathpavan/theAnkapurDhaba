@@ -37,6 +37,7 @@ function Home() {
   const visibleBanners = heroBanners;
   const banner = visibleBanners[bannerIndex % Math.max(visibleBanners.length, 1)];
   const hero = banner ? heroClasses(banner) : null;
+  const showBannerContent = banner ? bannerHasOverlayContent(banner) : false;
   const categories = useMemo(() => data?.categories.slice(0, 10) ?? [], [data]);
 
   useEffect(() => {
@@ -82,7 +83,7 @@ function Home() {
 
           {banner && hero && (
             <section
-              className={`relative mt-4 overflow-hidden rounded-[26px] bg-zinc-950 shadow-2xl shadow-zinc-950/15 md:rounded-[34px] ${hero.textColor}`}
+              className={`relative mt-4 overflow-hidden rounded-[26px] bg-zinc-950 shadow-2xl shadow-zinc-950/15 md:rounded-[34px] ${showBannerContent ? hero.textColor : "text-white"}`}
               onTouchStart={(event) => setTouchStart(event.touches[0]?.clientX ?? null)}
               onTouchEnd={(event) => {
                 if (touchStart === null) return;
@@ -91,21 +92,25 @@ function Home() {
                 setTouchStart(null);
               }}
             >
-              <BannerMedia banner={banner} />
-              <div className={`absolute inset-0 ${hero.overlay}`} />
-              <div className={`relative flex ${hero.mobileHeight} ${hero.desktopHeight} flex-col justify-end p-4 sm:p-5 md:p-8 lg:p-10 ${hero.align}`}>
-                <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] backdrop-blur sm:text-xs ${hero.badge}`}>
-                  <Flame className="h-3.5 w-3.5 text-yellow-300 sm:h-4 sm:w-4" /> {banner.type?.replace(/-/g, " ") || "Today special"}
-                </div>
-                <h1 className={`mt-3 max-w-[19rem] text-2xl font-black leading-tight sm:max-w-md sm:text-3xl md:mt-5 md:max-w-2xl md:text-5xl lg:text-6xl ${hero.textBox}`}>{banner.title}</h1>
-                <p className={`mt-2 line-clamp-2 max-w-[18rem] text-sm font-semibold sm:max-w-md md:text-base lg:text-lg ${hero.muted} ${hero.textBox}`}>{banner.subtitle}</p>
-                <div className={`mt-4 flex flex-wrap gap-2 sm:gap-3 md:mt-7 ${hero.ctaAlign}`}>
-                  {banner.ctaEnabled !== false && <Link to={(banner.ctaLink || "/menu") as never} className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-red-600 px-4 text-sm font-black text-white shadow-lg shadow-red-600/30 sm:min-h-12 sm:px-5 sm:text-base">
-                    {banner.ctaLabel || "Order Now"} <ArrowRight className="h-4 w-4" />
-                  </Link>}
-                  {banner.secondaryCtaEnabled !== false && <Link to={(banner.secondaryCtaLink || "/orders") as never} className={`inline-flex min-h-11 items-center rounded-2xl px-4 text-sm font-black backdrop-blur sm:min-h-12 sm:px-5 sm:text-base ${hero.secondaryButton}`}>{banner.secondaryCtaLabel || "Your Orders"}</Link>}
-                </div>
-                <div className={`absolute bottom-3 flex gap-1.5 sm:bottom-5 sm:gap-2 ${hero.dots}`}>
+              <BannerMedia banner={banner} clear={!showBannerContent} />
+              {showBannerContent ? <div className={`absolute inset-0 ${hero.overlay}`} /> : null}
+              <div className={`relative flex ${hero.mobileHeight} ${hero.desktopHeight} flex-col justify-end ${showBannerContent ? `p-4 sm:p-5 md:p-8 lg:p-10 ${hero.align}` : "p-3 sm:p-4"}`}>
+                {showBannerContent ? (
+                  <>
+                    <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] backdrop-blur sm:text-xs ${hero.badge}`}>
+                      <Flame className="h-3.5 w-3.5 text-yellow-300 sm:h-4 sm:w-4" /> {banner.type?.replace(/-/g, " ") || "Today special"}
+                    </div>
+                    <h1 className={`mt-3 max-w-[19rem] text-2xl font-black leading-tight sm:max-w-md sm:text-3xl md:mt-5 md:max-w-2xl md:text-5xl lg:text-6xl ${hero.textBox}`}>{banner.title}</h1>
+                    <p className={`mt-2 line-clamp-2 max-w-[18rem] text-sm font-semibold sm:max-w-md md:text-base lg:text-lg ${hero.muted} ${hero.textBox}`}>{banner.subtitle}</p>
+                    <div className={`mt-4 flex flex-wrap gap-2 sm:gap-3 md:mt-7 ${hero.ctaAlign}`}>
+                      {banner.ctaEnabled !== false && <Link to={(banner.ctaLink || "/menu") as never} className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-red-600 px-4 text-sm font-black text-white shadow-lg shadow-red-600/30 sm:min-h-12 sm:px-5 sm:text-base">
+                        {banner.ctaLabel || "Order Now"} <ArrowRight className="h-4 w-4" />
+                      </Link>}
+                      {banner.secondaryCtaEnabled !== false && <Link to={(banner.secondaryCtaLink || "/orders") as never} className={`inline-flex min-h-11 items-center rounded-2xl px-4 text-sm font-black backdrop-blur sm:min-h-12 sm:px-5 sm:text-base ${hero.secondaryButton}`}>{banner.secondaryCtaLabel || "Your Orders"}</Link>}
+                    </div>
+                  </>
+                ) : null}
+                <div className={`absolute bottom-3 flex gap-1.5 sm:bottom-5 sm:gap-2 ${showBannerContent ? hero.dots : "left-1/2 -translate-x-1/2"}`}>
                   {visibleBanners.map((item, i) => (
                     <button key={item.id} onClick={() => setBannerIndex(i)} className={`h-1.5 rounded-full transition-all sm:h-2 ${i === bannerIndex ? "w-7 bg-white sm:w-9" : "w-1.5 bg-white/50 sm:w-2"}`} aria-label={`Show banner ${i + 1}`} />
                   ))}
@@ -249,19 +254,26 @@ function HomeSkeleton() {
   );
 }
 
-function BannerMedia({ banner }: { banner: CustomerBanner }) {
+function BannerMedia({ banner, clear = false }: { banner: CustomerBanner; clear?: boolean }) {
   const desktopUrl = resolveMediaUrl(banner.image);
   const mobileUrl = resolveMediaUrl(banner.mobileImage || banner.image);
   const url = desktopUrl;
   if (isVideoUrl(url)) {
-    return <video src={url} className="absolute inset-0 h-full w-full object-cover opacity-82" muted autoPlay loop playsInline />;
+    return <video src={url} className={`absolute inset-0 h-full w-full object-cover ${clear ? "" : "opacity-82"}`} muted autoPlay loop playsInline />;
   }
   return (
     <picture>
       <source media="(max-width: 640px)" srcSet={mobileUrl} />
-      <img src={desktopUrl} alt="" onError={imageFallback} className="absolute inset-0 h-full w-full object-cover opacity-85" />
+      <img src={desktopUrl} alt="" onError={imageFallback} className={`absolute inset-0 h-full w-full object-cover ${clear ? "" : "opacity-85"}`} />
     </picture>
   );
+}
+
+function bannerHasOverlayContent(banner: CustomerBanner) {
+  const title = (banner.title || "").trim();
+  const hasRealTitle = Boolean(title && !/^banner$/i.test(title));
+  const hasText = hasRealTitle || Boolean(banner.subtitle?.trim());
+  return hasText || banner.ctaEnabled !== false || banner.secondaryCtaEnabled !== false;
 }
 
 function isAdBanner(type?: string) {
