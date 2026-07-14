@@ -134,16 +134,22 @@ function RootComponent() {
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    if (import.meta.env.DEV) {
+    const clearWorkers = () => {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         registrations.forEach((registration) => registration.unregister());
       }).catch(() => undefined);
+      caches.keys().then((keys) => {
+        keys.filter((key) => key.startsWith("ankapur-")).forEach((key) => caches.delete(key));
+      }).catch(() => undefined);
+    };
+    if (import.meta.env.DEV || isStaff || pathname === "/login" || pathname === "/signup") {
+      clearWorkers();
       return;
     }
-    if (import.meta.env.PROD) {
+    if (import.meta.env.PROD && isCustomerApp) {
       navigator.serviceWorker.register("/sw.js").catch(() => undefined);
     }
-  }, []);
+  }, [isCustomerApp, isStaff, pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
