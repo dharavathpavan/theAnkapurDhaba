@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Bell, Gift, Headphones, LogOut, MapPin, ShieldCheck, Star, User, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { getCustomerLoyalty, getCustomerProfile, getCustomerWallet, updateCustomerProfile } from "@/services/api";
+import { createWalletTopupSession, getCustomerLoyalty, getCustomerProfile, getCustomerWallet, updateCustomerProfile, verifyWalletTopup } from "@/services/api";
 import { useAuth } from "@/stores/auth";
 
 export const Route = createFileRoute("/profile")({
-  head: () => ({ meta: [{ title: "Profile - Ankapur Dhaba" }] }),
+  head: () => ({ meta: [{ title: "Profile - The Ankapure Dhaba" }] }),
   component: ProfilePage,
 });
 
@@ -24,17 +25,35 @@ function ProfilePage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user, isAuthenticated, logout } = useAuth();
+  const [topupAmount, setTopupAmount] = useState("500");
   const { data: profileData } = useQuery({ queryKey: ["customer-profile"], queryFn: getCustomerProfile, enabled: isAuthenticated() });
   const { data: loyalty } = useQuery({ queryKey: ["customer-loyalty"], queryFn: getCustomerLoyalty, enabled: isAuthenticated() });
   const { data: wallet } = useQuery({ queryKey: ["customer-wallet"], queryFn: getCustomerWallet, enabled: isAuthenticated() });
   const saveProfile = useMutation({ mutationFn: updateCustomerProfile, onSuccess: () => { qc.invalidateQueries({ queryKey: ["customer-profile"] }); toast.success("Preferences saved"); } });
+  const topup = useMutation({
+    mutationFn: async () => {
+      const amount = Number(topupAmount);
+      if (!Number.isFinite(amount) || amount < 1) throw new Error("Enter a valid amount");
+      const session = await createWalletTopupSession(amount);
+      if (!session.paymentSessionId) throw new Error("Wallet top-up session was not created");
+      await openCashfreeCheckout(session.paymentSessionId, session.mode);
+      const verified = await verifyWalletTopup(session.orderId, amount);
+      if (String(verified.status).toUpperCase() !== "PAID") throw new Error("Payment was not completed");
+      return verified;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customer-wallet"] });
+      toast.success("Money added to Main Wallet");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Wallet top-up failed"),
+  });
 
   if (!isAuthenticated() || !user) {
     return (
       <div className="mx-auto max-w-md px-4 py-20 text-center">
         <User className="mx-auto h-12 w-12 text-zinc-400" />
         <h1 className="mt-4 text-3xl font-black">Sign in to your profile</h1>
-        <p className="mt-2 text-zinc-500">View orders, rewards, favorites, addresses and preferences.</p>
+        <p className="mt-2 text-zinc-500">View orders, rewards, favorites, addresses and wallet.</p>
         <Link to="/login" className="mt-6 inline-flex rounded-3xl bg-red-600 px-6 py-4 font-black text-white">Sign in</Link>
       </div>
     );
@@ -70,7 +89,7 @@ function ProfilePage() {
         <div className="mt-6 grid grid-cols-3 gap-3">
           <Stat label="Points" value={String(loyalty?.points ?? 0)} />
           <Stat label="Orders" value={String(loyalty?.orderCount ?? 0)} />
-          <Stat label="Spend" value={`₹${loyalty?.lifetimeSpend ?? 0}`} />
+          <Stat label="Spend" value={`Rs ${loyalty?.lifetimeSpend ?? 0}`} />
         </div>
       </section>
 
@@ -82,11 +101,40 @@ function ProfilePage() {
       </section>
 
       <section className="mt-5 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
-        <h2 className="text-xl font-black">Wallet</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <WalletCard label="Refund balance" value={wallet?.refund ?? 0} />
-          <WalletCard label="Gift balance" value={wallet?.gift ?? 0} />
-          <WalletCard label="Loyalty credits" value={wallet?.loyalty ?? 0} />
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex-1">
+            <h2 className="text-xl font-black">Main Wallet</h2>
+            <p className="mt-1 text-sm font-semibold text-zinc-500">One wallet for refunds, top-ups and wallet payments.</p>
+            <div className="mt-4 rounded-[28px] bg-gradient-to-br from-emerald-500 to-teal-700 p-5 text-white">
+              <Wallet className="h-6 w-6" />
+              <div className="mt-4 text-sm font-black uppercase tracking-widest text-white/70">Available balance</div>
+              <div className="text-4xl font-black">Rs {Math.round(wallet?.balance ?? 0)}</div>
+            </div>
+          </div>
+          <div className="rounded-3xl bg-zinc-50 p-4 md:w-72">
+            <div className="text-sm font-black">Add money</div>
+            <div className="mt-3 flex gap-2">
+              <input value={topupAmount} onChange={(event) => setTopupAmount(event.target.value.replace(/[^\d.]/g, ""))} className="min-w-0 flex-1 rounded-2xl bg-white px-4 font-black outline-none ring-1 ring-zinc-200" />
+              <button onClick={() => topup.mutate()} disabled={topup.isPending} className="rounded-2xl bg-red-600 px-4 py-3 font-black text-white disabled:opacity-60">{topup.isPending ? "..." : "Add"}</button>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {[200, 500, 1000].map((amount) => <button key={amount} onClick={() => setTopupAmount(String(amount))} className="rounded-xl bg-white py-2 text-xs font-black ring-1 ring-zinc-200">Rs {amount}</button>)}
+            </div>
+          </div>
+        </div>
+        <div className="mt-5">
+          <h3 className="font-black">Recent wallet activity</h3>
+          <div className="mt-3 space-y-2">
+            {(wallet?.transactions ?? []).length === 0 ? <p className="rounded-2xl bg-zinc-50 p-4 text-sm font-semibold text-zinc-500">No wallet activity yet.</p> : wallet!.transactions.slice(0, 8).map((tx) => (
+              <div key={tx.id} className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-4">
+                <div>
+                  <div className="font-black capitalize">{tx.type.replace(/_/g, " ")}</div>
+                  <div className="text-xs font-semibold text-zinc-500">{tx.reason}</div>
+                </div>
+                <div className={`font-black ${tx.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>{tx.amount >= 0 ? "+" : "-"}Rs {Math.abs(tx.amount)}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -125,10 +173,40 @@ function QuickLink({ to, icon: Icon, title }: { to: string; icon: React.ElementT
   return <Link to={to as never} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-zinc-100"><Icon className="h-6 w-6 text-red-600" /><div className="mt-3 font-black">{title}</div></Link>;
 }
 
-function WalletCard({ label, value }: { label: string; value: number }) {
-  return <div className="rounded-3xl bg-zinc-50 p-4"><Wallet className="h-5 w-5 text-green-600" /><div className="mt-2 text-sm text-zinc-500">{label}</div><div className="text-2xl font-black">₹{value}</div></div>;
-}
-
 function InfoPanel({ icon: Icon, title, text }: { icon: React.ElementType; title: string; text: string }) {
   return <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100"><Icon className="h-6 w-6 text-red-600" /><h3 className="mt-3 font-black">{title}</h3><p className="mt-1 text-sm text-zinc-500">{text}</p></div>;
+}
+
+declare global {
+  interface Window {
+    Cashfree?: (options: { mode: "sandbox" | "production" }) => {
+      checkout: (options: { paymentSessionId: string; redirectTarget: "_modal" | "_self" | "_top" | "_blank" }) => Promise<{ error?: unknown; redirect?: boolean; paymentDetails?: unknown }>;
+    };
+    __cashfreeScriptLoading?: Promise<void>;
+  }
+}
+
+async function loadCashfreeScript() {
+  if (typeof window === "undefined") throw new Error("Cashfree checkout is available only in browser");
+  if (window.Cashfree) return;
+  if (!window.__cashfreeScriptLoading) {
+    window.__cashfreeScriptLoading = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Unable to load Cashfree checkout"));
+      document.head.appendChild(script);
+    });
+  }
+  await window.__cashfreeScriptLoading;
+  if (!window.Cashfree) throw new Error("Cashfree checkout did not initialize");
+}
+
+async function openCashfreeCheckout(paymentSessionId: string, mode: "sandbox" | "production") {
+  await loadCashfreeScript();
+  const cashfree = window.Cashfree?.({ mode });
+  if (!cashfree) throw new Error("Cashfree checkout is unavailable");
+  const result = await cashfree.checkout({ paymentSessionId, redirectTarget: "_modal" });
+  if (result.error) throw new Error("Payment was not completed");
 }

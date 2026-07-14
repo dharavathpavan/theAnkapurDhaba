@@ -11,6 +11,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { installChunkRecovery } from "../lib/chunk-recovery";
 import { getFirebaseAnalytics } from "../lib/firebase";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CustomerShell } from "@/components/site/CustomerShell";
@@ -129,6 +130,7 @@ function RootComponent() {
   const isCustomerApp = isCustomerAppPath(pathname);
 
   useEffect(() => {
+    installChunkRecovery();
     void getFirebaseAnalytics();
   }, []);
 

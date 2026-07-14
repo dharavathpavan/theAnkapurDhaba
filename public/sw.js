@@ -1,4 +1,4 @@
-const CACHE_NAME = "ankapur-customer-v7";
+const CACHE_NAME = "ankapur-customer-v8";
 const SHELL = ["/manifest.webmanifest", "/pwa-icon.svg"];
 
 function offlineResponse() {

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CreditCard, Home, MapPin, Plus, Ticket, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { createCashfreePaymentSession, createOrder, createCustomerAddress, getCustomerHome, getCustomerLoyalty, listCustomerAddresses, listCustomerCoupons, validateCustomerCoupon, verifyCashfreePayment, type OrderType, type PaymentMethod } from "@/services/api";
+import { createCashfreePaymentSession, createOrder, createCustomerAddress, getCustomerHome, getCustomerLoyalty, getCustomerWallet, listCustomerAddresses, listCustomerCoupons, validateCustomerCoupon, verifyCashfreePayment, type OrderType, type PaymentMethod } from "@/services/api";
 import { useAuth } from "@/stores/auth";
 import { useCart } from "@/stores/cart";
 import { saveActiveOrder } from "@/stores/active-order";
@@ -38,6 +38,7 @@ function CheckoutPage() {
   const { data: addresses = [] } = useQuery({ queryKey: ["customer-addresses"], queryFn: listCustomerAddresses, enabled: isAuthenticated() });
   const { data: coupons = [] } = useQuery({ queryKey: ["customer-coupons", user?.phone], queryFn: () => listCustomerCoupons(user?.phone), staleTime: 30_000 });
   const { data: loyalty } = useQuery({ queryKey: ["customer-loyalty"], queryFn: getCustomerLoyalty, enabled: isAuthenticated() });
+  const { data: wallet } = useQuery({ queryKey: ["customer-wallet"], queryFn: getCustomerWallet, enabled: isAuthenticated() });
 
   const subtotal = lines.reduce((sum, line) => sum + line.price * line.qty, 0);
   const deliveryFee = type === "delivery" && subtotal < (home?.store.freeDeliveryAbove ?? 499) ? (home?.store.deliveryCharge ?? 40) : 0;
@@ -108,6 +109,10 @@ function CheckoutPage() {
         tableNumber: tableNumber ?? undefined,
         paymentMethod,
       };
+      if (paymentMethod === "wallet" && (wallet?.balance ?? 0) < total) {
+        toast.error("Insufficient Main Wallet balance");
+        return;
+      }
       let order;
       if (paymentMethod === "cashfree") {
         const session = await createCashfreePaymentSession(orderInput);
@@ -210,6 +215,7 @@ function CheckoutPage() {
               {([
                 ["cod", "Cash on Delivery"],
                 ["cashfree", "UPI / Card / Wallet"],
+                ["wallet", `Main Wallet - Rs ${Math.round(wallet?.balance ?? 0)}`],
               ] as Array<[PaymentMethod, string]>).map(([value, label]) => (
                 <button key={value} type="button" onClick={() => setPaymentMethod(value)} className={`min-h-16 rounded-2xl px-4 text-left font-black ${paymentMethod === value ? "bg-green-600 text-white" : "bg-zinc-100 text-zinc-700"}`}>
                   <CreditCard className="mb-1 h-5 w-5" /> {label}

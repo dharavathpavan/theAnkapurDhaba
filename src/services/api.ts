@@ -54,7 +54,7 @@ export type OrderStatus =
   | "out_for_delivery" | "delivered" | "cancelled";
 
 export type OrderType = "delivery" | "pickup" | "dinein";
-export type PaymentMethod = "cod" | "upi" | "cashfree" | "razorpay";
+export type PaymentMethod = "cod" | "upi" | "cashfree" | "razorpay" | "wallet";
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
 export interface OrderItem {
@@ -446,9 +446,101 @@ export async function getCustomerLoyalty(): Promise<{ points: number; lifetimeSp
   return res.json();
 }
 
-export async function getCustomerWallet(): Promise<{ refund: number; gift: number; loyalty: number; transactions: unknown[] }> {
+export interface WalletTransaction {
+  id: string;
+  userId: string;
+  type: string;
+  amount: number;
+  balanceAfter: number;
+  reason: string;
+  source: string;
+  orderId?: string | null;
+  paymentId?: string | null;
+  createdByName?: string | null;
+  createdAt: string;
+}
+
+export interface CustomerWallet {
+  balance: number;
+  refund?: number;
+  gift?: number;
+  loyalty?: number;
+  transactions: WalletTransaction[];
+}
+
+export async function getCustomerWallet(): Promise<CustomerWallet> {
   const res = await apiFetch(`${API_BASE}/customer/wallet`);
   if (!res.ok) throw new Error("Failed to fetch wallet");
+  return res.json();
+}
+
+export async function createWalletTopupSession(amount: number): Promise<{ orderId: string; paymentSessionId?: string; mode: "sandbox" | "production" }> {
+  const res = await apiFetch(`${API_BASE}/customer/wallet/topup/create`, { method: "POST", body: JSON.stringify({ amount }) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to start wallet top-up");
+  return json;
+}
+
+export async function verifyWalletTopup(orderId: string, amount: number): Promise<{ status: string; wallet: { balance: number; transaction: WalletTransaction } | null }> {
+  const res = await apiFetch(`${API_BASE}/customer/wallet/topup/verify`, { method: "POST", body: JSON.stringify({ orderId, amount }) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to verify wallet top-up");
+  return json;
+}
+
+export interface AdminCustomerUser {
+  id: string;
+  name: string;
+  phone: string;
+  role: string;
+  email?: string | null;
+  photo?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  loyaltyPoints: number;
+  tier: string;
+  orderCount: number;
+  totalSpend: number;
+  lastOrder?: string | null;
+  walletBalance: number;
+  walletTransactions: WalletTransaction[];
+  addresses: CustomerAddress[];
+  favorites: Array<{ id: string; itemId: string; createdAt?: string }>;
+  reviews: Array<{ id: string; foodRating?: number; deliveryRating?: number; packagingRating?: number; comment?: string; createdAt: string }>;
+  notifications: Array<{ id: string; title: string; body: string; category: string; read: boolean; createdAt: string }>;
+  orders: Order[];
+  profile?: Record<string, unknown>;
+}
+
+export async function listAdminUsers(): Promise<AdminCustomerUser[]> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/users`);
+  if (!res.ok) throw new Error("Failed to fetch customers");
+  return res.json();
+}
+
+export async function getAdminUser(id: string): Promise<AdminCustomerUser> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/users/${id}`);
+  if (!res.ok) throw new Error("Failed to fetch customer");
+  return res.json();
+}
+
+export async function adjustAdminUserWallet(id: string, input: { amount: number; direction: "credit" | "debit"; type?: string; reason: string; orderId?: string | null }): Promise<{ balance: number; transaction: WalletTransaction }> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/users/${id}/wallet/adjust`, { method: "POST", body: JSON.stringify(input) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to update wallet");
+  return json;
+}
+
+export async function refundAdminUserWallet(id: string, input: { amount: number; reason: string; orderId?: string | null }): Promise<{ balance: number; transaction: WalletTransaction }> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/users/${id}/wallet/refund`, { method: "POST", body: JSON.stringify(input) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to refund wallet");
+  return json;
+}
+
+export async function listAdminUserWalletTransactions(id: string): Promise<WalletTransaction[]> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/users/${id}/wallet/transactions`);
+  if (!res.ok) throw new Error("Failed to fetch wallet transactions");
   return res.json();
 }
 
