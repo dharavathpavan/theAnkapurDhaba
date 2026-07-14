@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreditCard, Headphones, HelpCircle, MessageCircle, Package, Paperclip, Search, Truck, Wallet, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { createSupportTicket, listMyOrders, listSupportFaqs, listSupportTickets, uploadCatalogFile, type SupportPriority } from "@/services/api";
+import { createSupportTicket, listMyOrders, listSupportFaqs, listSupportTickets, uploadSupportFile, type SupportPriority } from "@/services/api";
 import { useAuth } from "@/stores/auth";
 
 export const Route = createFileRoute("/support")({
@@ -59,7 +59,7 @@ function SupportPage() {
     if (selected.length === 0) return;
     setUploadingMedia(true);
     try {
-      const uploaded = await Promise.all(selected.map((file) => uploadCatalogFile(file)));
+      const uploaded = await Promise.all(selected.map((file) => uploadSupportFile(file)));
       setMedia((current) => [...current, ...uploaded.map((file) => file.url)].slice(0, 6));
       toast.success("Media attached");
     } catch (error) {
@@ -119,7 +119,10 @@ function SupportPage() {
                       <div className="font-black">{ticket.subject}</div>
                       <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black capitalize">{ticket.status.replace(/_/g, " ")}</span>
                     </div>
-                    <p className="mt-1 text-sm font-semibold text-zinc-500">{ticket.category} · {new Date(ticket.updatedAt).toLocaleString()}</p>
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-zinc-500">{ticket.category} · {new Date(ticket.updatedAt).toLocaleString()}</p>
+                      <span className="rounded-2xl bg-red-600 px-4 py-2 text-xs font-black text-white">Open chat</span>
+                    </div>
                   </Link>
                 ))}
               </div>

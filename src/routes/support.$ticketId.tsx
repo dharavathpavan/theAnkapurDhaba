@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink, Paperclip, Send, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { addSupportTicketMessage, getSupportTicket, uploadCatalogFile } from "@/services/api";
+import { addSupportTicketMessage, getSupportTicket, uploadSupportFile } from "@/services/api";
 
 export const Route = createFileRoute("/support/$ticketId")({
   head: () => ({ meta: [{ title: "Support Ticket - The Ankapure Dhaba" }] }),
@@ -35,7 +35,7 @@ function TicketPage() {
     if (selected.length === 0) return;
     setUploadingMedia(true);
     try {
-      const uploaded = await Promise.all(selected.map((file) => uploadCatalogFile(file)));
+      const uploaded = await Promise.all(selected.map((file) => uploadSupportFile(file)));
       setMedia((current) => [...current, ...uploaded.map((file) => file.url)].slice(0, 6));
       toast.success("Media attached");
     } catch (error) {
@@ -146,7 +146,7 @@ function SupportMediaPreview({ url }: { url: string }) {
   if (isVideoMedia(url)) {
     return <video src={url} controls playsInline className="max-h-52 w-full rounded-2xl bg-black object-cover" />;
   }
-  if (/\.(jpg|jpeg|png|webp|gif|avif)(\?|$)/i.test(url)) {
+  if (url.startsWith("data:image/") || /\.(jpg|jpeg|png|webp|gif|avif)(\?|$)/i.test(url)) {
     return <img src={url} alt="Support attachment" className="max-h-52 w-full rounded-2xl object-cover" />;
   }
   return (

@@ -617,6 +617,41 @@ export async function addSupportTicketMessage(id: string, input: { message: stri
   return json;
 }
 
+export async function uploadSupportFile(file: File): Promise<{ url: string; filename: string; originalName: string }> {
+  const form = new FormData();
+  form.append("file", file);
+  const token = useAuth.getState().token;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (SUPABASE_PUBLISHABLE_KEY) headers.apikey = SUPABASE_PUBLISHABLE_KEY;
+  const res = await fetch(`${API_BASE}/customer/support/uploads`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (file.type.startsWith("image/") && file.size <= 2 * 1024 * 1024) {
+      return {
+        url: await fileToDataUrl(file),
+        filename: `inline-${Date.now()}-${file.name}`,
+        originalName: file.name,
+      };
+    }
+    throw new Error(json.error || "Failed to upload support media");
+  }
+  return json;
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Failed to read image"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function listAdminSupportTickets(status?: SupportStatus | "all"): Promise<SupportTicket[]> {
   const qs = status && status !== "all" ? `?status=${encodeURIComponent(status)}` : "";
   const res = await apiFetch(`${API_BASE}/customer/admin/support/tickets${qs}`);
