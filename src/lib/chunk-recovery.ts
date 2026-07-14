@@ -1,6 +1,6 @@
 const RELOAD_KEY = "ankapur_chunk_recovery_reloaded";
 
-function isMissingChunkError(value: unknown) {
+export function isMissingChunkError(value: unknown) {
   const message = value instanceof Error ? value.message : String(value || "");
   return /failed to fetch dynamically imported module|loading chunk|importing a module script failed|\/assets\/.+\.js/i.test(message);
 }
@@ -17,7 +17,7 @@ async function clearAppCaches() {
   ]);
 }
 
-async function recoverFromMissingChunk() {
+export async function recoverFromMissingChunk() {
   if (typeof window === "undefined") return;
   if (sessionStorage.getItem(RELOAD_KEY) === "1") return;
   sessionStorage.setItem(RELOAD_KEY, "1");

@@ -11,7 +11,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { installChunkRecovery } from "../lib/chunk-recovery";
+import { installChunkRecovery, isMissingChunkError, recoverFromMissingChunk } from "../lib/chunk-recovery";
 import { getFirebaseAnalytics } from "../lib/firebase";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CustomerShell } from "@/components/site/CustomerShell";
@@ -43,13 +43,20 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+  const isChunkError = isMissingChunkError(error);
+
+  useEffect(() => {
+    if (isChunkError) {
+      void recoverFromMissingChunk();
+    }
+  }, [isChunkError]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="font-display text-3xl tracking-widest text-primary">Something burnt</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          We hit a snag plating this page. Try again or head home.
+          {isChunkError ? "Updating the app. This page will reload automatically." : "We hit a snag plating this page. Try again or head home."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
