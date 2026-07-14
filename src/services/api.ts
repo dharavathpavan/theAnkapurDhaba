@@ -80,6 +80,8 @@ export interface Order {
     name: string;
     phone: string;
     address?: string;
+    lat?: number | null;
+    lng?: number | null;
     landmark?: string;
     notes?: string;
   };

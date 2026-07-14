@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CreditCard, Home, MapPin, Plus, Ticket, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { createCashfreePaymentSession, createOrder, createCustomerAddress, getCustomerHome, getCustomerLoyalty, listCustomerAddresses, listCustomerCoupons, validateCustomerCoupon, verifyCashfreePayment, type OrderType, type PaymentMethod } from "@/services/api";
@@ -9,6 +9,8 @@ import { useCart } from "@/stores/cart";
 import { saveActiveOrder } from "@/stores/active-order";
 import type { CreateOrderInput } from "@/services/api";
 import { buildOrderItemName } from "@/lib/order-items";
+import { LocationPicker } from "@/components/site/LocationPicker";
+import type { LatLngLiteral } from "@/lib/google-maps";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout - Ankapur Dhaba" }] }),
@@ -27,6 +29,8 @@ function CheckoutPage() {
   const [discount, setDiscount] = useState(0);
   const [selectedAddress, setSelectedAddress] = useState("");
   const [savingAddress, setSavingAddress] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [selectedCoords, setSelectedCoords] = useState<LatLngLiteral | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successId, setSuccessId] = useState<string | null>(null);
 
@@ -41,6 +45,12 @@ function CheckoutPage() {
   const tax = Math.round(subtotal * 0.05);
   const total = Math.max(0, subtotal + tax + deliveryFee + packing - discount);
   const address = addresses.find((a) => a.id === selectedAddress) || addresses.find((a) => a.isDefault);
+
+  useEffect(() => {
+    if (!address) return;
+    setDeliveryAddress(address.address);
+    setSelectedCoords(typeof address.lat === "number" && typeof address.lng === "number" ? { lat: address.lat, lng: address.lng } : null);
+  }, [address?.id, address?.lat, address?.lng]);
 
   const items = useMemo(() => lines.map((line) => ({
     id: line.id,
@@ -69,7 +79,7 @@ function CheckoutPage() {
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get("name") || user?.name || "").trim();
     const phone = String(fd.get("phone") || user?.phone || "").trim();
-    const enteredAddress = String(fd.get("address") || "").trim();
+    const enteredAddress = String(fd.get("address") || deliveryAddress || "").trim();
     if (!name || !/^[6-9]\d{9}$/.test(phone)) return toast.error("Enter valid customer details");
     if (type === "delivery" && !address && enteredAddress.length < 5) return toast.error("Delivery address is required");
     if (type === "delivery" && subtotal < (home?.store.minimumOrder ?? 0)) return toast.error(`Minimum delivery order is ₹${home?.store.minimumOrder ?? 0}`);
@@ -77,7 +87,7 @@ function CheckoutPage() {
     setSubmitting(true);
     try {
       if (savingAddress && isAuthenticated() && type === "delivery" && enteredAddress) {
-        await createCustomerAddress({ id: "", label: "Home", name, phone, address: enteredAddress, landmark: String(fd.get("landmark") || ""), notes: String(fd.get("notes") || ""), isDefault: addresses.length === 0 });
+        await createCustomerAddress({ id: "", label: "Home", name, phone, address: enteredAddress, landmark: String(fd.get("landmark") || ""), notes: String(fd.get("notes") || ""), lat: selectedCoords?.lat ?? null, lng: selectedCoords?.lng ?? null, isDefault: addresses.length === 0 });
       }
       const orderInput: CreateOrderInput = {
         items,
@@ -89,6 +99,8 @@ function CheckoutPage() {
           name,
           phone,
           address: type === "delivery" ? (address?.address || enteredAddress) : undefined,
+          lat: type === "delivery" ? (address?.lat ?? selectedCoords?.lat) : undefined,
+          lng: type === "delivery" ? (address?.lng ?? selectedCoords?.lng) : undefined,
           landmark: type === "delivery" ? (address?.landmark || String(fd.get("landmark") || "")) : undefined,
           notes: String(fd.get("notes") || ""),
         },
@@ -162,7 +174,29 @@ function CheckoutPage() {
                 </div>
               )}
               <div className="grid gap-3">
-                <Field name="address" label="New address" placeholder="House no, street, area, pincode" />
+                <label className="block">
+                  <span className="mb-1 block text-sm font-black">New address</span>
+                  <input
+                    name="address"
+                    value={deliveryAddress}
+                    onChange={(event) => {
+                      setDeliveryAddress(event.target.value);
+                      if (selectedAddress) setSelectedAddress("");
+                    }}
+                    placeholder="House no, street, area, pincode"
+                    className="h-13 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 outline-none focus:border-red-400"
+                  />
+                </label>
+                <LocationPicker
+                  value={selectedCoords}
+                  address={address?.address || deliveryAddress}
+                  restaurant={home?.store ? { lat: home.store.lat, lng: home.store.lng } : undefined}
+                  onChange={({ coords, address: nextAddress }) => {
+                    setSelectedAddress("");
+                    setSelectedCoords(coords);
+                    if (nextAddress) setDeliveryAddress(nextAddress);
+                  }}
+                />
                 <Field name="landmark" label="Landmark" placeholder="Near temple, beside ATM" />
                 <label className="flex items-center gap-2 rounded-2xl bg-zinc-100 p-4 font-bold">
                   <input type="checkbox" checked={savingAddress} onChange={(e) => setSavingAddress(e.target.checked)} /> Save this address

@@ -21,7 +21,8 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/stores/auth";
 import { useOrderRealtime } from "@/hooks/use-order-realtime";
-import { DeliveryMap, googleMapsDirectionsUrl } from "@/components/site/DeliveryMap";
+import { DeliveryMap, googleMapsDirectionsUrl, googleMapsRestaurantDirectionsUrl } from "@/components/site/DeliveryMap";
+import { calculateDrivingRoute } from "@/lib/google-maps";
 import {
   completeDeliveryOrder,
   getDeliveryProfile,
@@ -125,7 +126,7 @@ function EnterpriseDeliveryPortal() {
     if (watchRef.current !== null) return;
     setGpsState("active");
     watchRef.current = navigator.geolocation.watchPosition(
-      (position) => {
+      async (position) => {
         const now = Date.now();
         const currentLocation = {
           lat: position.coords.latitude,
@@ -137,13 +138,15 @@ function EnterpriseDeliveryPortal() {
         if (now - lastGpsPushRef.current < 3000) return;
         lastGpsPushRef.current = now;
         const routeProgress = nextProgress(activeOrder, currentLocation);
+        const routePatch = await liveRoutePatch(activeOrder, currentLocation);
         updateDeliveryLocation(activeOrder.id, {
           currentLocation,
           gpsAccuracy: position.coords.accuracy,
           speed: position.coords.speed || undefined,
           heading: position.coords.heading || undefined,
           routeProgress,
-          distanceKm: estimateDistanceKm(activeOrder, currentLocation),
+          distanceKm: routePatch.distanceKm ?? estimateDistanceKm(activeOrder, currentLocation),
+          etaMinutes: routePatch.etaMinutes,
         })
           .then((updated) => {
             maybeUpdateGeofence(updated, currentLocation, stageRef.current).then(invalidate);
@@ -279,7 +282,10 @@ function ActiveTrip({ order, online, gpsState, lastPosition, onDone }: { order: 
       </div>
       <div className="flex flex-wrap gap-2 lg:col-span-2">
         <a href={googleMapsDirectionsUrl(order)} target="_blank" rel="noreferrer" className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-white px-5 py-4 text-sm font-black text-slate-950 sm:flex-none">
-          <Navigation className="h-4 w-4" /> Open Google Maps
+          <Navigation className="h-4 w-4" /> Navigate customer
+        </a>
+        <a href={googleMapsRestaurantDirectionsUrl(order)} target="_blank" rel="noreferrer" className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-sm font-black text-white sm:flex-none">
+          <MapPin className="h-4 w-4" /> Navigate restaurant
         </a>
         <PickupAndDeliverControls order={order} onDone={onDone} compact />
       </div>
@@ -739,6 +745,18 @@ function estimateDistanceKm(order: Order, location: DeliveryLocation) {
   return meters ? Number((meters / 1000).toFixed(2)) : order.delivery?.distanceKm;
 }
 
+async function liveRoutePatch(order: Order, location: DeliveryLocation) {
+  const target = order.status === "ready"
+    ? coordsFrom(order.delivery?.restaurantLat, order.delivery?.restaurantLng)
+    : coordsFrom(order.delivery?.destinationLat, order.delivery?.destinationLng);
+  if (!target) return {};
+  try {
+    return await calculateDrivingRoute({ lat: location.lat, lng: location.lng }, target);
+  } catch {
+    return {};
+  }
+}
+
 async function maybeUpdateGeofence(order: Order, location: DeliveryLocation, stageRef: Record<string, string>) {
   const current = order.delivery?.deliveryStage || "";
   if (order.status === "ready") {
@@ -769,6 +787,11 @@ function distanceMeters(lat1?: number, lng1?: number, lat2?: number, lng2?: numb
   const dLng = toRad((lng2 as number) - (lng1 as number));
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1 as number)) * Math.cos(toRad(lat2 as number)) * Math.sin(dLng / 2) ** 2;
   return earth * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function coordsFrom(lat?: number, lng?: number) {
+  if (typeof lat !== "number" || typeof lng !== "number") return null;
+  return { lat, lng };
 }
 
 function greeting() {

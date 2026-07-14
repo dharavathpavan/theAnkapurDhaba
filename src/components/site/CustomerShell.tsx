@@ -319,6 +319,19 @@ function useLocalNotifications() {
   }
 
   useEffect(() => {
+    if (typeof window === "undefined" || permission !== "default") return;
+    if (window.localStorage.getItem("ankapur-notification-prompted") === "yes") return;
+    window.localStorage.setItem("ankapur-notification-prompted", "yes");
+    const id = window.setTimeout(() => {
+      toast("Enable live order notifications?", {
+        description: "Allow this device to show order status and offer alerts.",
+        action: { label: "Allow", onClick: requestPermission },
+      });
+    }, 1200);
+    return () => window.clearTimeout(id);
+  }, [permission]);
+
+  useEffect(() => {
     const unsubscribeContent = subscribeToCustomerContent((event) => {
       pushNotice({
         title: contentNoticeTitle(event.type),
