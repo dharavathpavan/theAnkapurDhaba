@@ -263,18 +263,18 @@ function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-32 pt-4 md:px-6 md:py-8">
-      <section className="overflow-hidden rounded-[26px] bg-zinc-950 text-white shadow-2xl shadow-zinc-950/20 md:rounded-[34px]">
-        <div className="relative p-4 md:p-7">
+    <div className="mx-auto max-w-7xl px-3 pb-40 pt-3 sm:px-4 md:px-6 md:py-8">
+      <section className="overflow-hidden rounded-[22px] bg-zinc-950 text-white shadow-2xl shadow-zinc-950/20 md:rounded-[34px]">
+        <div className="relative p-3.5 sm:p-4 md:p-7">
           <div className="absolute right-0 top-0 h-28 w-28 rounded-full bg-red-600/25 blur-3xl md:h-44 md:w-44" />
           <div className="relative flex flex-col gap-3 md:gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 items-center gap-3 md:gap-4">
-              <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[20px] bg-white/10 text-xl font-black ring-1 ring-white/15 md:h-20 md:w-20 md:rounded-[28px] md:text-3xl">
+              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[18px] bg-white/10 text-lg font-black ring-1 ring-white/15 sm:h-14 sm:w-14 md:h-20 md:w-20 md:rounded-[28px] md:text-3xl">
                 {photoUrl ? <img src={photoUrl} alt={profileUser?.name || "Profile"} className="h-full w-full object-cover" /> : profileUser?.name?.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-red-200 md:text-xs md:tracking-[0.22em]">My Account</div>
-                <h1 className="mt-0.5 truncate text-xl font-black leading-tight md:mt-1 md:text-5xl">{profileUser?.name}</h1>
+                <div className="text-[9px] font-black uppercase tracking-[0.14em] text-red-200 md:text-xs md:tracking-[0.22em]">My Account</div>
+                <h1 className="mt-0.5 max-w-[210px] truncate text-lg font-black leading-tight sm:max-w-none sm:text-xl md:mt-1 md:text-5xl">{profileUser?.name}</h1>
                 <p className="mt-0.5 text-xs font-semibold text-white/65 md:mt-1 md:text-sm">{profileUser?.phone}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5 md:mt-3 md:gap-2">
                   <Badge>{loyalty?.tier || "Bronze"} member</Badge>
@@ -282,7 +282,7 @@ function ProfilePage() {
                 </div>
               </div>
             </div>
-            <button onClick={() => setEditOpen(true)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-xs font-black text-zinc-950 md:min-h-12 md:px-5 md:text-sm">
+            <button onClick={() => setEditOpen(true)} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 text-xs font-black text-zinc-950 sm:w-auto md:min-h-12 md:px-5 md:text-sm">
               <Pencil className="h-4 w-4" /> Edit Profile
             </button>
           </div>
@@ -293,7 +293,7 @@ function ProfilePage() {
         </div>
       </section>
 
-      <section className="mt-4 grid grid-cols-4 gap-2 md:grid-cols-8 md:gap-3">
+      <section className="mt-3 grid grid-cols-4 gap-2 md:mt-4 md:grid-cols-8 md:gap-3">
         <QuickAction to="/orders" icon={Package} label="Orders" tone="red" />
         <QuickAction to="/wallet" icon={Wallet} label="Wallet" tone="green" />
         <QuickAction onClick={() => openAddressEditor()} icon={MapPin} label="Address" tone="blue" />
@@ -304,17 +304,17 @@ function ProfilePage() {
         <QuickAction to="/privacy-policy" icon={ShieldCheck} label="Legal" tone="slate" />
       </section>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-        <main className="space-y-5">
+      <div className="mt-4 grid gap-4 md:mt-5 md:gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <main className="space-y-4 md:space-y-5">
           {activeOrder && (
-            <Link to="/orders/$orderId" params={{ orderId: activeOrder.id }} className="block rounded-[30px] bg-gradient-to-br from-red-600 to-red-800 p-5 text-white shadow-xl shadow-red-600/20">
+            <Link to="/orders/$orderId" params={{ orderId: activeOrder.id }} className="block rounded-[24px] bg-gradient-to-br from-red-600 to-red-800 p-4 text-white shadow-xl shadow-red-600/20 md:rounded-[30px] md:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-white/65">Active live order</p>
-                  <h2 className="mt-1 text-2xl font-black">#{activeOrder.id}</h2>
+                  <h2 className="mt-1 text-xl font-black md:text-2xl">#{activeOrder.id}</h2>
                   <p className="mt-1 text-sm font-semibold capitalize text-white/75">{activeOrder.status.replace(/_/g, " ")}</p>
                 </div>
-                <span className="rounded-2xl bg-white px-4 py-2 text-sm font-black text-red-700">Track</span>
+                <span className="rounded-2xl bg-white px-3 py-2 text-xs font-black text-red-700 md:px-4 md:text-sm">Track</span>
               </div>
             </Link>
           )}
@@ -323,7 +323,7 @@ function ProfilePage() {
             {recentOrders.length === 0 ? <EmptyState icon={Package} title="No orders yet" text="Your food journey starts from the menu." action={<Link to="/menu" className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-black text-white">Order now</Link>} /> : (
               <div className="space-y-3">
                 {recentOrders.map((order) => (
-                  <Link key={order.id} to="/orders/$orderId" params={{ orderId: order.id }} className="flex items-center justify-between gap-3 rounded-3xl bg-zinc-50 p-4">
+                  <Link key={order.id} to="/orders/$orderId" params={{ orderId: order.id }} className="flex items-center justify-between gap-3 rounded-[22px] bg-zinc-50 p-3 md:rounded-3xl md:p-4">
                     <span className="min-w-0">
                       <span className="block truncate font-black">#{order.id}</span>
                       <span className="mt-1 block truncate text-sm font-semibold text-zinc-500">{order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}</span>
@@ -342,14 +342,14 @@ function ProfilePage() {
             {addresses.length === 0 ? <EmptyState icon={MapPin} title="No address saved" text="Add your delivery address for faster checkout." /> : (
               <div className="grid gap-3 md:grid-cols-2">
                 {addresses.map((address) => (
-                  <article key={address.id} className="rounded-3xl bg-zinc-50 p-4">
+                  <article key={address.id} className="rounded-[22px] bg-zinc-50 p-3 md:rounded-3xl md:p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2 font-black">
                           <Home className="h-4 w-4 text-red-600" /> {address.label}
                           {address.isDefault && <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black text-green-700">Default</span>}
                         </div>
-                        <p className="mt-2 text-sm font-semibold leading-5 text-zinc-600">{address.address}</p>
+                        <p className="mt-2 line-clamp-3 text-sm font-semibold leading-5 text-zinc-600">{address.address}</p>
                         {address.landmark && <p className="mt-1 text-xs font-bold text-zinc-400">Landmark: {address.landmark}</p>}
                       </div>
                       <button onClick={() => openAddressEditor(address)} className="rounded-2xl bg-white p-2 text-zinc-600 ring-1 ring-zinc-200"><Pencil className="h-4 w-4" /></button>
@@ -381,12 +381,12 @@ function ProfilePage() {
           </Panel>
         </main>
 
-        <aside className="space-y-5">
+        <aside className="space-y-4 md:space-y-5">
           <Panel title="Main Wallet" action={<Link to="/wallet" className="text-sm font-black text-red-600">Open</Link>} loading={walletQuery.isLoading}>
-            <div className="rounded-[28px] bg-gradient-to-br from-emerald-500 to-teal-800 p-5 text-white">
-              <Wallet className="h-7 w-7" />
-              <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-white/65">Available balance</p>
-              <div className="mt-1 text-4xl font-black">Rs {Math.round(wallet?.balance ?? 0)}</div>
+            <div className="rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-800 p-4 text-white md:rounded-[28px] md:p-5">
+              <Wallet className="h-6 w-6 md:h-7 md:w-7" />
+              <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-white/65 md:mt-6 md:text-xs md:tracking-[0.2em]">Available balance</p>
+              <div className="mt-1 text-3xl font-black md:text-4xl">Rs {Math.round(wallet?.balance ?? 0)}</div>
             </div>
             <div className="mt-3 space-y-2">
               {(wallet?.transactions ?? []).slice(0, 3).map((tx) => <LedgerRow key={tx.id} title={tx.type.replace(/_/g, " ")} text={tx.reason} amount={tx.amount} />)}
@@ -398,7 +398,7 @@ function ProfilePage() {
             {openTickets.length === 0 ? <EmptyState icon={MessageCircle} title="No open tickets" text="Need help? Create a support ticket anytime." /> : (
               <div className="space-y-2">
                 {openTickets.slice(0, 3).map((ticket) => (
-                  <Link key={ticket.id} to="/support/chat/$ticketId" params={{ ticketId: ticket.id }} className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-4">
+                  <Link key={ticket.id} to="/support/chat/$ticketId" params={{ ticketId: ticket.id }} className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-3 md:p-4">
                     <span className="min-w-0">
                       <span className="block truncate font-black">{ticket.subject}</span>
                       <span className="text-xs font-bold capitalize text-zinc-500">{ticket.status.replace(/_/g, " ")}</span>
@@ -418,7 +418,7 @@ function ProfilePage() {
             {notifications.length === 0 ? <EmptyState icon={Bell} title="No notifications" text="Order updates and support replies will appear here." /> : (
               <div className="space-y-2">
                 {notifications.slice(0, 5).map((notice) => (
-                  <button key={notice.id} onClick={() => !notice.read && readNotification.mutate(notice.id)} className={`w-full rounded-2xl p-4 text-left ${notice.read ? "bg-zinc-50" : "bg-red-50 ring-1 ring-red-100"}`}>
+                  <button key={notice.id} onClick={() => !notice.read && readNotification.mutate(notice.id)} className={`w-full rounded-2xl p-3 text-left md:p-4 ${notice.read ? "bg-zinc-50" : "bg-red-50 ring-1 ring-red-100"}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="font-black">{notice.title}</div>
@@ -440,7 +440,7 @@ function ProfilePage() {
             </div>
           </Panel>
 
-          <button onClick={signOut} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-3xl bg-zinc-950 font-black text-white">
+          <button onClick={signOut} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-3xl bg-zinc-950 font-black text-white md:min-h-14">
             <LogOut className="h-5 w-5" /> Sign out
           </button>
         </aside>
@@ -581,7 +581,7 @@ function ProfilePage() {
 
 function SignedOutProfile() {
   return (
-    <div className="mx-auto max-w-md px-4 py-20 text-center">
+      <div className="mx-auto max-w-md px-4 py-16 text-center md:py-20">
       <div className="mx-auto grid h-20 w-20 place-items-center rounded-[30px] bg-red-50 text-red-600">
         <User className="h-10 w-10" />
       </div>
@@ -596,7 +596,7 @@ function SignedOutProfile() {
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-full bg-white/12 px-2.5 py-1 text-[10px] font-black capitalize text-white/80 ring-1 ring-white/10 md:px-3 md:text-xs">{children}</span>;
+  return <span className="rounded-full bg-white/12 px-2 py-0.5 text-[9px] font-black capitalize text-white/80 ring-1 ring-white/10 md:px-3 md:py-1 md:text-xs">{children}</span>;
 }
 
 function HeroStat({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ElementType }) {
@@ -610,9 +610,9 @@ function HeroStat({ label, value, icon: Icon }: { label: string; value: string |
 }
 
 function QuickAction({ to, onClick, icon: Icon, label, tone }: { to?: string; onClick?: () => void; icon: React.ElementType; label: string; tone: string }) {
-  const className = "flex min-h-[86px] flex-col items-center justify-center gap-2 rounded-[24px] bg-white p-3 text-center text-xs font-black text-zinc-800 shadow-sm ring-1 ring-zinc-100 transition hover:-translate-y-0.5 hover:shadow-md";
-  const iconClass = `grid h-11 w-11 place-items-center rounded-2xl ${toneClass(tone)}`;
-  const content = <><span className={iconClass}><Icon className="h-5 w-5" /></span><span>{label}</span></>;
+  const className = "flex min-h-[70px] flex-col items-center justify-center gap-1.5 rounded-[20px] bg-white p-2 text-center text-[10px] font-black text-zinc-800 shadow-sm ring-1 ring-zinc-100 transition hover:-translate-y-0.5 hover:shadow-md md:min-h-[86px] md:gap-2 md:rounded-[24px] md:p-3 md:text-xs";
+  const iconClass = `grid h-9 w-9 place-items-center rounded-[16px] md:h-11 md:w-11 md:rounded-2xl ${toneClass(tone)}`;
+  const content = <><span className={iconClass}><Icon className="h-4 w-4 md:h-5 md:w-5" /></span><span className="leading-tight">{label}</span></>;
   if (to) return <Link to={to as never} className={className}>{content}</Link>;
   return <button type="button" onClick={onClick} className={className}>{content}</button>;
 }
@@ -633,9 +633,9 @@ function toneClass(tone: string) {
 
 function Panel({ title, action, loading, children }: { title: string; action?: React.ReactNode; loading?: boolean; children: React.ReactNode }) {
   return (
-    <section className="rounded-[30px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-xl font-black">{title}</h2>
+    <section className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-zinc-100 md:rounded-[30px] md:p-5">
+      <div className="mb-3 flex items-center justify-between gap-3 md:mb-4">
+        <h2 className="text-lg font-black md:text-xl">{title}</h2>
         {action}
       </div>
       {loading ? <div className="h-28 animate-pulse rounded-3xl bg-zinc-100" /> : children}
@@ -645,7 +645,7 @@ function Panel({ title, action, loading, children }: { title: string; action?: R
 
 function EmptyState({ icon: Icon, title, text, action }: { icon: React.ElementType; title: string; text: string; action?: React.ReactNode }) {
   return (
-    <div className="rounded-3xl bg-zinc-50 p-5 text-center">
+    <div className="rounded-[22px] bg-zinc-50 p-4 text-center md:rounded-3xl md:p-5">
       <Icon className="mx-auto h-8 w-8 text-zinc-400" />
       <h3 className="mt-3 font-black">{title}</h3>
       <p className="mt-1 text-sm font-semibold text-zinc-500">{text}</p>
@@ -656,7 +656,7 @@ function EmptyState({ icon: Icon, title, text, action }: { icon: React.ElementTy
 
 function LedgerRow({ title, text, amount }: { title: string; text: string; amount: number }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-4">
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-3 md:p-4">
       <div className="min-w-0">
         <div className="truncate font-black capitalize">{title}</div>
         <div className="truncate text-xs font-semibold text-zinc-500">{text}</div>
@@ -677,7 +677,7 @@ function InfoTile({ icon: Icon, title, text, to }: { icon: React.ElementType; ti
       {to && <ChevronRight className="ml-auto h-4 w-4 text-zinc-400" />}
     </>
   );
-  const className = "flex items-center gap-3 rounded-2xl bg-zinc-50 p-4 text-left";
+  const className = "flex items-center gap-3 rounded-2xl bg-zinc-50 p-3 text-left md:p-4";
   if (to) return <Link to={to as never} className={className}>{content}</Link>;
   return <div className={className}>{content}</div>;
 }
@@ -686,18 +686,18 @@ function AddressSheet({ title, onClose, children, footer }: { title: string; onC
   return (
     <div className="fixed inset-0 z-[90] bg-zinc-950/60 backdrop-blur-sm">
       <div className="flex min-h-full items-end md:items-center md:justify-center md:p-4">
-        <section className="flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-[34px] bg-white shadow-2xl md:max-w-5xl md:rounded-[34px]">
-          <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-4 md:px-5">
+        <section className="flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-[28px] bg-white shadow-2xl md:max-w-5xl md:rounded-[34px]">
+          <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-3.5 py-3.5 md:px-5 md:py-4">
             <div className="min-w-0">
-              <h2 className="truncate text-2xl font-black">{title}</h2>
+              <h2 className="truncate text-xl font-black md:text-2xl">{title}</h2>
               <p className="mt-0.5 text-xs font-bold text-zinc-500">Choose the exact delivery spot for faster ETA and tracking.</p>
             </div>
             <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-zinc-100">
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5">{children}</div>
-          <div className="border-t border-zinc-100 bg-white/95 px-4 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] md:px-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5 md:px-5 md:py-4">{children}</div>
+          <div className="border-t border-zinc-100 bg-white/95 px-3.5 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] md:px-5">
             {footer}
           </div>
         </section>
