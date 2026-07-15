@@ -7,12 +7,13 @@ type LocationPickerProps = {
   value: LatLngLiteral | null;
   address: string;
   restaurant?: LatLngLiteral;
+  compact?: boolean;
   onChange: (next: { coords: LatLngLiteral; address?: string }) => void;
 };
 
 const DEFAULT_CENTER = { lat: 18.7283, lng: 78.4477 };
 
-export function LocationPicker({ value, address, restaurant, onChange }: LocationPickerProps) {
+export function LocationPicker({ value, address, restaurant, compact = false, onChange }: LocationPickerProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -48,6 +49,7 @@ export function LocationPicker({ value, address, restaurant, onChange }: Locatio
           map,
           draggable: true,
           title: "Delivery location",
+          icon: customerPointerIcon(google),
         });
         markerRef.current.addListener("dragend", () => {
           const pos = markerRef.current?.getPosition();
@@ -60,7 +62,7 @@ export function LocationPicker({ value, address, restaurant, onChange }: Locatio
             position: restaurant,
             map,
             title: "Restaurant",
-            icon: { url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png" },
+            icon: restaurantPointerIcon(google),
           });
         }
         setMapsReady(true);
@@ -164,7 +166,7 @@ export function LocationPicker({ value, address, restaurant, onChange }: Locatio
       </div>
 
       {hasGoogleMapsKey() ? (
-        <div ref={mapRef} className="h-64 w-full bg-zinc-200 md:h-80" />
+        <div ref={mapRef} className={`${compact ? "h-56 md:h-72" : "h-64 md:h-80"} w-full bg-zinc-200`} />
       ) : (
         <div className="grid h-52 place-items-center bg-zinc-200 p-5 text-center">
           <div>
@@ -186,4 +188,39 @@ export function LocationPicker({ value, address, restaurant, onChange }: Locatio
       </div>
     </div>
   );
+}
+
+function customerPointerIcon(google: any) {
+  const svg = encodeURIComponent(`
+    <svg width="54" height="66" viewBox="0 0 54 66" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <filter id="s" x="0" y="0" width="54" height="66" filterUnits="userSpaceOnUse">
+        <feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="#111827" flood-opacity=".35"/>
+      </filter>
+      <g filter="url(#s)">
+        <path d="M27 4C15.4 4 6 13.1 6 24.3c0 15.2 21 35.7 21 35.7s21-20.5 21-35.7C48 13.1 38.6 4 27 4Z" fill="#E11D2E"/>
+        <path d="M27 8C17.7 8 10 15.4 10 24.4c0 11.6 13.3 26.7 17 30.6 3.7-3.9 17-19 17-30.6C44 15.4 36.3 8 27 8Z" fill="#FF6A00"/>
+        <circle cx="27" cy="25" r="12" fill="white"/>
+        <path d="M27 14c2.4 3.4-.8 5.4.8 7.7 1 1.5 3.5.8 4.1-.7 3.9 3.2 4 11.7-4.9 13.7-9-2-8.8-10.5-5-13.7.2 2.2 2.7 2.4 3.8 1 .9-1.2-.4-3.5 1.2-8Z" fill="#111111"/>
+        <circle cx="27" cy="25" r="2.6" fill="#E11D2E"/>
+      </g>
+    </svg>`);
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${svg}`,
+    scaledSize: new google.maps.Size(44, 54),
+    anchor: new google.maps.Point(22, 52),
+  };
+}
+
+function restaurantPointerIcon(google: any) {
+  const svg = encodeURIComponent(`
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="21" cy="21" r="18" fill="#111827"/>
+      <circle cx="21" cy="21" r="13" fill="#E11D2E"/>
+      <path d="M15 14h3v14h-3V14Zm5 0h3v14h-3V14Zm7 0h3v14h-3V14Z" fill="white"/>
+    </svg>`);
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${svg}`,
+    scaledSize: new google.maps.Size(34, 34),
+    anchor: new google.maps.Point(17, 17),
+  };
 }

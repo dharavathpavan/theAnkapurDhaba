@@ -47,6 +47,8 @@ import {
   uploadSupportFile,
   type CustomerAddress,
 } from "@/services/api";
+import { LocationPicker } from "@/components/site/LocationPicker";
+import type { LatLngLiteral } from "@/lib/google-maps";
 import { useAuth } from "@/stores/auth";
 import { useActiveOrderTracking } from "@/stores/active-order";
 
@@ -124,6 +126,10 @@ function ProfilePage() {
   const recentOrders = orders.slice(0, 3);
   const openTickets = tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
   const defaultAddress = addresses.find((address) => address.isDefault) || addresses[0];
+  const selectedAddressCoords: LatLngLiteral | null =
+    typeof addressDraft.lat === "number" && typeof addressDraft.lng === "number"
+      ? { lat: addressDraft.lat, lng: addressDraft.lng }
+      : null;
 
   useEffect(() => {
     if (!profile) return;
@@ -476,29 +482,98 @@ function ProfilePage() {
       )}
 
       {addressOpen && (
-        <Modal title={editingAddressId ? "Edit address" : "Add address"} onClose={closeAddressEditor}>
-          <form onSubmit={(event) => { event.preventDefault(); saveAddress.mutate(); }} className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Label" value={addressDraft.label} onChange={(value) => setAddressDraft((current) => ({ ...current, label: value }))} />
-              <Field label="Name" value={addressDraft.name} onChange={(value) => setAddressDraft((current) => ({ ...current, name: value }))} />
-            </div>
-            <Field label="Phone" value={addressDraft.phone} onChange={(value) => setAddressDraft((current) => ({ ...current, phone: value }))} />
-            <label className="block">
-              <span className="text-sm font-black">Full address</span>
-              <textarea value={addressDraft.address} onChange={(event) => setAddressDraft((current) => ({ ...current, address: event.target.value }))} rows={4} className="mt-2 w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-4 font-semibold outline-none focus:border-red-500" required />
-            </label>
-            <Field label="Landmark" value={addressDraft.landmark || ""} onChange={(value) => setAddressDraft((current) => ({ ...current, landmark: value }))} />
-            <Field label="Delivery notes" value={addressDraft.notes || ""} onChange={(value) => setAddressDraft((current) => ({ ...current, notes: value }))} />
-            <label className="flex items-center justify-between rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-black">
-              Make default address
-              <input type="checkbox" checked={addressDraft.isDefault} onChange={(event) => setAddressDraft((current) => ({ ...current, isDefault: event.target.checked }))} />
-            </label>
+        <AddressSheet
+          title={editingAddressId ? "Edit delivery address" : "Add delivery address"}
+          onClose={closeAddressEditor}
+          footer={(
             <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-              <button disabled={saveAddress.isPending || !addressDraft.name || !addressDraft.phone || !addressDraft.address} className="min-h-14 rounded-2xl bg-red-600 font-black text-white disabled:opacity-60">{saveAddress.isPending ? "Saving..." : "Save Address"}</button>
-              {editingAddressId && <button type="button" onClick={() => removeAddress.mutate(editingAddressId)} className="min-h-14 rounded-2xl bg-zinc-100 px-5 font-black text-red-600"><Trash2 className="inline h-4 w-4" /> Delete</button>}
+              <button
+                type="button"
+                onClick={() => saveAddress.mutate()}
+                disabled={saveAddress.isPending || !addressDraft.name || !addressDraft.phone || !addressDraft.address}
+                className="min-h-14 rounded-2xl bg-red-600 px-5 font-black text-white shadow-lg shadow-red-600/20 disabled:opacity-60"
+              >
+                {saveAddress.isPending ? "Saving..." : selectedAddressCoords ? "Save accurate address" : "Save address"}
+              </button>
+              {editingAddressId && (
+                <button
+                  type="button"
+                  onClick={() => editingAddressId && removeAddress.mutate(editingAddressId)}
+                  disabled={removeAddress.isPending}
+                  className="min-h-14 rounded-2xl bg-zinc-100 px-5 font-black text-red-600 disabled:opacity-60"
+                >
+                  <Trash2 className="inline h-4 w-4" /> Delete
+                </button>
+              )}
             </div>
-          </form>
-        </Modal>
+          )}
+        >
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <section className="space-y-3">
+              <div className="rounded-[26px] bg-zinc-950 p-4 text-white">
+                <div className="flex items-start gap-3">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-red-600">
+                    <MapPin className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-black uppercase tracking-[0.18em] text-red-100">Delivery pin</div>
+                    <p className="mt-1 text-sm font-semibold text-white/70">Search, use current location, or drag the branded pointer to the exact doorstep.</p>
+                  </div>
+                </div>
+                <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-xs font-black text-white/80 ring-1 ring-white/10">
+                  <span className={`h-2.5 w-2.5 rounded-full ${selectedAddressCoords ? "bg-emerald-400" : "bg-yellow-300"}`} />
+                  <span className="truncate">
+                    {selectedAddressCoords
+                      ? `Location selected: ${selectedAddressCoords.lat.toFixed(5)}, ${selectedAddressCoords.lng.toFixed(5)}`
+                      : "Waiting for pin - use current location or search"}
+                  </span>
+                </div>
+              </div>
+
+              <LocationPicker
+                compact
+                value={selectedAddressCoords}
+                address={addressDraft.address}
+                onChange={({ coords, address }) => {
+                  setAddressDraft((current) => ({
+                    ...current,
+                    lat: coords.lat,
+                    lng: coords.lng,
+                    address: address || current.address,
+                  }));
+                }}
+              />
+            </section>
+
+            <form onSubmit={(event) => { event.preventDefault(); saveAddress.mutate(); }} className="space-y-3">
+              <div className="rounded-[26px] bg-red-50 p-4">
+                <h3 className="text-lg font-black text-zinc-950">Address details</h3>
+                <p className="mt-1 text-sm font-semibold text-zinc-500">These details help the delivery partner find you quickly.</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Label" value={addressDraft.label} onChange={(value) => setAddressDraft((current) => ({ ...current, label: value }))} />
+                <Field label="Name" value={addressDraft.name} onChange={(value) => setAddressDraft((current) => ({ ...current, name: value }))} />
+              </div>
+              <Field label="Phone" value={addressDraft.phone} onChange={(value) => setAddressDraft((current) => ({ ...current, phone: value }))} />
+              <label className="block">
+                <span className="text-sm font-black">Full address</span>
+                <textarea
+                  value={addressDraft.address}
+                  onChange={(event) => setAddressDraft((current) => ({ ...current, address: event.target.value }))}
+                  rows={4}
+                  className="mt-2 w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-4 font-semibold outline-none focus:border-red-500"
+                  required
+                />
+              </label>
+              <Field label="Landmark" value={addressDraft.landmark || ""} onChange={(value) => setAddressDraft((current) => ({ ...current, landmark: value }))} />
+              <Field label="Delivery notes" value={addressDraft.notes || ""} onChange={(value) => setAddressDraft((current) => ({ ...current, notes: value }))} />
+              <label className="flex items-center justify-between rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-black">
+                Make default address
+                <input type="checkbox" checked={addressDraft.isDefault} onChange={(event) => setAddressDraft((current) => ({ ...current, isDefault: event.target.checked }))} />
+              </label>
+            </form>
+          </div>
+        </AddressSheet>
       )}
     </div>
   );
@@ -605,6 +680,30 @@ function InfoTile({ icon: Icon, title, text, to }: { icon: React.ElementType; ti
   const className = "flex items-center gap-3 rounded-2xl bg-zinc-50 p-4 text-left";
   if (to) return <Link to={to as never} className={className}>{content}</Link>;
   return <div className={className}>{content}</div>;
+}
+
+function AddressSheet({ title, onClose, children, footer }: { title: string; onClose: () => void; children: React.ReactNode; footer: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-[90] bg-zinc-950/60 backdrop-blur-sm">
+      <div className="flex min-h-full items-end md:items-center md:justify-center md:p-4">
+        <section className="flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-[34px] bg-white shadow-2xl md:max-w-5xl md:rounded-[34px]">
+          <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-4 md:px-5">
+            <div className="min-w-0">
+              <h2 className="truncate text-2xl font-black">{title}</h2>
+              <p className="mt-0.5 text-xs font-bold text-zinc-500">Choose the exact delivery spot for faster ETA and tracking.</p>
+            </div>
+            <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-zinc-100">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5">{children}</div>
+          <div className="border-t border-zinc-100 bg-white/95 px-4 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] md:px-5">
+            {footer}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
 }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
