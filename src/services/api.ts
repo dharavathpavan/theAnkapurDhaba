@@ -330,6 +330,16 @@ export interface CustomerAddress {
   isDefault: boolean;
 }
 
+export interface CustomerNotification {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  category: string;
+  read: boolean;
+  createdAt: string;
+}
+
 export async function getCustomerHome(): Promise<CustomerHome> {
   const res = await fetch(`${API_BASE}/customer/home?t=${Date.now()}`, {
     cache: "no-store",
@@ -420,6 +430,35 @@ export async function listCustomerAddresses(): Promise<CustomerAddress[]> {
 export async function createCustomerAddress(input: Omit<CustomerAddress, "id">): Promise<CustomerAddress> {
   const res = await apiFetch(`${API_BASE}/customer/addresses`, { method: "POST", body: JSON.stringify(input) });
   if (!res.ok) throw new Error("Failed to save address");
+  return res.json();
+}
+
+export async function updateCustomerAddress(id: string, input: Partial<Omit<CustomerAddress, "id">>): Promise<CustomerAddress> {
+  const res = await apiFetch(`${API_BASE}/customer/addresses/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+  if (!res.ok) throw new Error("Failed to update address");
+  return res.json();
+}
+
+export async function deleteCustomerAddress(id: string): Promise<void> {
+  const res = await apiFetch(`${API_BASE}/customer/addresses/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete address");
+}
+
+export async function listCustomerNotifications(): Promise<CustomerNotification[]> {
+  const res = await apiFetch(`${API_BASE}/customer/notifications`);
+  if (!res.ok) throw new Error("Failed to fetch notifications");
+  return res.json();
+}
+
+export async function markCustomerNotificationRead(id: string): Promise<CustomerNotification> {
+  const res = await apiFetch(`${API_BASE}/customer/notifications/${id}/read`, { method: "PATCH" });
+  if (!res.ok) throw new Error("Failed to update notification");
+  return res.json();
+}
+
+export async function markAllCustomerNotificationsRead(): Promise<{ success: boolean }> {
+  const res = await apiFetch(`${API_BASE}/customer/notifications/read-all`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to update notifications");
   return res.json();
 }
 
