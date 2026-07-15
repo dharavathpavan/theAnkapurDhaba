@@ -258,30 +258,30 @@ function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-32 pt-4 md:px-6 md:py-8">
-      <section className="overflow-hidden rounded-[34px] bg-zinc-950 text-white shadow-2xl shadow-zinc-950/20">
-        <div className="relative p-5 md:p-7">
-          <div className="absolute right-0 top-0 h-44 w-44 rounded-full bg-red-600/30 blur-3xl" />
-          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[28px] bg-white/10 text-3xl font-black ring-1 ring-white/15">
+      <section className="overflow-hidden rounded-[26px] bg-zinc-950 text-white shadow-2xl shadow-zinc-950/20 md:rounded-[34px]">
+        <div className="relative p-4 md:p-7">
+          <div className="absolute right-0 top-0 h-28 w-28 rounded-full bg-red-600/25 blur-3xl md:h-44 md:w-44" />
+          <div className="relative flex flex-col gap-3 md:gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-center gap-3 md:gap-4">
+              <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[20px] bg-white/10 text-xl font-black ring-1 ring-white/15 md:h-20 md:w-20 md:rounded-[28px] md:text-3xl">
                 {photoUrl ? <img src={photoUrl} alt={profileUser?.name || "Profile"} className="h-full w-full object-cover" /> : profileUser?.name?.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-black uppercase tracking-[0.22em] text-red-200">My Account</div>
-                <h1 className="mt-1 truncate text-3xl font-black md:text-5xl">{profileUser?.name}</h1>
-                <p className="mt-1 text-sm font-semibold text-white/65">{profileUser?.phone}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-red-200 md:text-xs md:tracking-[0.22em]">My Account</div>
+                <h1 className="mt-0.5 truncate text-xl font-black leading-tight md:mt-1 md:text-5xl">{profileUser?.name}</h1>
+                <p className="mt-0.5 text-xs font-semibold text-white/65 md:mt-1 md:text-sm">{profileUser?.phone}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5 md:mt-3 md:gap-2">
                   <Badge>{loyalty?.tier || "Bronze"} member</Badge>
                   <Badge>{defaultAddress ? defaultAddress.label : "No address saved"}</Badge>
                 </div>
               </div>
             </div>
-            <button onClick={() => setEditOpen(true)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-5 text-sm font-black text-zinc-950">
+            <button onClick={() => setEditOpen(true)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-xs font-black text-zinc-950 md:min-h-12 md:px-5 md:text-sm">
               <Pencil className="h-4 w-4" /> Edit Profile
             </button>
           </div>
 
-          <div className="relative mt-6 grid gap-3 sm:grid-cols-3">
+          <div className="relative mt-4 grid grid-cols-3 gap-2 md:mt-6 md:gap-3">
             {summary.map((item) => <HeroStat key={item.label} {...item} />)}
           </div>
         </div>
@@ -521,15 +521,15 @@ function SignedOutProfile() {
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-full bg-white/12 px-3 py-1 text-xs font-black capitalize text-white/80 ring-1 ring-white/10">{children}</span>;
+  return <span className="rounded-full bg-white/12 px-2.5 py-1 text-[10px] font-black capitalize text-white/80 ring-1 ring-white/10 md:px-3 md:text-xs">{children}</span>;
 }
 
 function HeroStat({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ElementType }) {
   return (
-    <div className="rounded-3xl bg-white/10 p-4 ring-1 ring-white/10">
-      <Icon className="h-5 w-5 text-red-200" />
-      <div className="mt-3 text-xs font-bold text-white/55">{label}</div>
-      <div className="text-xl font-black">{value}</div>
+    <div className="min-w-0 rounded-2xl bg-white/10 p-2.5 ring-1 ring-white/10 md:rounded-3xl md:p-4">
+      <Icon className="h-4 w-4 text-red-200 md:h-5 md:w-5" />
+      <div className="mt-1.5 truncate text-[10px] font-bold text-white/55 md:mt-3 md:text-xs">{label}</div>
+      <div className="truncate text-sm font-black md:text-xl">{value}</div>
     </div>
   );
 }
