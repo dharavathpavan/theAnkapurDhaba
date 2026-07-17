@@ -430,13 +430,13 @@ function CustomerFooter() {
 
 function TraditionBanner() {
   return (
-    <section className="bg-[#F8F9FB] px-3 pb-32 pt-5 md:px-6 md:pb-10 md:pt-8">
-      <div className="mx-auto max-w-7xl overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-xl shadow-zinc-950/10 md:rounded-[32px]">
+    <section className="w-full bg-white pb-24 md:pb-0">
+      <div className="w-full overflow-hidden bg-white">
         <img
           src="/footer-tradition-banner.png"
           alt="Taste the tradition at The Ankapure Dhaba"
           loading="lazy"
-          className="h-44 w-full object-contain object-center sm:h-56 md:h-64 lg:h-80 xl:h-96"
+          className="h-[72svh] min-h-[520px] w-full object-cover object-[left_center] md:h-[82vh] md:min-h-[620px] xl:h-screen"
         />
       </div>
     </section>
