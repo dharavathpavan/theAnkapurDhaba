@@ -436,7 +436,7 @@ function TraditionBanner() {
           src="/footer-tradition-banner.png"
           alt="Taste the tradition at The Ankapure Dhaba"
           loading="lazy"
-          className="h-[72svh] min-h-[520px] w-full object-cover object-[left_center] md:h-[82vh] md:min-h-[620px] xl:h-screen"
+          className="h-[240px] w-full object-cover object-[left_center] sm:h-[320px] md:h-[420px] lg:h-[520px] xl:h-[620px]"
         />
       </div>
     </section>
