@@ -109,8 +109,9 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="min-h-screen pb-32 md:pb-10">{children}</main>
+      <main className="min-h-screen pb-10 md:pb-10">{children}</main>
 
+      <TraditionBanner />
       <CustomerFooter />
 
       {showLiveOrder && order && (
@@ -376,14 +377,6 @@ function contentNoticeTitle(type: string) {
 function CustomerFooter() {
   return (
     <footer className="hidden border-t border-zinc-200 bg-zinc-950 px-4 pb-32 pt-10 text-white md:block md:px-6 md:pb-10">
-      <div className="mx-auto mb-8 max-w-7xl overflow-hidden rounded-[28px] border border-white/10 bg-white shadow-2xl shadow-black/30 lg:rounded-[36px]">
-        <img
-          src="/footer-tradition-banner.png"
-          alt="Taste the tradition at The Ankapure Dhaba"
-          loading="lazy"
-          className="h-56 w-full object-contain object-left md:h-64 lg:h-80 xl:h-96"
-        />
-      </div>
       <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1fr]">
         <section>
           <Link to="/" className="inline-flex items-center gap-3">
@@ -432,6 +425,21 @@ function CustomerFooter() {
         <p>Food images are for representation. Prices, taxes, delivery charges and availability may change.</p>
       </div>
     </footer>
+  );
+}
+
+function TraditionBanner() {
+  return (
+    <section className="bg-[#F8F9FB] px-3 pb-32 pt-5 md:px-6 md:pb-10 md:pt-8">
+      <div className="mx-auto max-w-7xl overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-xl shadow-zinc-950/10 md:rounded-[32px]">
+        <img
+          src="/footer-tradition-banner.png"
+          alt="Taste the tradition at The Ankapure Dhaba"
+          loading="lazy"
+          className="h-44 w-full object-contain object-center sm:h-56 md:h-64 lg:h-80 xl:h-96"
+        />
+      </div>
+    </section>
   );
 }
 
