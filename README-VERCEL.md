@@ -29,6 +29,21 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_SsVWDzTpWFNjaa-hhxpQJg_nkngcSZl
 
 Do not add Supabase secret keys or database passwords to the frontend.
 
+## Production Domain
+
+Use this as the public customer website domain:
+
+```text
+https://theankapurdhaba.com
+```
+
+Add the domain in these external dashboards where required:
+
+- Vercel Domains: `theankapurdhaba.com` and optionally `www.theankapurdhaba.com`
+- Supabase Edge Function secret: `APP_PUBLIC_URL=https://theankapurdhaba.com`
+- Cashfree allowed/return domain: `https://theankapurdhaba.com`
+- Google Maps key restrictions: `https://theankapurdhaba.com/*`
+
 ## Vercel Settings
 
 Use this folder as the project root:
