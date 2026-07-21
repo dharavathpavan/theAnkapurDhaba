@@ -3,9 +3,9 @@ import { Link } from "@tanstack/react-router";
 export const LEGAL_BUSINESS = {
   brand: "The Ankapure Dhaba",
   legalName: "The Ankapure Dhaba",
-  phone: "+91 90000 00000",
-  email: "support@theankapuredhaba.com",
-  address: "Ankapur Village, Nizamabad District, Telangana 503217",
+  phone: "+91 9963218601",
+  email: "theankapurdhaba@gmail.com",
+  address: "The Ankapure Dhaba, Maisamguda, Telangana 500043",
   hours: "10:00 AM to 11:00 PM",
   updated: "July 13, 2026",
 };

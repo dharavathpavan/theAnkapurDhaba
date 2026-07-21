@@ -259,7 +259,7 @@ function HelpCard({ order }: { order: Order }) {
     <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
       <h2 className="text-xl font-black">Need help?</h2>
       <div className="mt-4 grid gap-2">
-        <a href="tel:+919000000000" className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Phone className="h-5 w-5 shrink-0 text-red-600" /> <span className="truncate">Call restaurant</span></a>
+        <a href="tel:+919963218601" className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Phone className="h-5 w-5 shrink-0 text-red-600" /> <span className="truncate">Call restaurant</span></a>
         {order.delivery?.partnerPhone && <a href={`tel:${order.delivery.partnerPhone}`} className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Bike className="h-5 w-5 shrink-0 text-green-600" /> <span className="truncate">Call rider</span></a>}
         <button className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Headphones className="h-5 w-5 shrink-0 text-red-600" /> <span className="truncate">Support</span></button>
         <button className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Download className="h-5 w-5 shrink-0 text-red-600" /> <span className="truncate">Invoice</span></button>

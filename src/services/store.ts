@@ -25,10 +25,10 @@ export interface StoreConfig {
 
 const DEFAULT_STORE: StoreConfig = {
   name: "Ankapur Dhaba",
-  phone: "+91 90000 00000",
-  address: "Ankapur Village, Nizamabad District, Telangana 503217",
-  lat: 18.7283,
-  lng: 78.4477,
+  phone: "+91 9963218601",
+  address: "The Ankapure Dhaba, Maisamguda, Telangana 500043",
+  lat: 17.5628346,
+  lng: 78.4534861,
   zoneRadiusKm: 8,
   status: "online",
   statusMessage: "",

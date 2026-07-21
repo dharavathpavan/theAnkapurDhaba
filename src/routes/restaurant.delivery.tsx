@@ -679,7 +679,7 @@ function ProfilePanel({ profile, gpsState, online }: { profile?: any; gpsState: 
       <div className="mt-5 grid gap-3 md:grid-cols-3">
         <DarkInfo icon={ShieldCheck} label="Access" value={profile?.user.role || "DELIVERY"} sub="Role based portal" />
         <DarkInfo icon={Navigation} label="GPS" value={gpsState.toUpperCase()} sub={online ? "Tracking starts with active trip" : "Offline"} />
-        <DarkInfo icon={AlertTriangle} label="Emergency" value="Call Manager" sub="SOS hooks ready for provider setup" href="tel:+919000000000" />
+        <DarkInfo icon={AlertTriangle} label="Emergency" value="Call Manager" sub="SOS hooks ready for provider setup" href="tel:+919963218601" />
       </div>
     </section>
   );

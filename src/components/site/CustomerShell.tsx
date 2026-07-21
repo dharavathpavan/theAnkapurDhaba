@@ -34,6 +34,12 @@ const LEGAL_LINKS = [
   { to: "/contact-us", label: "Contact Us" },
 ];
 
+const RESTAURANT_PHONE = "9963218601";
+const RESTAURANT_EMAIL = "theankapurdhaba@gmail.com";
+const RESTAURANT_ADDRESS = "The Ankapure Dhaba, Maisamguda, Telangana 500043";
+const RESTAURANT_MAP_URL =
+  "https://www.google.com/maps/dir//The+Ankapur+Dhaba,+HF73%2B49Q,+Maisammaguda,+Dulapally,+Hyderabad,+Telangana+500100/@17.547264,78.4662528,13z/data=!4m8!4m7!1m0!1m5!1m1!1s0x3bcb8f0043d1db07:0x35ca13d44137856b!2m2!1d78.4534861!2d17.5628346?hl=en&authuser=0&entry=ttu&g_ep=EgoyMDI2MDcxNS4wIKXMDSoASAFQAw%3D%3D";
+
 type LocalNotice = {
   id: string;
   title: string;
@@ -401,18 +407,18 @@ function CustomerFooter() {
         <section>
           <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/45">Restaurant Info</h2>
           <div className="mt-4 grid gap-3 text-sm text-white/70">
-            <a href="tel:+919000000000" className="flex items-start gap-3 hover:text-white">
+            <a href={`tel:+91${RESTAURANT_PHONE}`} className="flex items-start gap-3 hover:text-white">
               <Phone className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
-              +91 90000 00000
+              +91 {RESTAURANT_PHONE}
             </a>
-            <a href="mailto:support@theankapuredhaba.com" className="flex items-start gap-3 break-all hover:text-white">
+            <a href={`mailto:${RESTAURANT_EMAIL}`} className="flex items-start gap-3 break-all hover:text-white">
               <Mail className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
-              support@theankapuredhaba.com
+              {RESTAURANT_EMAIL}
             </a>
-            <p className="flex items-start gap-3">
+            <a href={RESTAURANT_MAP_URL} target="_blank" rel="noreferrer" className="flex items-start gap-3 hover:text-white">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
-              Ankapur Village, Nizamabad District, Telangana 503217
-            </p>
+              {RESTAURANT_ADDRESS}
+            </a>
             <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 font-semibold text-white/80">
               Open daily: 10:00 AM to 11:00 PM
             </p>
@@ -422,7 +428,6 @@ function CustomerFooter() {
 
       <div className="mx-auto mt-8 flex max-w-7xl flex-col gap-3 border-t border-white/10 pt-5 text-xs font-semibold text-white/45 md:flex-row md:items-center md:justify-between">
         <p>© {new Date().getFullYear()} The Ankapure Dhaba. All rights reserved.</p>
-        <p>Food images are for representation. Prices, taxes, delivery charges and availability may change.</p>
       </div>
     </footer>
   );
