@@ -1,4 +1,4 @@
-const CACHE_NAME = "ankapur-customer-v8";
+const CACHE_NAME = "ankapur-customer-v9";
 const SHELL = ["/manifest.webmanifest", "/pwa-icon.svg"];
 
 function offlineResponse() {
@@ -6,6 +6,21 @@ function offlineResponse() {
     status: 503,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+function offlineDocument() {
+  return new Response(
+    "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>The Ankapure Dhaba</title></head><body><main style=\"font-family:system-ui;padding:24px\"><h1>You're offline</h1><p>Please check your internet connection and try again.</p></main></body></html>",
+    { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
+  );
+}
+
+async function networkFirst(request, fallback) {
+  try {
+    return await fetch(request, { cache: "no-store" });
+  } catch (_error) {
+    return (await caches.match(request)) || fallback();
+  }
 }
 
 self.addEventListener("install", (event) => {
@@ -25,7 +40,7 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   if (url.origin === location.origin && (event.request.destination === "document" || url.pathname.startsWith("/assets/"))) {
-    event.respondWith(fetch(event.request, { cache: "no-store" }));
+    event.respondWith(networkFirst(event.request, event.request.destination === "document" ? offlineDocument : offlineResponse));
     return;
   }
 
@@ -44,5 +59,5 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.origin === location.origin) event.respondWith(fetch(event.request));
+  if (url.origin === location.origin) event.respondWith(networkFirst(event.request, offlineResponse));
 });
