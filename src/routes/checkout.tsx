@@ -48,6 +48,7 @@ function CheckoutPage() {
   const total = Math.max(0, subtotal + tax + deliveryFee + packing - discount);
   const address = addresses.find((a) => a.id === selectedAddress) || addresses.find((a) => a.isDefault);
   const minimumOrder = home?.store.minimumOrder ?? 0;
+  const needsLogin = !isAuthenticated();
   const deliveryAddressReady = type !== "delivery" || Boolean(address) || deliveryAddress.trim().length >= 5;
   const checkoutBlockedReason = !lines.length
     ? "Add items to your cart first."
@@ -58,7 +59,7 @@ function CheckoutPage() {
         : paymentMethod === "wallet" && (wallet?.balance ?? 0) < total
           ? "Main Wallet balance is insufficient."
           : "";
-  const checkoutHintReason = checkoutBlockedReason || (!deliveryAddressReady ? "Add a delivery address to continue." : "");
+  const checkoutHintReason = checkoutBlockedReason || (needsLogin ? "Login required to place your order." : !deliveryAddressReady ? "Add a delivery address to continue." : "");
   const submitDisabled = submitting || Boolean(checkoutBlockedReason);
   const desktopSubmitLabel = submitting ? "Processing..." : paymentMethod === "cashfree" ? "Pay & place order" : "Place order";
   const mobileSubmitLabel = submitting ? "Processing..." : paymentMethod === "cashfree" ? `Pay Rs ${total}` : `Place order - Rs ${total}`;
@@ -94,6 +95,10 @@ function CheckoutPage() {
     if (submitting) return;
     if (!lines.length) return navigate({ to: "/menu" });
     if (home?.store.status === "offline") return toast.error(home.store.statusMessage || "Store is closed");
+    if (!isAuthenticated()) {
+      toast.error("Please login to place your order");
+      return navigate({ to: "/login" });
+    }
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get("name") || user?.name || "").trim();
     const phone = String(fd.get("phone") || user?.phone || "").trim();
@@ -281,7 +286,10 @@ function CheckoutPage() {
         </aside>
       </form>
       {checkoutHintReason && <p className="fixed bottom-[9.1rem] left-4 right-4 z-40 mx-auto max-w-md rounded-2xl bg-yellow-50 px-4 py-2 text-center text-xs font-bold text-yellow-800 shadow-lg md:hidden">{checkoutHintReason}</p>}
-      <button type="button" onClick={() => checkoutFormRef.current?.requestSubmit()} disabled={submitDisabled} className="fixed bottom-24 left-4 right-4 z-40 mx-auto min-h-14 max-w-md rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 disabled:bg-zinc-300 md:hidden">{mobileSubmitLabel}</button>
+      <button type="button" onClick={() => {
+        if (!checkoutFormRef.current) return toast.error("Checkout is still loading. Try again.");
+        checkoutFormRef.current.requestSubmit();
+      }} disabled={submitDisabled} className="fixed bottom-24 left-4 right-4 z-40 mx-auto min-h-14 max-w-md rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 disabled:bg-zinc-300 md:hidden">{mobileSubmitLabel}</button>
 
       {successId && (
         <div className="fixed inset-0 z-[80] grid place-items-center bg-[#F8F9FB] p-5">
