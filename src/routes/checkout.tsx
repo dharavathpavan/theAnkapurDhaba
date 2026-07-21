@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, CreditCard, Home, MapPin, Plus, Ticket, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { createCashfreePaymentSession, createOrder, createCustomerAddress, getCustomerHome, getCustomerLoyalty, getCustomerWallet, listCustomerAddresses, listCustomerCoupons, validateCustomerCoupon, verifyCashfreePayment, type OrderType, type PaymentMethod } from "@/services/api";
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutPage() {
   const navigate = useNavigate();
+  const checkoutFormRef = useRef<HTMLFormElement>(null);
   const { user, isAuthenticated } = useAuth();
   const lines = useCart((s) => s.lines);
   const tableNumber = useCart((s) => s.tableNumber);
@@ -46,6 +47,21 @@ function CheckoutPage() {
   const tax = Math.round(subtotal * 0.05);
   const total = Math.max(0, subtotal + tax + deliveryFee + packing - discount);
   const address = addresses.find((a) => a.id === selectedAddress) || addresses.find((a) => a.isDefault);
+  const minimumOrder = home?.store.minimumOrder ?? 0;
+  const deliveryAddressReady = type !== "delivery" || Boolean(address) || deliveryAddress.trim().length >= 5;
+  const checkoutBlockedReason = !lines.length
+    ? "Add items to your cart first."
+    : home?.store.status === "offline"
+      ? home.store.statusMessage || "Store is closed right now."
+      : type === "delivery" && subtotal < minimumOrder
+        ? `Minimum delivery order is Rs ${minimumOrder}.`
+        : paymentMethod === "wallet" && (wallet?.balance ?? 0) < total
+          ? "Main Wallet balance is insufficient."
+          : "";
+  const checkoutHintReason = checkoutBlockedReason || (!deliveryAddressReady ? "Add a delivery address to continue." : "");
+  const submitDisabled = submitting || Boolean(checkoutBlockedReason);
+  const desktopSubmitLabel = submitting ? "Processing..." : paymentMethod === "cashfree" ? "Pay & place order" : "Place order";
+  const mobileSubmitLabel = submitting ? "Processing..." : paymentMethod === "cashfree" ? `Pay Rs ${total}` : `Place order - Rs ${total}`;
 
   useEffect(() => {
     if (!address) return;
@@ -75,6 +91,7 @@ function CheckoutPage() {
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submitting) return;
     if (!lines.length) return navigate({ to: "/menu" });
     if (home?.store.status === "offline") return toast.error(home.store.statusMessage || "Store is closed");
     const fd = new FormData(e.currentTarget);
@@ -83,7 +100,8 @@ function CheckoutPage() {
     const enteredAddress = String(fd.get("address") || deliveryAddress || "").trim();
     if (!name || !/^[6-9]\d{9}$/.test(phone)) return toast.error("Enter valid customer details");
     if (type === "delivery" && !address && enteredAddress.length < 5) return toast.error("Delivery address is required");
-    if (type === "delivery" && subtotal < (home?.store.minimumOrder ?? 0)) return toast.error(`Minimum delivery order is ₹${home?.store.minimumOrder ?? 0}`);
+    if (type === "delivery" && subtotal < minimumOrder) return toast.error(`Minimum delivery order is Rs ${minimumOrder}`);
+    if (paymentMethod === "wallet" && (wallet?.balance ?? 0) < total) return toast.error("Insufficient Main Wallet balance");
 
     setSubmitting(true);
     try {
@@ -109,16 +127,13 @@ function CheckoutPage() {
         tableNumber: tableNumber ?? undefined,
         paymentMethod,
       };
-      if (paymentMethod === "wallet" && (wallet?.balance ?? 0) < total) {
-        toast.error("Insufficient Main Wallet balance");
-        return;
-      }
       let order;
       if (paymentMethod === "cashfree") {
         const session = await createCashfreePaymentSession(orderInput);
         if (!session.alreadyPaid) {
           if (!session.paymentSessionId) throw new Error("Cashfree payment session was not created");
-          await openCashfreeCheckout(session.paymentSessionId, session.mode);
+          const checkoutResult = await openCashfreeCheckout(session.paymentSessionId, session.mode);
+          if (checkoutResult !== "attempted") return;
         }
         const verified = await verifyCashfreePayment(session.orderId, orderInput);
         if (String(verified.status).toUpperCase() !== "PAID") {
@@ -149,7 +164,7 @@ function CheckoutPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 pb-32 pt-5 md:px-6 md:py-8">
       <h1 className="text-3xl font-black md:text-5xl">Checkout</h1>
-      <form onSubmit={submit} className="mt-5 grid gap-5 lg:grid-cols-[1fr_390px]">
+      <form ref={checkoutFormRef} onSubmit={submit} className="mt-5 grid gap-5 lg:grid-cols-[1fr_390px]">
         <div className="space-y-5">
           <Panel title="Order type">
             <div className="grid grid-cols-3 gap-2">
@@ -261,10 +276,12 @@ function CheckoutPage() {
           </dl>
           <div className="my-4 border-t border-zinc-200" />
           <div className="flex items-center justify-between"><span className="text-lg font-black">To pay</span><span className="text-3xl font-black text-red-600">Rs {total}</span></div>
-          <button disabled={submitting || home?.store.status === "offline" || (type === "delivery" && subtotal < (home?.store.minimumOrder ?? 0))} className="mt-5 hidden min-h-14 w-full rounded-3xl bg-red-600 font-black text-white disabled:bg-zinc-300 md:block">{submitting ? "Placing..." : paymentMethod === "cashfree" ? "Pay & place order" : "Place order"}</button>
+          {checkoutHintReason && <p className="mt-4 rounded-2xl bg-yellow-50 px-4 py-3 text-sm font-bold text-yellow-800">{checkoutHintReason}</p>}
+          <button type="submit" disabled={submitDisabled} className="mt-5 hidden min-h-14 w-full rounded-3xl bg-red-600 font-black text-white disabled:bg-zinc-300 md:block">{desktopSubmitLabel}</button>
         </aside>
       </form>
-      <button type="button" onClick={() => document.querySelector<HTMLFormElement>("form")?.requestSubmit()} disabled={submitting || home?.store.status === "offline" || (type === "delivery" && subtotal < (home?.store.minimumOrder ?? 0))} className="fixed bottom-24 left-4 right-4 z-40 mx-auto min-h-14 max-w-md rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 disabled:bg-zinc-300 md:hidden">{submitting ? "Placing..." : paymentMethod === "cashfree" ? `Pay Rs ${total}` : `Place order - Rs ${total}`}</button>
+      {checkoutHintReason && <p className="fixed bottom-[9.1rem] left-4 right-4 z-40 mx-auto max-w-md rounded-2xl bg-yellow-50 px-4 py-2 text-center text-xs font-bold text-yellow-800 shadow-lg md:hidden">{checkoutHintReason}</p>}
+      <button type="button" onClick={() => checkoutFormRef.current?.requestSubmit()} disabled={submitDisabled} className="fixed bottom-24 left-4 right-4 z-40 mx-auto min-h-14 max-w-md rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 disabled:bg-zinc-300 md:hidden">{mobileSubmitLabel}</button>
 
       {successId && (
         <div className="fixed inset-0 z-[80] grid place-items-center bg-[#F8F9FB] p-5">
@@ -326,7 +343,9 @@ async function openCashfreeCheckout(paymentSessionId: string, mode: "sandbox" | 
   const cashfree = window.Cashfree?.({ mode });
   if (!cashfree) throw new Error("Cashfree checkout is unavailable");
   const result = await cashfree.checkout({ paymentSessionId, redirectTarget: "_modal" });
-  if (result.error) throw new Error("Payment was not completed");
-  if (result.redirect) return;
+  if (result.error) throw new Error("Payment was not completed. No order was placed.");
+  if (result.redirect) throw new Error("Payment was redirected. Complete payment and return to confirm your order.");
+  if (!result.paymentDetails) throw new Error("Payment was not completed. No order was placed.");
+  return "attempted" as const;
 }
 
