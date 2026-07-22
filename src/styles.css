@@ -51,27 +51,27 @@
 :root {
   --radius: 0.5rem;
 
-  --background: oklch(0.12 0.01 25);          /* near-black with warm tint */
-  --foreground: oklch(0.96 0.01 80);          /* warm off-white */
-  --surface: oklch(0.16 0.012 25);            /* slightly lifted */
-  --surface-elevated: oklch(0.20 0.014 25);
+  --background: oklch(0.12 0.01 25); /* near-black with warm tint */
+  --foreground: oklch(0.96 0.01 80); /* warm off-white */
+  --surface: oklch(0.16 0.012 25); /* slightly lifted */
+  --surface-elevated: oklch(0.2 0.014 25);
 
   --card: oklch(0.16 0.012 25);
   --card-foreground: oklch(0.96 0.01 80);
   --popover: oklch(0.16 0.012 25);
   --popover-foreground: oklch(0.96 0.01 80);
 
-  --primary: oklch(0.58 0.23 25);             /* dhaba red #C62828 vibe */
+  --primary: oklch(0.58 0.23 25); /* dhaba red #C62828 vibe */
   --primary-foreground: oklch(0.98 0.01 80);
   --primary-glow: oklch(0.68 0.22 25);
 
   --secondary: oklch(0.22 0.015 25);
   --secondary-foreground: oklch(0.96 0.01 80);
 
-  --muted: oklch(0.20 0.012 25);
+  --muted: oklch(0.2 0.012 25);
   --muted-foreground: oklch(0.65 0.015 60);
 
-  --accent: oklch(0.78 0.16 75);              /* turmeric gold accent */
+  --accent: oklch(0.78 0.16 75); /* turmeric gold accent */
   --accent-foreground: oklch(0.15 0.01 25);
   --gold: oklch(0.82 0.15 80);
 
@@ -107,23 +107,45 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html, body { background-color: var(--color-background); color: var(--color-foreground); }
-  body { font-family: var(--font-sans); font-feature-settings: "ss01", "cv11"; }
-  h1, h2, h3, h4, .font-display {
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+  body {
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
     font-family: var(--font-display);
     letter-spacing: 0.02em;
   }
-  ::selection { background: var(--color-primary); color: var(--color-primary-foreground); }
+  ::selection {
+    background: var(--color-primary);
+    color: var(--color-primary-foreground);
+  }
 }
 
-@utility text-balance { text-wrap: balance; }
-@utility ember-glow { box-shadow: var(--shadow-glow); }
+@utility text-balance {
+  text-wrap: balance;
+}
+@utility ember-glow {
+  box-shadow: var(--shadow-glow);
+}
 @utility grain-overlay {
   position: relative;
   &::after {
     content: "";
-    position: absolute; inset: 0; pointer-events: none;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
     background-image: radial-gradient(oklch(1 0 0 / 0.03) 1px, transparent 1px);
     background-size: 3px 3px;
     mix-blend-mode: overlay;
@@ -132,60 +154,106 @@
 
 /* ---------- Paper bill / KOT print ---------- */
 @keyframes paper-roll {
-  0%   { transform: translateY(-40%) scaleY(0.05); opacity: 0; }
-  40%  { transform: translateY(0) scaleY(1); opacity: 1; }
-  100% { transform: translateY(0) scaleY(1); opacity: 1; }
+  0% {
+    transform: translateY(-40%) scaleY(0.05);
+    opacity: 0;
+  }
+  40% {
+    transform: translateY(0) scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+    opacity: 1;
+  }
 }
 @keyframes paper-feed {
-  from { max-height: 0; }
-  to   { max-height: 2000px; }
+  from {
+    max-height: 0;
+  }
+  to {
+    max-height: 2000px;
+  }
 }
 @keyframes kds-flash {
-  0%, 100% { background-color: #121212; }
-  15% { background-color: #5b1111; }
-  45% { background-color: #220f0f; }
+  0%,
+  100% {
+    background-color: #121212;
+  }
+  15% {
+    background-color: #5b1111;
+  }
+  45% {
+    background-color: #220f0f;
+  }
 }
 @keyframes kds-pop {
-  0% { transform: scale(0.78); opacity: 0; }
-  55% { transform: scale(1.05); opacity: 1; }
-  78% { transform: scale(0.97); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.78);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  78% {
+    transform: scale(0.97);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 @keyframes marquee {
-  from { transform: translateX(100%); }
-  to { transform: translateX(-100%); }
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-100%);
+  }
 }
 .paper-bill {
-  background:
-    repeating-linear-gradient(0deg, #fafaf3 0 22px, #f3f1e6 22px 23px),
-    #fafaf3;
+  background: repeating-linear-gradient(0deg, #fafaf3 0 22px, #f3f1e6 22px 23px), #fafaf3;
   color: #1a1a1a;
   font-family: "Courier New", ui-monospace, monospace;
   box-shadow:
-    0 1px 0 rgba(0,0,0,0.08),
-    0 30px 40px -20px rgba(0,0,0,0.55);
+    0 1px 0 rgba(0, 0, 0, 0.08),
+    0 30px 40px -20px rgba(0, 0, 0, 0.55);
   position: relative;
-  animation: paper-roll 0.55s cubic-bezier(.2,.7,.2,1) both;
+  animation: paper-roll 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   transform-origin: top center;
 }
 .paper-bill::before,
 .paper-bill::after {
   content: "";
-  position: absolute; left: 0; right: 0; height: 14px;
-  background:
-    radial-gradient(circle at 7px 50%, transparent 5px, #fafaf3 5.5px) repeat-x;
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 14px;
+  background: radial-gradient(circle at 7px 50%, transparent 5px, #fafaf3 5.5px) repeat-x;
   background-size: 14px 14px;
 }
-.paper-bill::before { top: -7px; transform: rotate(180deg); }
-.paper-bill::after  { bottom: -7px; }
+.paper-bill::before {
+  top: -7px;
+  transform: rotate(180deg);
+}
+.paper-bill::after {
+  bottom: -7px;
+}
 .paper-bill .feed {
   overflow: hidden;
   animation: paper-feed 0.9s ease-out 0.35s both;
 }
 
 @media print {
-  body * { visibility: hidden !important; }
-  .print-area, .print-area * { visibility: visible !important; }
+  body * {
+    visibility: hidden !important;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
+  }
   .print-area {
     position: absolute !important;
     inset: 0 auto auto 0 !important;
@@ -196,7 +264,15 @@
     box-shadow: none !important;
     animation: none !important;
   }
-  .print-area .paper-bill { animation: none !important; box-shadow: none !important; }
-  .print-area .paper-bill .feed { animation: none !important; max-height: none !important; }
-  .no-print { display: none !important; }
+  .print-area .paper-bill {
+    animation: none !important;
+    box-shadow: none !important;
+  }
+  .print-area .paper-bill .feed {
+    animation: none !important;
+    max-height: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
 }

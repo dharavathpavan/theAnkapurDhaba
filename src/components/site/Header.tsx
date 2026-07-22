@@ -1,7 +1,17 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useCart, selectCartCount } from "@/stores/cart";
 import { useAuth } from "@/stores/auth";
-import { ShoppingBag, Menu as MenuIcon, X, Utensils, LogIn, LogOut, ChefHat, Bike, LayoutDashboard } from "lucide-react";
+import {
+  ShoppingBag,
+  Menu as MenuIcon,
+  X,
+  Utensils,
+  LogIn,
+  LogOut,
+  ChefHat,
+  Bike,
+  LayoutDashboard,
+} from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { StoreStatusBanner } from "@/components/site/StoreStatusBanner";
 import { toast } from "sonner";
@@ -32,8 +42,8 @@ export function Header() {
         setDropdownOpen(false);
       }
     }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   if (!mounted) return null;
@@ -42,7 +52,7 @@ export function Header() {
     logout();
     setDropdownOpen(false);
     toast.success("Signed out successfully");
-    navigate({ to: '/' });
+    navigate({ to: "/" });
   }
 
   const isLoggedIn = isAuthenticated();
@@ -131,25 +141,43 @@ export function Header() {
                 <div className="absolute right-0 top-12 z-50 min-w-[180px] rounded-xl border border-border bg-surface shadow-2xl py-1 overflow-hidden">
                   <div className="px-4 py-2 border-b border-border">
                     <p className="text-xs font-medium text-foreground truncate">{user.name}</p>
-                    <p className="text-[10px] text-muted-foreground tracking-widest uppercase">{user.role}</p>
+                    <p className="text-[10px] text-muted-foreground tracking-widest uppercase">
+                      {user.role}
+                    </p>
                   </div>
-                  {user.role === 'ADMIN' && (
-                    <Link to="/admin" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition">
+                  {user.role === "ADMIN" && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition"
+                    >
                       <LayoutDashboard className="h-4 w-4" /> Admin Dashboard
                     </Link>
                   )}
-                  {user.role === 'KITCHEN' && (
-                    <Link to="/kitchen" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition">
+                  {user.role === "KITCHEN" && (
+                    <Link
+                      to="/kitchen"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition"
+                    >
                       <ChefHat className="h-4 w-4" /> Kitchen Display
                     </Link>
                   )}
-                  {user.role === 'DELIVERY' && (
-                    <Link to="/delivery" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition">
+                  {user.role === "DELIVERY" && (
+                    <Link
+                      to="/delivery"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition"
+                    >
                       <Bike className="h-4 w-4" /> Delivery Dashboard
                     </Link>
                   )}
-                  {user.role === 'USER' && (
-                    <Link to="/account" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition">
+                  {user.role === "USER" && (
+                    <Link
+                      to="/account"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition"
+                    >
                       My Account
                     </Link>
                   )}
@@ -198,15 +226,49 @@ export function Header() {
             ))}
             {isLoggedIn && user ? (
               <>
-                {user.role === 'ADMIN' && <Link to="/admin" onClick={() => setOpen(false)} className="border-b border-border/60 py-3 font-display text-base tracking-[0.2em]">Admin</Link>}
-                {user.role === 'KITCHEN' && <Link to="/kitchen" onClick={() => setOpen(false)} className="border-b border-border/60 py-3 font-display text-base tracking-[0.2em]">Kitchen</Link>}
-                {user.role === 'DELIVERY' && <Link to="/delivery" onClick={() => setOpen(false)} className="border-b border-border/60 py-3 font-display text-base tracking-[0.2em]">Delivery</Link>}
-                <button onClick={() => { handleLogout(); setOpen(false); }} className="py-3 font-display text-base tracking-[0.2em] text-red-400 text-left">
+                {user.role === "ADMIN" && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setOpen(false)}
+                    className="border-b border-border/60 py-3 font-display text-base tracking-[0.2em]"
+                  >
+                    Admin
+                  </Link>
+                )}
+                {user.role === "KITCHEN" && (
+                  <Link
+                    to="/kitchen"
+                    onClick={() => setOpen(false)}
+                    className="border-b border-border/60 py-3 font-display text-base tracking-[0.2em]"
+                  >
+                    Kitchen
+                  </Link>
+                )}
+                {user.role === "DELIVERY" && (
+                  <Link
+                    to="/delivery"
+                    onClick={() => setOpen(false)}
+                    className="border-b border-border/60 py-3 font-display text-base tracking-[0.2em]"
+                  >
+                    Delivery
+                  </Link>
+                )}
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setOpen(false);
+                  }}
+                  className="py-3 font-display text-base tracking-[0.2em] text-red-400 text-left"
+                >
                   Sign Out
                 </button>
               </>
             ) : (
-              <Link to="/login" onClick={() => setOpen(false)} className="py-3 font-display text-base tracking-[0.2em] text-primary">
+              <Link
+                to="/login"
+                onClick={() => setOpen(false)}
+                className="py-3 font-display text-base tracking-[0.2em] text-primary"
+              >
                 Sign In
               </Link>
             )}

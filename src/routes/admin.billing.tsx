@@ -29,7 +29,11 @@ function AdminBilling() {
   useOrderRealtime();
   const qc = useQueryClient();
   const { data: menu = [] } = useQuery({ queryKey: ["menu"], queryFn: getMenu });
-  const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: listOrders, refetchInterval: 4000 });
+  const { data: orders = [] } = useQuery({
+    queryKey: ["orders"],
+    queryFn: listOrders,
+    refetchInterval: 4000,
+  });
 
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("All");
@@ -211,8 +215,12 @@ function AdminBilling() {
               >
                 <span>
                   <span className="flex items-start justify-between gap-3">
-                    <span className="font-display text-lg leading-tight tracking-wide">{item.name}</span>
-                    <span className={`font-display text-xs tracking-widest ${item.isVeg ? "text-veg" : "text-primary"}`}>
+                    <span className="font-display text-lg leading-tight tracking-wide">
+                      {item.name}
+                    </span>
+                    <span
+                      className={`font-display text-xs tracking-widest ${item.isVeg ? "text-veg" : "text-primary"}`}
+                    >
                       {item.isVeg ? "VEG" : "NON-VEG"}
                     </span>
                   </span>
@@ -311,7 +319,9 @@ function AdminBilling() {
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="font-display tracking-wide">{item.name}</div>
-                            <div className="text-xs text-muted-foreground">Rs {item.price} each</div>
+                            <div className="text-xs text-muted-foreground">
+                              Rs {item.price} each
+                            </div>
                           </div>
                           <div className="font-display">Rs {item.price * item.qty}</div>
                         </div>
@@ -341,7 +351,9 @@ function AdminBilling() {
               <div className="rounded-md border border-border bg-background p-3 text-sm">
                 <BillLine label="Subtotal" value={`Rs ${totals.subtotal}`} />
                 <BillLine label="GST 5%" value={`Rs ${totals.tax}`} />
-                {totals.deliveryFee > 0 && <BillLine label="Delivery" value={`Rs ${totals.deliveryFee}`} />}
+                {totals.deliveryFee > 0 && (
+                  <BillLine label="Delivery" value={`Rs ${totals.deliveryFee}`} />
+                )}
                 <div className="mt-2 flex items-center justify-between border-t border-border pt-2 font-display text-2xl">
                   <span>Total</span>
                   <span className="text-primary">Rs {totals.total}</span>
@@ -394,7 +406,9 @@ function AdminBilling() {
                 <tr key={order.id} className="hover:bg-background/40">
                   <td className="px-4 py-3">
                     <div className="font-display text-primary">#{order.id}</div>
-                    <div className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(order.createdAt).toLocaleString()}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div>{order.customer.name}</div>
@@ -403,9 +417,13 @@ function AdminBilling() {
                   <td className="px-4 py-3 uppercase">
                     {order.tableNumber ? `Table ${order.tableNumber}` : order.type}
                   </td>
-                  <td className="px-4 py-3">{order.items.reduce((sum, item) => sum + item.qty, 0)}</td>
+                  <td className="px-4 py-3">
+                    {order.items.reduce((sum, item) => sum + item.qty, 0)}
+                  </td>
                   <td className="px-4 py-3 font-display">Rs {order.total}</td>
-                  <td className="px-4 py-3"><StatusPill status={order.status} /></td>
+                  <td className="px-4 py-3">
+                    <StatusPill status={order.status} />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
                       <button
@@ -458,7 +476,15 @@ function BillLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function PrintDialog({ order, kind, onClose }: { order: Order; kind: PrintKind; onClose: () => void }) {
+function PrintDialog({
+  order,
+  kind,
+  onClose,
+}: {
+  order: Order;
+  kind: PrintKind;
+  onClose: () => void;
+}) {
   const printedRef = useRef(false);
 
   useEffect(() => {

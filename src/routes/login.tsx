@@ -1,23 +1,23 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { LogIn, UtensilsCrossed, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '@/stores/auth';
-import type { UserRole, AuthUser } from '@/stores/auth';
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { toast } from "sonner";
+import { LogIn, UtensilsCrossed, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/stores/auth";
+import type { UserRole, AuthUser } from "@/stores/auth";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 
-export const Route = createFileRoute('/login')({
-  head: () => ({ meta: [{ title: 'Login · Ankapur Dhaba' }] }),
+export const Route = createFileRoute("/login")({
+  head: () => ({ meta: [{ title: "Login · Ankapur Dhaba" }] }),
   component: LoginPage,
 });
 
 function LoginPage() {
   const navigate = useNavigate();
   const { login, isAuthenticated, user } = useAuth();
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -30,25 +30,25 @@ function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!phone || !password) return toast.error('Please fill in all fields');
+    if (!phone || !password) return toast.error("Please fill in all fields");
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...(SUPABASE_PUBLISHABLE_KEY ? { apikey: SUPABASE_PUBLISHABLE_KEY } : {}),
         },
         body: JSON.stringify({ phone, password }),
       });
       const data = await res.json();
-      if (!res.ok) return toast.error(data.error || 'Login failed');
+      if (!res.ok) return toast.error(data.error || "Login failed");
 
       login(data.token, data.user as AuthUser);
       toast.success(`Welcome back, ${data.user.name}!`);
       navigate({ to: redirectFor(data.user.role as UserRole) });
     } catch {
-      toast.error('Could not reach the server. Please try again.');
+      toast.error("Could not reach the server. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,9 @@ function LoginPage() {
           </div>
           <div className="text-center">
             <h1 className="font-display text-3xl tracking-widest text-foreground">ANKAPUR DHABA</h1>
-            <p className="mt-1 text-xs tracking-widest text-muted-foreground">SIGN IN TO YOUR ACCOUNT</p>
+            <p className="mt-1 text-xs tracking-widest text-muted-foreground">
+              SIGN IN TO YOUR ACCOUNT
+            </p>
           </div>
         </div>
 
@@ -78,12 +80,14 @@ function LoginPage() {
         <div className="rounded-2xl border border-border bg-surface/80 p-7 shadow-2xl backdrop-blur-sm">
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="mb-1.5 block font-display text-xs tracking-widest text-muted-foreground">PHONE NUMBER</label>
+              <label className="mb-1.5 block font-display text-xs tracking-widest text-muted-foreground">
+                PHONE NUMBER
+              </label>
               <input
                 id="login-phone"
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                 placeholder="10-digit mobile number"
                 inputMode="tel"
                 className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition"
@@ -91,11 +95,13 @@ function LoginPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block font-display text-xs tracking-widest text-muted-foreground">PASSWORD</label>
+              <label className="mb-1.5 block font-display text-xs tracking-widest text-muted-foreground">
+                PASSWORD
+              </label>
               <div className="relative">
                 <input
                   id="login-password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Your password"
@@ -122,12 +128,12 @@ function LoginPage() {
               ) : (
                 <LogIn className="h-4 w-4" />
               )}
-              {loading ? 'SIGNING IN...' : 'SIGN IN'}
+              {loading ? "SIGNING IN..." : "SIGN IN"}
             </button>
           </form>
 
           <div className="mt-5 text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <a href="/signup" className="font-medium text-primary hover:underline">
               Sign up
             </a>
@@ -145,9 +151,13 @@ function LoginPage() {
 
 function redirectFor(role: UserRole): string {
   switch (role) {
-    case 'ADMIN': return '/admin';
-    case 'KITCHEN': return '/kitchen';
-    case 'DELIVERY': return '/restaurant/delivery';
-    default: return '/';
+    case "ADMIN":
+      return "/admin";
+    case "KITCHEN":
+      return "/kitchen";
+    case "DELIVERY":
+      return "/restaurant/delivery";
+    default:
+      return "/";
   }
 }

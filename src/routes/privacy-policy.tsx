@@ -2,7 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "@/components/site/LegalPage";
 
 export const Route = createFileRoute("/privacy-policy")({
-  head: () => ({ meta: [{ title: "Privacy Policy | The Ankapure Dhaba" }, { name: "description", content: "Privacy Policy for The Ankapure Dhaba online food ordering app." }] }),
+  head: () => ({
+    meta: [
+      { title: "Privacy Policy | The Ankapure Dhaba" },
+      {
+        name: "description",
+        content: "Privacy Policy for The Ankapure Dhaba online food ordering app.",
+      },
+    ],
+  }),
   component: PrivacyPolicy,
 });
 

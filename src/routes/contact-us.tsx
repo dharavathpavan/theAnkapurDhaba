@@ -2,7 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage, LEGAL_BUSINESS } from "@/components/site/LegalPage";
 
 export const Route = createFileRoute("/contact-us")({
-  head: () => ({ meta: [{ title: "Contact Us | The Ankapure Dhaba" }, { name: "description", content: "Contact The Ankapure Dhaba for order, payment, refund and support help." }] }),
+  head: () => ({
+    meta: [
+      { title: "Contact Us | The Ankapure Dhaba" },
+      {
+        name: "description",
+        content: "Contact The Ankapure Dhaba for order, payment, refund and support help.",
+      },
+    ],
+  }),
   component: ContactUs,
 });
 

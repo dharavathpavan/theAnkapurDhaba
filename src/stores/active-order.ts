@@ -52,7 +52,8 @@ export function useActiveOrderTracking() {
   });
 
   useEffect(() => {
-    if (query.data && ["delivered", "cancelled"].includes(query.data.status)) clearActiveOrder(query.data.id);
+    if (query.data && ["delivered", "cancelled"].includes(query.data.status))
+      clearActiveOrder(query.data.id);
   }, [query.data]);
 
   return { orderId, order: query.data, isLoading: query.isLoading };

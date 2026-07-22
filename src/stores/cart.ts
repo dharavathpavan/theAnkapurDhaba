@@ -20,7 +20,12 @@ export interface CartLine {
 interface CartState {
   lines: CartLine[];
   tableNumber: string | null;
-  add: (item: MenuItem, options?: Partial<Omit<CartLine, "lineId" | "id" | "name" | "price" | "isVeg" | "image" | "qty">> & { price?: number; name?: string }) => void;
+  add: (
+    item: MenuItem,
+    options?: Partial<
+      Omit<CartLine, "lineId" | "id" | "name" | "price" | "isVeg" | "image" | "qty">
+    > & { price?: number; name?: string },
+  ) => void;
   remove: (lineId: string) => void;
   setQty: (lineId: string, qty: number) => void;
   setTable: (table: string | null) => void;
@@ -44,7 +49,9 @@ export const useCart = create<CartState>()(
           const found = s.lines.find((l) => (l.lineId || l.id) === lineKey);
           if (found) {
             return {
-              lines: s.lines.map((l) => ((l.lineId || l.id) === lineKey ? { ...l, qty: l.qty + 1 } : l)),
+              lines: s.lines.map((l) =>
+                (l.lineId || l.id) === lineKey ? { ...l, qty: l.qty + 1 } : l,
+              ),
             };
           }
           return {
@@ -67,7 +74,8 @@ export const useCart = create<CartState>()(
             ],
           };
         }),
-      remove: (lineId) => set((s) => ({ lines: s.lines.filter((l) => (l.lineId || l.id) !== lineId) })),
+      remove: (lineId) =>
+        set((s) => ({ lines: s.lines.filter((l) => (l.lineId || l.id) !== lineId) })),
       setQty: (lineId, qty) =>
         set((s) => ({
           lines:

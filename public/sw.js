@@ -10,7 +10,7 @@ function offlineResponse() {
 
 function offlineDocument() {
   return new Response(
-    "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>The Ankapure Dhaba</title></head><body><main style=\"font-family:system-ui;padding:24px\"><h1>You're offline</h1><p>Please check your internet connection and try again.</p></main></body></html>",
+    '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The Ankapure Dhaba</title></head><body><main style="font-family:system-ui;padding:24px"><h1>You\'re offline</h1><p>Please check your internet connection and try again.</p></main></body></html>',
     { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
   );
 }
@@ -24,13 +24,25 @@ async function networkFirst(request, fallback) {
 }
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(SHELL))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key.startsWith("ankapur-") && key !== CACHE_NAME).map((key) => caches.delete(key))))
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith("ankapur-") && key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
+      )
       .then(() => self.clients.claim()),
   );
 });
@@ -39,12 +51,23 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== "GET") return;
 
-  if (url.origin === location.origin && (event.request.destination === "document" || url.pathname.startsWith("/assets/"))) {
-    event.respondWith(networkFirst(event.request, event.request.destination === "document" ? offlineDocument : offlineResponse));
+  if (
+    url.origin === location.origin &&
+    (event.request.destination === "document" || url.pathname.startsWith("/assets/"))
+  ) {
+    event.respondWith(
+      networkFirst(
+        event.request,
+        event.request.destination === "document" ? offlineDocument : offlineResponse,
+      ),
+    );
     return;
   }
 
-  if (url.pathname.startsWith("/api/customer/menu") || url.pathname.startsWith("/api/customer/home")) {
+  if (
+    url.pathname.startsWith("/api/customer/menu") ||
+    url.pathname.startsWith("/api/customer/home")
+  ) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
@@ -59,5 +82,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.origin === location.origin) event.respondWith(networkFirst(event.request, offlineResponse));
+  if (url.origin === location.origin)
+    event.respondWith(networkFirst(event.request, offlineResponse));
 });

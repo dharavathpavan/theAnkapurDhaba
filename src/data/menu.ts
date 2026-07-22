@@ -42,9 +42,24 @@ export interface MenuItem {
   nutrition?: Record<string, unknown>;
   packaging?: Record<string, unknown>;
   seo?: Record<string, unknown>;
-  sizes?: Array<{ id: string; name: string; price: number; weight?: string | null; serves?: string | null; sku?: string | null; barcode?: string | null; sortOrder: number }>;
+  sizes?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    weight?: string | null;
+    serves?: string | null;
+    sku?: string | null;
+    barcode?: string | null;
+    sortOrder: number;
+  }>;
   addons?: Array<{ id: string; name: string; price: number; active: boolean; sortOrder: number }>;
-  variantGroups?: Array<{ id: string; name: string; required: boolean; sortOrder: number; options: Array<{ id: string; name: string; price: number; active: boolean; sortOrder: number }> }>;
+  variantGroups?: Array<{
+    id: string;
+    name: string;
+    required: boolean;
+    sortOrder: number;
+    options: Array<{ id: string; name: string; price: number; active: boolean; sortOrder: number }>;
+  }>;
   rating?: number;
   reviewCount?: number;
   orderCount?: number;

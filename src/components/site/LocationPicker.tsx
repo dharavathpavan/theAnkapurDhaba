@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
 import { LocateFixed, MapPin, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -13,7 +14,13 @@ type LocationPickerProps = {
 
 const DEFAULT_CENTER = { lat: 18.7283, lng: 78.4477 };
 
-export function LocationPicker({ value, address, restaurant, compact = false, onChange }: LocationPickerProps) {
+export function LocationPicker({
+  value,
+  address,
+  restaurant,
+  compact = false,
+  onChange,
+}: LocationPickerProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -93,7 +100,10 @@ export function LocationPicker({ value, address, restaurant, compact = false, on
       const google = await loadGoogleMaps();
       const geocoder = new google.maps.Geocoder();
       geocoder.geocode({ location: coords }, (results: any[], status: string) => {
-        const nextAddress = status === "OK" && results?.[0]?.formatted_address ? results[0].formatted_address : undefined;
+        const nextAddress =
+          status === "OK" && results?.[0]?.formatted_address
+            ? results[0].formatted_address
+            : undefined;
         if (nextAddress) setQuery(nextAddress);
         updatePin(coords, nextAddress);
       });
@@ -104,17 +114,23 @@ export function LocationPicker({ value, address, restaurant, compact = false, on
 
   async function searchAddress() {
     if (!query.trim()) return toast.error("Enter an address or landmark to search");
-    if (!hasGoogleMapsKey()) return toast.error("Google Maps key is not configured. Enter latitude and longitude manually.");
+    if (!hasGoogleMapsKey())
+      return toast.error(
+        "Google Maps key is not configured. Enter latitude and longitude manually.",
+      );
     setLoading(true);
     try {
       const google = await loadGoogleMaps();
       const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ address: `${query}, Telangana, India` }, (results: any[], status: string) => {
-        setLoading(false);
-        if (status !== "OK" || !results?.[0]) return toast.error("Could not find this location");
-        const loc = results[0].geometry.location;
-        updatePin({ lat: loc.lat(), lng: loc.lng() }, results[0].formatted_address);
-      });
+      geocoder.geocode(
+        { address: `${query}, Telangana, India` },
+        (results: any[], status: string) => {
+          setLoading(false);
+          if (status !== "OK" || !results?.[0]) return toast.error("Could not find this location");
+          const loc = results[0].geometry.location;
+          updatePin({ lat: loc.lat(), lng: loc.lng() }, results[0].formatted_address);
+        },
+      );
     } catch {
       setLoading(false);
       toast.error("Google Maps is not available right now");
@@ -122,7 +138,8 @@ export function LocationPicker({ value, address, restaurant, compact = false, on
   }
 
   function useCurrentLocation() {
-    if (!navigator.geolocation) return toast.error("Location permission is not supported on this device");
+    if (!navigator.geolocation)
+      return toast.error("Location permission is not supported on this device");
     setLoading(true);
     toast.info("Please allow location permission to select your delivery address");
     navigator.geolocation.getCurrentPosition(
@@ -132,7 +149,9 @@ export function LocationPicker({ value, address, restaurant, compact = false, on
       },
       () => {
         setLoading(false);
-        toast.error("Location permission was denied. Search your address or enter coordinates manually.");
+        toast.error(
+          "Location permission was denied. Search your address or enter coordinates manually.",
+        );
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 },
     );
@@ -141,7 +160,8 @@ export function LocationPicker({ value, address, restaurant, compact = false, on
   function applyManualCoords() {
     const lat = Number(manualLat);
     const lng = Number(manualLng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return toast.error("Enter valid latitude and longitude");
+    if (!Number.isFinite(lat) || !Number.isFinite(lng))
+      return toast.error("Enter valid latitude and longitude");
     updatePin({ lat, lng });
   }
 
@@ -157,34 +177,67 @@ export function LocationPicker({ value, address, restaurant, compact = false, on
             className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
           />
         </label>
-        <button type="button" onClick={searchAddress} disabled={loading} className="min-h-12 rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white disabled:bg-zinc-300">
+        <button
+          type="button"
+          onClick={searchAddress}
+          disabled={loading}
+          className="min-h-12 rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white disabled:bg-zinc-300"
+        >
           Search map
         </button>
-        <button type="button" onClick={useCurrentLocation} disabled={loading} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 text-sm font-black text-white disabled:bg-zinc-300">
+        <button
+          type="button"
+          onClick={useCurrentLocation}
+          disabled={loading}
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 text-sm font-black text-white disabled:bg-zinc-300"
+        >
           <LocateFixed className="h-4 w-4" /> Use current
         </button>
       </div>
 
       {hasGoogleMapsKey() ? (
-        <div ref={mapRef} className={`${compact ? "h-56 md:h-72" : "h-64 md:h-80"} w-full bg-zinc-200`} />
+        <div
+          ref={mapRef}
+          className={`${compact ? "h-56 md:h-72" : "h-64 md:h-80"} w-full bg-zinc-200`}
+        />
       ) : (
         <div className="grid h-52 place-items-center bg-zinc-200 p-5 text-center">
           <div>
             <MapPin className="mx-auto h-8 w-8 text-red-600" />
-            <p className="mt-2 text-sm font-bold text-zinc-700">Google Maps key is not configured on this build.</p>
+            <p className="mt-2 text-sm font-bold text-zinc-700">
+              Google Maps key is not configured on this build.
+            </p>
             <p className="mt-1 text-xs text-zinc-500">Coordinates can still be entered manually.</p>
           </div>
         </div>
       )}
 
       <div className="grid gap-2 border-t border-zinc-100 p-3 md:grid-cols-[1fr_1fr_auto]">
-        <input value={manualLat} onChange={(event) => setManualLat(event.target.value)} placeholder="Latitude" className="h-11 rounded-2xl bg-white px-3 text-sm font-semibold outline-none" />
-        <input value={manualLng} onChange={(event) => setManualLng(event.target.value)} placeholder="Longitude" className="h-11 rounded-2xl bg-white px-3 text-sm font-semibold outline-none" />
-        <button type="button" onClick={applyManualCoords} className="min-h-11 rounded-2xl bg-white px-4 text-sm font-black text-zinc-800 shadow-sm">Set pin</button>
+        <input
+          value={manualLat}
+          onChange={(event) => setManualLat(event.target.value)}
+          placeholder="Latitude"
+          className="h-11 rounded-2xl bg-white px-3 text-sm font-semibold outline-none"
+        />
+        <input
+          value={manualLng}
+          onChange={(event) => setManualLng(event.target.value)}
+          placeholder="Longitude"
+          className="h-11 rounded-2xl bg-white px-3 text-sm font-semibold outline-none"
+        />
+        <button
+          type="button"
+          onClick={applyManualCoords}
+          className="min-h-11 rounded-2xl bg-white px-4 text-sm font-black text-zinc-800 shadow-sm"
+        >
+          Set pin
+        </button>
       </div>
 
       <div className="border-t border-zinc-100 px-4 py-3 text-xs font-semibold text-zinc-500">
-        {value ? `Selected: ${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}${mapsReady ? " - drag the pin to adjust" : ""}` : "Select a map location for accurate ETA and delivery tracking."}
+        {value
+          ? `Selected: ${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}${mapsReady ? " - drag the pin to adjust" : ""}`
+          : "Select a map location for accurate ETA and delivery tracking."}
       </div>
     </div>
   );

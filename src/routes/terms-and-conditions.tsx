@@ -2,7 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "@/components/site/LegalPage";
 
 export const Route = createFileRoute("/terms-and-conditions")({
-  head: () => ({ meta: [{ title: "Terms and Conditions | The Ankapure Dhaba" }, { name: "description", content: "Terms and Conditions for ordering from The Ankapure Dhaba." }] }),
+  head: () => ({
+    meta: [
+      { title: "Terms and Conditions | The Ankapure Dhaba" },
+      {
+        name: "description",
+        content: "Terms and Conditions for ordering from The Ankapure Dhaba.",
+      },
+    ],
+  }),
   component: TermsAndConditions,
 });
 

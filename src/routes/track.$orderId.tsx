@@ -21,7 +21,14 @@ import {
   Wallet,
   XCircle,
 } from "lucide-react";
-import { getCustomerHome, getOrder, type CustomerBanner, type DeliveryDetails, type Order, type OrderStatus } from "@/services/api";
+import {
+  getCustomerHome,
+  getOrder,
+  type CustomerBanner,
+  type DeliveryDetails,
+  type Order,
+  type OrderStatus,
+} from "@/services/api";
 import { useOrderRealtime } from "@/hooks/use-order-realtime";
 import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
 import { DeliveryMap } from "@/components/site/DeliveryMap";
@@ -49,8 +56,16 @@ function TrackRedirect() {
 export function OrderTrackingView({ orderId }: { orderId: string }) {
   const [mounted, setMounted] = useState(false);
   useOrderRealtime(orderId);
-  const { data: order, isLoading } = useQuery({ queryKey: ["order", orderId], queryFn: () => getOrder(orderId), refetchInterval: 5000 });
-  const { data: homeContent } = useQuery({ queryKey: ["customer-home"], queryFn: getCustomerHome, staleTime: 30_000 });
+  const { data: order, isLoading } = useQuery({
+    queryKey: ["order", orderId],
+    queryFn: () => getOrder(orderId),
+    refetchInterval: 5000,
+  });
+  const { data: homeContent } = useQuery({
+    queryKey: ["customer-home"],
+    queryFn: getCustomerHome,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -71,12 +86,20 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
 
   return (
     <div className="mx-auto w-full max-w-6xl overflow-x-hidden px-3 pb-28 pt-3 sm:px-4 md:px-6 md:py-8">
-      <section className={`overflow-hidden rounded-[26px] p-4 text-white shadow-xl sm:rounded-[30px] sm:p-5 md:p-7 ${isDone ? "bg-gradient-to-br from-green-600 to-emerald-900" : isCancelled ? "bg-gradient-to-br from-zinc-700 to-zinc-950" : "bg-gradient-to-br from-red-600 via-red-700 to-zinc-950"}`}>
+      <section
+        className={`overflow-hidden rounded-[26px] p-4 text-white shadow-xl sm:rounded-[30px] sm:p-5 md:p-7 ${isDone ? "bg-gradient-to-br from-green-600 to-emerald-900" : isCancelled ? "bg-gradient-to-br from-zinc-700 to-zinc-950" : "bg-gradient-to-br from-red-600 via-red-700 to-zinc-950"}`}
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="text-[11px] font-black uppercase tracking-[0.22em] text-white/65">Live order</div>
-            <h1 className="mt-1 break-all text-2xl font-black sm:text-3xl md:text-5xl">#{order.id}</h1>
-            <p className="mt-1 text-sm text-white/80 md:text-base">{stage.label} - {stage.desc}</p>
+            <div className="text-[11px] font-black uppercase tracking-[0.22em] text-white/65">
+              Live order
+            </div>
+            <h1 className="mt-1 break-all text-2xl font-black sm:text-3xl md:text-5xl">
+              #{order.id}
+            </h1>
+            <p className="mt-1 text-sm text-white/80 md:text-base">
+              {stage.label} - {stage.desc}
+            </p>
           </div>
           <div className="w-fit shrink-0 rounded-[22px] bg-white/15 px-4 py-3 text-center backdrop-blur sm:rounded-[24px]">
             <div className="text-[11px] font-bold text-white/65">ETA</div>
@@ -85,7 +108,10 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-2 md:gap-3">
-          <HeroStat label="Type" value={order.tableNumber ? `Table ${order.tableNumber}` : order.type} />
+          <HeroStat
+            label="Type"
+            value={order.tableNumber ? `Table ${order.tableNumber}` : order.type}
+          />
           <HeroStat label="Total" value={`₹${order.total}`} />
         </div>
       </section>
@@ -100,9 +126,15 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
               <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <h2 className="text-xl font-black">Live delivery map</h2>
-                  <p className="text-sm text-zinc-500">{order.delivery?.lastLocationAt ? "Delivery partner location is live" : "Waiting for rider GPS after pickup"}</p>
+                  <p className="text-sm text-zinc-500">
+                    {order.delivery?.lastLocationAt
+                      ? "Delivery partner location is live"
+                      : "Waiting for rider GPS after pickup"}
+                  </p>
                 </div>
-                <span className={`w-fit rounded-2xl px-3 py-2 text-xs font-black ${order.delivery?.lastLocationAt ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>
+                <span
+                  className={`w-fit rounded-2xl px-3 py-2 text-xs font-black ${order.delivery?.lastLocationAt ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}
+                >
                   {order.delivery?.lastLocationAt ? "LIVE" : "WAITING"}
                 </span>
               </div>
@@ -132,7 +164,8 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
 }
 
 function Timeline({ order }: { order: Order }) {
-  const idx = order.status === "cancelled" ? -1 : STEPS.findIndex((step) => step.key === order.status);
+  const idx =
+    order.status === "cancelled" ? -1 : STEPS.findIndex((step) => step.key === order.status);
   const progress = idx <= 0 ? 0 : (idx / (STEPS.length - 1)) * 100;
   return (
     <div className="mt-5 overflow-x-auto overscroll-x-contain pb-2">
@@ -148,10 +181,16 @@ function Timeline({ order }: { order: Order }) {
           const Icon = step.icon;
           return (
             <li key={step.key} className="relative z-10 flex flex-col items-center text-center">
-              <div className={`grid h-14 w-14 place-items-center rounded-full shadow-sm transition duration-500 ${done ? "bg-red-600 text-white" : "bg-white text-zinc-400 ring-2 ring-zinc-100"} ${active ? "animate-pulse ring-4 ring-red-100" : ""}`}>
+              <div
+                className={`grid h-14 w-14 place-items-center rounded-full shadow-sm transition duration-500 ${done ? "bg-red-600 text-white" : "bg-white text-zinc-400 ring-2 ring-zinc-100"} ${active ? "animate-pulse ring-4 ring-red-100" : ""}`}
+              >
                 <Icon className="h-6 w-6" />
               </div>
-              <div className={`mt-3 text-xs font-black sm:text-sm ${active ? "text-red-600" : done ? "text-zinc-950" : "text-zinc-400"}`}>{step.label}</div>
+              <div
+                className={`mt-3 text-xs font-black sm:text-sm ${active ? "text-red-600" : done ? "text-zinc-950" : "text-zinc-400"}`}
+              >
+                {step.label}
+              </div>
               <div className="mt-1 max-w-24 text-xs leading-snug text-zinc-500">{step.desc}</div>
             </li>
           );
@@ -168,17 +207,36 @@ function PartnerCard({ order }: { order: Order }) {
     <section className="min-w-0 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black">Delivery partner</h2>
-        <span className={`rounded-full px-3 py-1 text-xs font-black ${assigned ? "bg-green-50 text-green-700" : "bg-zinc-100 text-zinc-500"}`}>{assigned ? "Assigned" : "Pending"}</span>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-black ${assigned ? "bg-green-50 text-green-700" : "bg-zinc-100 text-zinc-500"}`}
+        >
+          {assigned ? "Assigned" : "Pending"}
+        </span>
       </div>
       <div className="mt-4 flex min-w-0 items-center gap-3">
-        <div className="grid h-14 w-14 place-items-center rounded-3xl bg-green-100 text-green-700"><Bike className="h-7 w-7" /></div>
+        <div className="grid h-14 w-14 place-items-center rounded-3xl bg-green-100 text-green-700">
+          <Bike className="h-7 w-7" />
+        </div>
         <div className="min-w-0">
-          <div className="truncate font-black">{order.type === "delivery" ? (d.partnerName || "Assigning soon") : "Not required"}</div>
-          <div className="text-sm text-zinc-500">{d.vehicleNumber || "Vehicle updates after pickup"}</div>
-          <div className="text-xs text-zinc-400">{d.trackingPaused ? "GPS paused" : d.lastLocationAt ? "GPS active" : "GPS waiting"}</div>
+          <div className="truncate font-black">
+            {order.type === "delivery" ? d.partnerName || "Assigning soon" : "Not required"}
+          </div>
+          <div className="text-sm text-zinc-500">
+            {d.vehicleNumber || "Vehicle updates after pickup"}
+          </div>
+          <div className="text-xs text-zinc-400">
+            {d.trackingPaused ? "GPS paused" : d.lastLocationAt ? "GPS active" : "GPS waiting"}
+          </div>
         </div>
       </div>
-      {d.partnerPhone && <a href={`tel:${d.partnerPhone}`} className="mt-4 flex min-h-12 items-center justify-center rounded-2xl bg-green-600 font-black text-white"><Phone className="mr-2 h-5 w-5" /> Call partner</a>}
+      {d.partnerPhone && (
+        <a
+          href={`tel:${d.partnerPhone}`}
+          className="mt-4 flex min-h-12 items-center justify-center rounded-2xl bg-green-600 font-black text-white"
+        >
+          <Phone className="mr-2 h-5 w-5" /> Call partner
+        </a>
+      )}
     </section>
   );
 }
@@ -192,7 +250,18 @@ function EtaCard({ order }: { order: Order }) {
         <EtaRow icon={Clock3} label="Estimated arrival" value={bestEta(order)} />
         <EtaRow icon={ChefHat} label="Kitchen prep" value={`${d.prepEtaMinutes || 15} min`} />
         <EtaRow icon={Truck} label="Delivery ETA" value={`${d.etaMinutes || 30} min`} />
-        <EtaRow icon={MapPin} label="Last GPS" value={d.lastLocationAt ? new Date(d.lastLocationAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Not started"} />
+        <EtaRow
+          icon={MapPin}
+          label="Last GPS"
+          value={
+            d.lastLocationAt
+              ? new Date(d.lastLocationAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "Not started"
+          }
+        />
       </div>
     </section>
   );
@@ -219,13 +288,21 @@ function OrderDetails({ order }: { order: Order }) {
         <div className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Customer</div>
         <div className="mt-1 font-black">{order.customer.name}</div>
         <div className="text-sm text-zinc-500">{order.customer.phone}</div>
-        {order.customer.address && <div className="mt-2 text-sm text-zinc-600">{order.customer.address}</div>}
-        {order.customer.notes && <div className="mt-2 rounded-2xl bg-white p-3 text-sm text-zinc-600">Note: {order.customer.notes}</div>}
+        {order.customer.address && (
+          <div className="mt-2 text-sm text-zinc-600">{order.customer.address}</div>
+        )}
+        {order.customer.notes && (
+          <div className="mt-2 rounded-2xl bg-white p-3 text-sm text-zinc-600">
+            Note: {order.customer.notes}
+          </div>
+        )}
       </div>
       <ul className="mt-4 divide-y divide-zinc-100">
         {order.items.map((item) => (
           <li key={item.id} className="flex items-start justify-between gap-3 py-3">
-            <span className="min-w-0 break-words text-zinc-600"><span className="font-black text-zinc-950">{item.qty}x</span> {item.name}</span>
+            <span className="min-w-0 break-words text-zinc-600">
+              <span className="font-black text-zinc-950">{item.qty}x</span> {item.name}
+            </span>
             <span className="shrink-0 font-black">₹{item.price * item.qty}</span>
           </li>
         ))}
@@ -234,7 +311,10 @@ function OrderDetails({ order }: { order: Order }) {
         <PriceRow label="Subtotal" value={order.subtotal} />
         <PriceRow label="GST" value={order.tax} />
         <PriceRow label="Delivery" value={order.deliveryFee} />
-        <div className="flex justify-between gap-3 pt-2 text-lg font-black"><span>Grand total</span><span className="shrink-0 text-red-600">₹{order.total}</span></div>
+        <div className="flex justify-between gap-3 pt-2 text-lg font-black">
+          <span>Grand total</span>
+          <span className="shrink-0 text-red-600">₹{order.total}</span>
+        </div>
       </div>
     </section>
   );
@@ -244,10 +324,20 @@ function PickupDineInCard({ order }: { order: Order }) {
   const m = order.delivery || {};
   return (
     <section className="min-w-0 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
-      <h2 className="text-xl font-black">{order.type === "pickup" ? "Pickup details" : "Dine-in status"}</h2>
+      <h2 className="text-xl font-black">
+        {order.type === "pickup" ? "Pickup details" : "Dine-in status"}
+      </h2>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <EtaRow icon={Store} label={order.type === "pickup" ? "Token" : "Table"} value={m.pickupToken || order.tableNumber || "Updating"} />
-        <EtaRow icon={Clock3} label="Ready in" value={`${m.prepEtaMinutes || m.etaMinutes || 20} min`} />
+        <EtaRow
+          icon={Store}
+          label={order.type === "pickup" ? "Token" : "Table"}
+          value={m.pickupToken || order.tableNumber || "Updating"}
+        />
+        <EtaRow
+          icon={Clock3}
+          label="Ready in"
+          value={`${m.prepEtaMinutes || m.etaMinutes || 20} min`}
+        />
         <EtaRow icon={ChefHat} label="Kitchen" value={order.status.replace(/_/g, " ")} />
       </div>
     </section>
@@ -259,21 +349,61 @@ function HelpCard({ order }: { order: Order }) {
     <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
       <h2 className="text-xl font-black">Need help?</h2>
       <div className="mt-4 grid gap-2">
-        <a href="tel:+919963218601" className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Phone className="h-5 w-5 shrink-0 text-red-600" /> <span className="truncate">Call restaurant</span></a>
-        {order.delivery?.partnerPhone && <a href={`tel:${order.delivery.partnerPhone}`} className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Bike className="h-5 w-5 shrink-0 text-green-600" /> <span className="truncate">Call rider</span></a>}
-        <button className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Headphones className="h-5 w-5 shrink-0 text-red-600" /> <span className="truncate">Support</span></button>
-        <button className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"><Download className="h-5 w-5 shrink-0 text-red-600" /> <span className="truncate">Invoice</span></button>
+        <a
+          href="tel:+919963218601"
+          className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"
+        >
+          <Phone className="h-5 w-5 shrink-0 text-red-600" />{" "}
+          <span className="truncate">Call restaurant</span>
+        </a>
+        {order.delivery?.partnerPhone && (
+          <a
+            href={`tel:${order.delivery.partnerPhone}`}
+            className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"
+          >
+            <Bike className="h-5 w-5 shrink-0 text-green-600" />{" "}
+            <span className="truncate">Call rider</span>
+          </a>
+        )}
+        <button className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black">
+          <Headphones className="h-5 w-5 shrink-0 text-red-600" />{" "}
+          <span className="truncate">Support</span>
+        </button>
+        <button className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black">
+          <Download className="h-5 w-5 shrink-0 text-red-600" />{" "}
+          <span className="truncate">Invoice</span>
+        </button>
       </div>
     </section>
   );
 }
 
 function CompletionCard() {
-  return <section className="mt-4 rounded-[28px] bg-green-50 p-5 text-center"><CheckCircle2 className="mx-auto h-12 w-12 text-green-600" /><h2 className="mt-3 text-2xl font-black">Delivered successfully</h2><p className="mt-1 text-zinc-600">Rate your food and reorder your favorites anytime.</p><div className="mt-4 flex justify-center gap-2"><Link to="/menu" className="rounded-2xl bg-green-600 px-4 py-3 font-black text-white"><RotateCcw className="mr-2 inline h-4 w-4" /> Reorder</Link><button className="rounded-2xl bg-white px-4 py-3 font-black text-green-700"><Star className="mr-2 inline h-4 w-4" /> Review</button></div></section>;
+  return (
+    <section className="mt-4 rounded-[28px] bg-green-50 p-5 text-center">
+      <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
+      <h2 className="mt-3 text-2xl font-black">Delivered successfully</h2>
+      <p className="mt-1 text-zinc-600">Rate your food and reorder your favorites anytime.</p>
+      <div className="mt-4 flex justify-center gap-2">
+        <Link to="/menu" className="rounded-2xl bg-green-600 px-4 py-3 font-black text-white">
+          <RotateCcw className="mr-2 inline h-4 w-4" /> Reorder
+        </Link>
+        <button className="rounded-2xl bg-white px-4 py-3 font-black text-green-700">
+          <Star className="mr-2 inline h-4 w-4" /> Review
+        </button>
+      </div>
+    </section>
+  );
 }
 
 function CancelledCard() {
-  return <section className="mt-4 rounded-[28px] bg-zinc-100 p-5 text-center"><XCircle className="mx-auto h-12 w-12 text-zinc-600" /><h2 className="mt-3 text-2xl font-black">Order cancelled</h2><p className="mt-1 text-zinc-600">Please contact the restaurant if you need help.</p></section>;
+  return (
+    <section className="mt-4 rounded-[28px] bg-zinc-100 p-5 text-center">
+      <XCircle className="mx-auto h-12 w-12 text-zinc-600" />
+      <h2 className="mt-3 text-2xl font-black">Order cancelled</h2>
+      <p className="mt-1 text-zinc-600">Please contact the restaurant if you need help.</p>
+    </section>
+  );
 }
 
 function TrackingAdSpace({ banners }: { banners: CustomerBanner[] }) {
@@ -283,18 +413,28 @@ function TrackingAdSpace({ banners }: { banners: CustomerBanner[] }) {
     <section className="mt-4 rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-zinc-100">
       <div className="mb-3 flex items-center justify-between px-1">
         <h2 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-500">Sponsored</h2>
-        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-zinc-500">Ad</span>
+        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-zinc-500">
+          Ad
+        </span>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {ads.slice(0, 2).map((ad) => (
-          <Link key={ad.id} to={(ad.ctaLink || "/menu") as never} className="group overflow-hidden rounded-[24px] bg-zinc-950 text-white">
+          <Link
+            key={ad.id}
+            to={(ad.ctaLink || "/menu") as never}
+            className="group overflow-hidden rounded-[24px] bg-zinc-950 text-white"
+          >
             <div className="relative aspect-[16/7] overflow-hidden">
               <AdMedia src={ad.image} />
               <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/20 to-transparent" />
               <div className="absolute inset-0 flex flex-col justify-end p-4">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-white/60">{ad.ctaLabel || "View offer"}</div>
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-white/60">
+                  {ad.ctaLabel || "View offer"}
+                </div>
                 <div className="mt-1 line-clamp-1 text-xl font-black">{ad.title}</div>
-                {ad.subtitle && <div className="line-clamp-1 text-sm text-white/75">{ad.subtitle}</div>}
+                {ad.subtitle && (
+                  <div className="line-clamp-1 text-sm text-white/75">{ad.subtitle}</div>
+                )}
               </div>
             </div>
           </Link>
@@ -305,19 +445,73 @@ function TrackingAdSpace({ banners }: { banners: CustomerBanner[] }) {
 }
 
 function HeroStat({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-3xl bg-white/15 p-3"><div className="text-[11px] text-white/60">{label}</div><div className="truncate text-sm font-black capitalize md:text-base">{value}</div></div>;
+  return (
+    <div className="rounded-3xl bg-white/15 p-3">
+      <div className="text-[11px] text-white/60">{label}</div>
+      <div className="truncate text-sm font-black capitalize md:text-base">{value}</div>
+    </div>
+  );
 }
 
-function EtaRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
-  return <div className="flex items-center gap-3 rounded-2xl bg-zinc-50 p-3"><Icon className="h-5 w-5 shrink-0 text-red-600" /><div className="min-w-0"><div className="text-xs text-zinc-500">{label}</div><div className="truncate font-black capitalize">{value}</div></div></div>;
+function EtaRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-zinc-50 p-3">
+      <Icon className="h-5 w-5 shrink-0 text-red-600" />
+      <div className="min-w-0">
+        <div className="text-xs text-zinc-500">{label}</div>
+        <div className="truncate font-black capitalize">{value}</div>
+      </div>
+    </div>
+  );
 }
 
-function LocationRow({ icon: Icon, label, title, text, sub }: { icon: React.ElementType; label: string; title: string; text: string; sub?: string }) {
-  return <div className="rounded-3xl bg-zinc-50 p-4"><div className="flex items-start gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-red-600 shadow-sm"><Icon className="h-5 w-5" /></div><div className="min-w-0"><div className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">{label}</div><div className="mt-1 truncate font-black">{title}</div><div className="mt-1 text-sm text-zinc-600">{text}</div>{sub && <div className="mt-1 text-xs text-zinc-400">{sub}</div>}</div></div></div>;
+function LocationRow({
+  icon: Icon,
+  label,
+  title,
+  text,
+  sub,
+}: {
+  icon: React.ElementType;
+  label: string;
+  title: string;
+  text: string;
+  sub?: string;
+}) {
+  return (
+    <div className="rounded-3xl bg-zinc-50 p-4">
+      <div className="flex items-start gap-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-red-600 shadow-sm">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">
+            {label}
+          </div>
+          <div className="mt-1 truncate font-black">{title}</div>
+          <div className="mt-1 text-sm text-zinc-600">{text}</div>
+          {sub && <div className="mt-1 text-xs text-zinc-400">{sub}</div>}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function PriceRow({ label, value }: { label: string; value: number }) {
-  return <div className="flex justify-between gap-3"><span className="text-zinc-500">{label}</span><span className="shrink-0 font-bold">₹{value}</span></div>;
+  return (
+    <div className="flex justify-between gap-3">
+      <span className="text-zinc-500">{label}</span>
+      <span className="shrink-0 font-bold">₹{value}</span>
+    </div>
+  );
 }
 
 function bestEta(order: Order) {
@@ -338,7 +532,9 @@ function coords(lat?: number, lng?: number) {
 
 function lastUpdated(delivery: DeliveryDetails) {
   const at = delivery.lastLocationAt || delivery.currentLocation?.updatedAt;
-  return at ? `Updated ${new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Waiting for live GPS";
+  return at
+    ? `Updated ${new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+    : "Waiting for live GPS";
 }
 
 function progressFromStatus(status: Order["status"]) {
@@ -351,15 +547,51 @@ function progressFromStatus(status: Order["status"]) {
 }
 
 function NotFound({ orderId }: { orderId: string }) {
-  return <div className="mx-auto max-w-md px-4 py-20 text-center"><h1 className="text-3xl font-black">Order not found</h1><p className="mt-2 text-zinc-500">We could not find order {orderId}.</p><Link to="/orders" className="mt-6 inline-flex rounded-3xl bg-red-600 px-6 py-4 font-black text-white">View orders</Link></div>;
+  return (
+    <div className="mx-auto max-w-md px-4 py-20 text-center">
+      <h1 className="text-3xl font-black">Order not found</h1>
+      <p className="mt-2 text-zinc-500">We could not find order {orderId}.</p>
+      <Link
+        to="/orders"
+        className="mt-6 inline-flex rounded-3xl bg-red-600 px-6 py-4 font-black text-white"
+      >
+        View orders
+      </Link>
+    </div>
+  );
 }
 
 function TrackingSkeleton() {
-  return <div className="mx-auto max-w-6xl space-y-4 px-3 py-3 sm:px-4 md:px-6 md:py-8"><div className="h-44 animate-pulse rounded-[30px] bg-zinc-200" /><div className="grid gap-4 lg:grid-cols-[1fr_380px]"><div className="h-96 animate-pulse rounded-[28px] bg-white" /><div className="h-80 animate-pulse rounded-[28px] bg-white" /></div></div>;
+  return (
+    <div className="mx-auto max-w-6xl space-y-4 px-3 py-3 sm:px-4 md:px-6 md:py-8">
+      <div className="h-44 animate-pulse rounded-[30px] bg-zinc-200" />
+      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+        <div className="h-96 animate-pulse rounded-[28px] bg-white" />
+        <div className="h-80 animate-pulse rounded-[28px] bg-white" />
+      </div>
+    </div>
+  );
 }
 
 function AdMedia({ src }: { src: string }) {
   const url = resolveMediaUrl(src);
-  if (isVideoUrl(url)) return <video src={url} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" muted autoPlay loop playsInline />;
-  return <img src={url} alt="" onError={imageFallback} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />;
+  if (isVideoUrl(url))
+    return (
+      <video
+        src={url}
+        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        muted
+        autoPlay
+        loop
+        playsInline
+      />
+    );
+  return (
+    <img
+      src={url}
+      alt=""
+      onError={imageFallback}
+      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+    />
+  );
 }

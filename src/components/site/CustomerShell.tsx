@@ -1,6 +1,21 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Bell, CheckCircle2, ChevronDown, Clock3, Heart, Home, Mail, MapPin, Package, Phone, ShieldCheck, ShoppingBag, User, UtensilsCrossed } from "lucide-react";
+import {
+  Bell,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  Heart,
+  Home,
+  Mail,
+  MapPin,
+  Package,
+  Phone,
+  ShieldCheck,
+  ShoppingBag,
+  User,
+  UtensilsCrossed,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/stores/auth";
 import { useCart, selectCartCount, selectCartSubtotal } from "@/stores/cart";
@@ -60,7 +75,9 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   const isCheckoutSurface = pathname === "/cart" || pathname === "/checkout";
   const isOrderDetail = /^\/orders\/[^/]+/.test(pathname);
   const allowLiveOrderTray = pathname === "/" || pathname === "/orders";
-  const showLiveOrder = Boolean(order && allowLiveOrderTray && !isOrderDetail && !isCheckoutSurface);
+  const showLiveOrder = Boolean(
+    order && allowLiveOrderTray && !isOrderDetail && !isCheckoutSurface,
+  );
   const showCartTray = count > 0 && !isCheckoutSurface;
 
   return (
@@ -72,25 +89,41 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
           <div className="flex min-w-[160px] items-center gap-2 rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm">
             <MapPin className="h-4 w-4 shrink-0 text-red-600" />
             <span className="min-w-0">
-              <span className="block truncate text-xs font-black text-zinc-950">Deliver to Ankapur</span>
-              <span className="block truncate text-[11px] font-semibold text-green-600">Open now - 30 min</span>
+              <span className="block truncate text-xs font-black text-zinc-950">
+                Deliver to Ankapur
+              </span>
+              <span className="block truncate text-[11px] font-semibold text-green-600">
+                Open now - 30 min
+              </span>
             </span>
             <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
           </div>
 
           <nav className="ml-auto flex items-center gap-1 rounded-2xl border border-white/70 bg-white/70 p-1 shadow-sm backdrop-blur-xl">
-            {NAV.map((item) => <NavLink key={item.to} item={item} pathname={pathname} />)}
+            {NAV.map((item) => (
+              <NavLink key={item.to} item={item} pathname={pathname} />
+            ))}
           </nav>
 
           <NotificationBell {...notifications} />
 
-          <Link to="/cart" className={`relative inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 text-sm font-black shadow-sm transition ${count > 0 ? "bg-red-600 text-white shadow-red-600/20" : "bg-white/80 text-zinc-700 ring-1 ring-white/70"}`}>
+          <Link
+            to="/cart"
+            className={`relative inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 text-sm font-black shadow-sm transition ${count > 0 ? "bg-red-600 text-white shadow-red-600/20" : "bg-white/80 text-zinc-700 ring-1 ring-white/70"}`}
+          >
             <ShoppingBag className="h-5 w-5" />
             <span>{count > 0 ? `Cart Rs ${subtotal}` : "Cart"}</span>
-            {count > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-zinc-950 px-1 text-[10px] text-white">{count}</span>}
+            {count > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-zinc-950 px-1 text-[10px] text-white">
+                {count}
+              </span>
+            )}
           </Link>
 
-          <Link to={isAuthenticated() ? "/profile" : "/login"} className="grid h-11 min-w-11 place-items-center rounded-2xl bg-red-50 px-3 font-black text-red-600 ring-1 ring-red-100">
+          <Link
+            to={isAuthenticated() ? "/profile" : "/login"}
+            className="grid h-11 min-w-11 place-items-center rounded-2xl bg-red-50 px-3 font-black text-red-600 ring-1 ring-red-100"
+          >
             {user?.name?.slice(0, 1).toUpperCase() || <User className="h-5 w-5" />}
           </Link>
         </div>
@@ -127,8 +160,12 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
           className="fixed bottom-28 left-4 right-4 z-50 mx-auto flex max-w-md items-center justify-between rounded-[22px] border border-white/15 bg-zinc-950/94 px-3.5 py-2.5 text-white shadow-2xl shadow-zinc-950/30 backdrop-blur-2xl md:bottom-8 md:left-auto md:right-8 md:w-96"
         >
           <span className="min-w-0">
-            <span className="block truncate text-[10px] font-black uppercase tracking-[0.16em] text-white/55">Current order #{order.id}</span>
-            <span className="block truncate text-base font-black capitalize leading-tight">{order.status.replace(/_/g, " ")}</span>
+            <span className="block truncate text-[10px] font-black uppercase tracking-[0.16em] text-white/55">
+              Current order #{order.id}
+            </span>
+            <span className="block truncate text-base font-black capitalize leading-tight">
+              {order.status.replace(/_/g, " ")}
+            </span>
             <span className="mt-0.5 block text-[11px] font-bold text-white/70">View tracking</span>
           </span>
           <span className="ml-3 shrink-0 rounded-2xl bg-green-400 px-3 py-1.5 text-sm font-black text-zinc-950">
@@ -146,7 +183,9 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white/18">
               <ShoppingBag className="h-5 w-5" />
             </span>
-            <span className="truncate">{count} item{count > 1 ? "s" : ""} added</span>
+            <span className="truncate">
+              {count} item{count > 1 ? "s" : ""} added
+            </span>
           </span>
           <span className="shrink-0 font-black">Rs {subtotal} - Cart</span>
         </Link>
@@ -172,7 +211,9 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
                 key={item.to}
                 to={item.to}
                 className={`flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-2xl text-[11px] font-black transition ${
-                  active ? "bg-red-600 text-white shadow-lg shadow-red-600/25" : "text-zinc-600 hover:bg-white"
+                  active
+                    ? "bg-red-600 text-white shadow-lg shadow-red-600/25"
+                    : "text-zinc-600 hover:bg-white"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -189,10 +230,22 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
 function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <Link to="/" className="flex min-w-0 items-center gap-2.5">
-      <img src="/the-ankapure-dhaba-logo.png" alt="The Ankapure Dhaba logo" className={`${compact ? "h-11 w-11 rounded-2xl" : "h-12 w-12 rounded-[18px]"} shrink-0 object-cover shadow-lg shadow-red-600/20 ring-1 ring-white/80`} />
+      <img
+        src="/the-ankapure-dhaba-logo.png"
+        alt="The Ankapure Dhaba logo"
+        className={`${compact ? "h-11 w-11 rounded-2xl" : "h-12 w-12 rounded-[18px]"} shrink-0 object-cover shadow-lg shadow-red-600/20 ring-1 ring-white/80`}
+      />
       <span className="min-w-0">
-        <span className={`${compact ? "text-sm" : "text-[13px]"} block truncate font-black uppercase tracking-[0.14em] text-red-600`}>The Ankapure</span>
-        <span className={`${compact ? "text-xs" : "text-sm"} block truncate font-black text-zinc-950`}>Dhaba</span>
+        <span
+          className={`${compact ? "text-sm" : "text-[13px]"} block truncate font-black uppercase tracking-[0.14em] text-red-600`}
+        >
+          The Ankapure
+        </span>
+        <span
+          className={`${compact ? "text-xs" : "text-sm"} block truncate font-black text-zinc-950`}
+        >
+          Dhaba
+        </span>
       </span>
     </Link>
   );
@@ -205,7 +258,9 @@ function NavLink({ item, pathname }: { item: (typeof NAV)[number]; pathname: str
     <Link
       to={item.to}
       className={`inline-flex min-h-10 items-center gap-2 rounded-xl px-3 text-xs font-black transition ${
-        active ? "bg-zinc-950 text-white shadow-lg shadow-zinc-950/15" : "text-zinc-600 hover:bg-white hover:text-zinc-950"
+        active
+          ? "bg-zinc-950 text-white shadow-lg shadow-zinc-950/15"
+          : "text-zinc-600 hover:bg-white hover:text-zinc-950"
       }`}
     >
       <Icon className="h-4 w-4" />
@@ -235,20 +290,31 @@ function NotificationBell({
         aria-label="Notifications"
       >
         <Bell className="h-5 w-5" />
-        {unread > 0 && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white" />}
+        {unread > 0 && (
+          <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white" />
+        )}
       </button>
       {open && (
-        <div className={`absolute right-0 top-[3.25rem] z-[70] w-[min(92vw,360px)] overflow-hidden rounded-[26px] border border-white/75 bg-white/95 shadow-2xl shadow-zinc-950/18 backdrop-blur-2xl ${compact ? "right-[-2px]" : ""}`}>
+        <div
+          className={`absolute right-0 top-[3.25rem] z-[70] w-[min(92vw,360px)] overflow-hidden rounded-[26px] border border-white/75 bg-white/95 shadow-2xl shadow-zinc-950/18 backdrop-blur-2xl ${compact ? "right-[-2px]" : ""}`}
+        >
           <div className="border-b border-zinc-100 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-black">Notifications</h2>
-                <p className="text-xs font-semibold text-zinc-500">Offers and order updates on this device</p>
+                <p className="text-xs font-semibold text-zinc-500">
+                  Offers and order updates on this device
+                </p>
               </div>
-              <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-600">{permission}</span>
+              <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-600">
+                {permission}
+              </span>
             </div>
             {permission !== "granted" && (
-              <button onClick={requestPermission} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white">
+              <button
+                onClick={requestPermission}
+                className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white"
+              >
                 <Bell className="h-4 w-4" />
                 Enable notifications
               </button>
@@ -258,13 +324,23 @@ function NotificationBell({
             {notices.map((notice) => (
               <div key={notice.id} className="rounded-2xl p-3 transition hover:bg-zinc-50">
                 <div className="flex items-start gap-3">
-                  <span className={`mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-2xl ${notice.tone === "order" ? "bg-green-50 text-green-700" : notice.tone === "offer" ? "bg-red-50 text-red-600" : "bg-zinc-100 text-zinc-600"}`}>
-                    {notice.tone === "order" ? <CheckCircle2 className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                  <span
+                    className={`mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-2xl ${notice.tone === "order" ? "bg-green-50 text-green-700" : notice.tone === "offer" ? "bg-red-50 text-red-600" : "bg-zinc-100 text-zinc-600"}`}
+                  >
+                    {notice.tone === "order" ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <Bell className="h-4 w-4" />
+                    )}
                   </span>
                   <span className="min-w-0">
                     <span className="block font-black text-zinc-950">{notice.title}</span>
-                    <span className="mt-0.5 block text-sm leading-snug text-zinc-600">{notice.body}</span>
-                    <span className="mt-1 block text-[11px] font-bold text-zinc-400">{notice.time}</span>
+                    <span className="mt-0.5 block text-sm leading-snug text-zinc-600">
+                      {notice.body}
+                    </span>
+                    <span className="mt-1 block text-[11px] font-bold text-zinc-400">
+                      {notice.time}
+                    </span>
                   </span>
                 </div>
               </div>
@@ -302,7 +378,11 @@ function useLocalNotifications() {
       read: false,
     };
     setNotices((current) => [notice, ...current].slice(0, 12));
-    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+    if (
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      Notification.permission === "granted"
+    ) {
       new Notification(notice.title, { body: notice.body, icon: "/favicon.ico" });
     }
   }
@@ -317,7 +397,11 @@ function useLocalNotifications() {
     setPermission(next);
     if (next === "granted") {
       toast.success("Notifications enabled on this device");
-      pushNotice({ title: "Notifications enabled", body: "You will see local offer and order updates here.", tone: "system" });
+      pushNotice({
+        title: "Notifications enabled",
+        body: "You will see local offer and order updates here.",
+        tone: "system",
+      });
     } else {
       toast.error("Notification permission was not granted");
     }
@@ -386,14 +470,22 @@ function CustomerFooter() {
       <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1fr]">
         <section>
           <Link to="/" className="inline-flex items-center gap-3">
-            <img src="/the-ankapure-dhaba-logo.png" alt="The Ankapure Dhaba logo" className="h-16 w-16 rounded-3xl object-cover ring-1 ring-white/10" />
+            <img
+              src="/the-ankapure-dhaba-logo.png"
+              alt="The Ankapure Dhaba logo"
+              className="h-16 w-16 rounded-3xl object-cover ring-1 ring-white/10"
+            />
             <span>
               <span className="block text-xl font-black tracking-tight">The Ankapure Dhaba</span>
-              <span className="block text-xs font-black uppercase tracking-[0.22em] text-red-300">Fresh food ordering</span>
+              <span className="block text-xs font-black uppercase tracking-[0.22em] text-red-300">
+                Fresh food ordering
+              </span>
             </span>
           </Link>
           <p className="mt-5 max-w-sm text-sm leading-6 text-white/65">
-            Order Telangana classics, biryani, starters, breads and family meals from The Ankapure Dhaba. Built for secure checkout, live order tracking, pickup, dine-in and self delivery.
+            Order Telangana classics, biryani, starters, breads and family meals from The Ankapure
+            Dhaba. Built for secure checkout, live order tracking, pickup, dine-in and self
+            delivery.
           </p>
           <div className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-200">
             <ShieldCheck className="h-4 w-4" />
@@ -405,17 +497,30 @@ function CustomerFooter() {
         <FooterLinkGroup title="Legal" links={LEGAL_LINKS} />
 
         <section>
-          <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/45">Restaurant Info</h2>
+          <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/45">
+            Restaurant Info
+          </h2>
           <div className="mt-4 grid gap-3 text-sm text-white/70">
-            <a href={`tel:+91${RESTAURANT_PHONE}`} className="flex items-start gap-3 hover:text-white">
+            <a
+              href={`tel:+91${RESTAURANT_PHONE}`}
+              className="flex items-start gap-3 hover:text-white"
+            >
               <Phone className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
               +91 {RESTAURANT_PHONE}
             </a>
-            <a href={`mailto:${RESTAURANT_EMAIL}`} className="flex items-start gap-3 break-all hover:text-white">
+            <a
+              href={`mailto:${RESTAURANT_EMAIL}`}
+              className="flex items-start gap-3 break-all hover:text-white"
+            >
               <Mail className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
               {RESTAURANT_EMAIL}
             </a>
-            <a href={RESTAURANT_MAP_URL} target="_blank" rel="noreferrer" className="flex items-start gap-3 hover:text-white">
+            <a
+              href={RESTAURANT_MAP_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-start gap-3 hover:text-white"
+            >
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
               {RESTAURANT_ADDRESS}
             </a>
@@ -448,13 +553,23 @@ function TraditionBanner() {
   );
 }
 
-function FooterLinkGroup({ title, links }: { title: string; links: { to: string; label: string }[] }) {
+function FooterLinkGroup({
+  title,
+  links,
+}: {
+  title: string;
+  links: { to: string; label: string }[];
+}) {
   return (
     <section>
       <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/45">{title}</h2>
       <nav className="mt-4 grid gap-3">
         {links.map((link) => (
-          <Link key={link.to} to={link.to} className="text-sm font-bold text-white/70 transition hover:text-white">
+          <Link
+            key={link.to}
+            to={link.to}
+            className="text-sm font-bold text-white/70 transition hover:text-white"
+          >
             {link.label}
           </Link>
         ))}

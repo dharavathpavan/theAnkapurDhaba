@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-export type UserRole = 'USER' | 'ADMIN' | 'KITCHEN' | 'DELIVERY';
+export type UserRole = "USER" | "ADMIN" | "KITCHEN" | "DELIVERY";
 
 export interface AuthUser {
   id: string;
@@ -33,6 +33,6 @@ export const useAuth = create<AuthState>()(
         return roles.includes(user.role);
       },
     }),
-    { name: 'ankapur:auth' }
-  )
+    { name: "ankapur:auth" },
+  ),
 );

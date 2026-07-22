@@ -15,7 +15,11 @@ export function KotBill({ order, kind = "kot" }: { order: Order; kind?: "kot" | 
             {isBill ? "CUSTOMER BILL" : "KITCHEN ORDER TICKET"}
           </div>
           <div className="mt-1 text-[16px] font-bold tracking-widest">
-            {o.tableNumber ? `DINE-IN · TABLE ${o.tableNumber}` : o.type === "pickup" ? "PICKUP ORDER" : "DELIVERY ORDER"}
+            {o.tableNumber
+              ? `DINE-IN · TABLE ${o.tableNumber}`
+              : o.type === "pickup"
+                ? "PICKUP ORDER"
+                : "DELIVERY ORDER"}
           </div>
         </div>
 
@@ -32,9 +36,7 @@ export function KotBill({ order, kind = "kot" }: { order: Order; kind?: "kot" | 
           <span>{o.type.toUpperCase()}</span>
           <span>{o.tableNumber ? `TABLE ${o.tableNumber}` : o.paymentMethod.toUpperCase()}</span>
         </div>
-        <div className="text-[12px]">
-          STATUS: {o.status.replace(/_/g, " ").toUpperCase()}
-        </div>
+        <div className="text-[12px]">STATUS: {o.status.replace(/_/g, " ").toUpperCase()}</div>
 
         <div className="my-3 border-t border-dashed border-black/60" />
 

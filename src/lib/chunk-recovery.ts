@@ -2,17 +2,29 @@ const RELOAD_KEY = "ankapur_chunk_recovery_reloaded";
 
 export function isMissingChunkError(value: unknown) {
   const message = value instanceof Error ? value.message : String(value || "");
-  return /failed to fetch dynamically imported module|loading chunk|importing a module script failed|\/assets\/.+\.js/i.test(message);
+  return /failed to fetch dynamically imported module|loading chunk|importing a module script failed|\/assets\/.+\.js/i.test(
+    message,
+  );
 }
 
 async function clearAppCaches() {
   if (typeof window === "undefined") return;
   await Promise.allSettled([
     "serviceWorker" in navigator
-      ? navigator.serviceWorker.getRegistrations().then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+      ? navigator.serviceWorker
+          .getRegistrations()
+          .then((registrations) =>
+            Promise.all(registrations.map((registration) => registration.unregister())),
+          )
       : Promise.resolve(),
     "caches" in window
-      ? caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("ankapur-")).map((key) => caches.delete(key))))
+      ? caches
+          .keys()
+          .then((keys) =>
+            Promise.all(
+              keys.filter((key) => key.startsWith("ankapur-")).map((key) => caches.delete(key)),
+            ),
+          )
       : Promise.resolve(),
   ]);
 }

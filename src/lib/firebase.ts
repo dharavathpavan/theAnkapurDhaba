@@ -11,8 +11,7 @@ const firebaseConfig = {
   measurementId: "G-RM0QSZLN17",
 };
 
-export const firebaseApp: FirebaseApp =
-  getApps()[0] ?? initializeApp(firebaseConfig);
+export const firebaseApp: FirebaseApp = getApps()[0] ?? initializeApp(firebaseConfig);
 
 let analyticsPromise: Promise<Analytics | null> | null = null;
 

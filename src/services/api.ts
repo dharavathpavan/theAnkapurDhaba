@@ -10,9 +10,9 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 
 // Socket connection
-const socket = typeof window !== 'undefined' && SOCKET_URL ? io(SOCKET_URL) : null;
+const socket = typeof window !== "undefined" && SOCKET_URL ? io(SOCKET_URL) : null;
 const realtimeClient =
-  typeof window !== 'undefined' && !SOCKET_URL && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY
+  typeof window !== "undefined" && !SOCKET_URL && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY
     ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
         realtime: { params: { eventsPerSecond: 10 } },
@@ -32,7 +32,7 @@ type ApiFetchInit = RequestInit & { skipAuthRedirect?: boolean };
 // Helper to get auth headers from the Zustand store
 function authHeaders(): Record<string, string> {
   const token = useAuth.getState().token;
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (SUPABASE_PUBLISHABLE_KEY) headers.apikey = SUPABASE_PUBLISHABLE_KEY;
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
@@ -44,14 +44,13 @@ async function apiFetch(url: string, init?: ApiFetchInit): Promise<Response> {
   // Auto-logout on 401/403
   if (!skipAuthRedirect && (res.status === 401 || res.status === 403)) {
     useAuth.getState().logout();
-    if (typeof window !== 'undefined') window.location.href = '/login';
+    if (typeof window !== "undefined") window.location.href = "/login";
   }
   return res;
 }
 
 export type OrderStatus =
-  | "received" | "accepted" | "preparing" | "ready"
-  | "out_for_delivery" | "delivered" | "cancelled";
+  "received" | "accepted" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "cancelled";
 
 export type OrderType = "delivery" | "pickup" | "dinein";
 export type PaymentMethod = "cod" | "upi" | "cashfree" | "razorpay" | "wallet";
@@ -95,14 +94,22 @@ export interface Order {
   updatedAt: string;
 }
 
-export type CreateOrderInput = Omit<Order, "id" | "status" | "paymentStatus" | "createdAt" | "updatedAt">;
+export type CreateOrderInput = Omit<
+  Order,
+  "id" | "status" | "paymentStatus" | "createdAt" | "updatedAt"
+>;
 
 export interface DeliveryLocation {
-  lat: number; lng: number; label?: string; updatedAt?: string;
+  lat: number;
+  lng: number;
+  label?: string;
+  updatedAt?: string;
 }
 
 export interface DeliveryDetails {
-  partnerName?: string; partnerPhone?: string; vehicleNumber?: string;
+  partnerName?: string;
+  partnerPhone?: string;
+  vehicleNumber?: string;
   assignedRiderId?: string;
   assignedRiderName?: string;
   reservedBy?: string;
@@ -111,13 +118,23 @@ export interface DeliveryDetails {
   reserveExpiresAt?: string | null;
   pickupPin?: string;
   deliveryOtp?: string;
-  deliveryStage?: "reserved" | "heading_to_restaurant" | "arrived_restaurant" | "on_the_way" | "nearby" | "almost_there" | "outside" | "delivered" | string;
+  deliveryStage?:
+    | "reserved"
+    | "heading_to_restaurant"
+    | "arrived_restaurant"
+    | "on_the_way"
+    | "nearby"
+    | "almost_there"
+    | "outside"
+    | "delivered"
+    | string;
   arrivedRestaurantAt?: string;
   pickupVerifiedAt?: string;
   nearbyAt?: string;
   almostThereAt?: string;
   outsideAt?: string;
-  etaMinutes?: number; currentLocation?: DeliveryLocation;
+  etaMinutes?: number;
+  currentLocation?: DeliveryLocation;
   orderPlacedAt?: string;
   pickedUpAt?: string;
   deliveredAt?: string;
@@ -180,17 +197,17 @@ export function subscribeToOrderEvents(callback: (event: OrderRealtimeEvent) => 
   if (socket) {
     const listener = (event: OrderRealtimeEvent) => callback(event);
     socket.on("orders-changed", listener);
-    return () => { socket.off("orders-changed", listener); };
+    return () => {
+      socket.off("orders-changed", listener);
+    };
   }
 
   if (realtimeClient) {
     const channelName = `ankapur-orders-${++realtimeSubscriptionId}`;
     let channel: RealtimeChannel | null = realtimeClient
       .channel(channelName)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "Order" },
-        () => callback({ type: "sync" })
+      .on("postgres_changes", { event: "*", schema: "public", table: "Order" }, () =>
+        callback({ type: "sync" }),
       )
       .subscribe();
 
@@ -209,11 +226,20 @@ export function subscribeToCustomerContent(callback: (event: CustomerContentEven
   if (socket) {
     const listener = (event: CustomerContentEvent) => callback(event);
     socket.on("customer-content-changed", listener);
-    return () => { socket.off("customer-content-changed", listener); };
+    return () => {
+      socket.off("customer-content-changed", listener);
+    };
   }
 
   if (realtimeClient) {
-    const tables = ["CustomerBanner", "CustomerAnnouncement", "CustomerCoupon", "StoreSetting", "MenuItem", "MenuCategory"];
+    const tables = [
+      "CustomerBanner",
+      "CustomerAnnouncement",
+      "CustomerCoupon",
+      "StoreSetting",
+      "MenuItem",
+      "MenuCategory",
+    ];
     const channel = realtimeClient.channel(`ankapur-customer-content-${++realtimeSubscriptionId}`);
     tables.forEach((table) => {
       channel.on("postgres_changes", { event: "*", schema: "public", table }, () => {
@@ -221,7 +247,9 @@ export function subscribeToCustomerContent(callback: (event: CustomerContentEven
       });
     });
     channel.subscribe();
-    return () => { realtimeClient.removeChannel(channel); };
+    return () => {
+      realtimeClient.removeChannel(channel);
+    };
   }
 
   return () => undefined;
@@ -252,6 +280,7 @@ export interface CustomerStore {
   averageDeliveryMin: number;
   waitingTimeMin: number;
   packingCharge: number;
+  allowDeliveryCod?: boolean;
   holidayNotice: string;
   splashTitle: string;
   splashSubtitle: string;
@@ -378,6 +407,7 @@ function defaultCustomerStore(): CustomerStore {
     averageDeliveryMin: 30,
     waitingTimeMin: 20,
     packingCharge: 10,
+    allowDeliveryCod: false,
     holidayNotice: "",
     splashTitle: "Ankapur Dhaba",
     splashSubtitle: "Telangana classics, delivered hot",
@@ -398,7 +428,11 @@ export async function listCustomerCoupons(phone?: string): Promise<CustomerCoupo
   return res.json();
 }
 
-export async function validateCustomerCoupon(input: { code: string; subtotal: number; phone?: string }): Promise<{ coupon: CustomerCoupon; discount: number }> {
+export async function validateCustomerCoupon(input: {
+  code: string;
+  subtotal: number;
+  phone?: string;
+}): Promise<{ coupon: CustomerCoupon; discount: number }> {
   const res = await fetch(`${API_BASE}/customer/coupons/validate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -416,7 +450,10 @@ export async function getCustomerProfile() {
 }
 
 export async function updateCustomerProfile(patch: Record<string, unknown>) {
-  const res = await apiFetch(`${API_BASE}/customer/profile`, { method: "PATCH", body: JSON.stringify(patch) });
+  const res = await apiFetch(`${API_BASE}/customer/profile`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
   if (!res.ok) throw new Error("Failed to update profile");
   return res.json();
 }
@@ -427,14 +464,25 @@ export async function listCustomerAddresses(): Promise<CustomerAddress[]> {
   return res.json();
 }
 
-export async function createCustomerAddress(input: Omit<CustomerAddress, "id">): Promise<CustomerAddress> {
-  const res = await apiFetch(`${API_BASE}/customer/addresses`, { method: "POST", body: JSON.stringify(input) });
+export async function createCustomerAddress(
+  input: Omit<CustomerAddress, "id">,
+): Promise<CustomerAddress> {
+  const res = await apiFetch(`${API_BASE}/customer/addresses`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   if (!res.ok) throw new Error("Failed to save address");
   return res.json();
 }
 
-export async function updateCustomerAddress(id: string, input: Partial<Omit<CustomerAddress, "id">>): Promise<CustomerAddress> {
-  const res = await apiFetch(`${API_BASE}/customer/addresses/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+export async function updateCustomerAddress(
+  id: string,
+  input: Partial<Omit<CustomerAddress, "id">>,
+): Promise<CustomerAddress> {
+  const res = await apiFetch(`${API_BASE}/customer/addresses/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
   if (!res.ok) throw new Error("Failed to update address");
   return res.json();
 }
@@ -469,7 +517,10 @@ export async function listCustomerFavorites(): Promise<Array<{ id: string; itemI
 }
 
 export async function addCustomerFavorite(itemId: string) {
-  const res = await apiFetch(`${API_BASE}/customer/favorites`, { method: "POST", body: JSON.stringify({ itemId }) });
+  const res = await apiFetch(`${API_BASE}/customer/favorites`, {
+    method: "POST",
+    body: JSON.stringify({ itemId }),
+  });
   if (!res.ok) throw new Error("Failed to add favorite");
   return res.json();
 }
@@ -479,7 +530,12 @@ export async function removeCustomerFavorite(itemId: string) {
   if (!res.ok) throw new Error("Failed to remove favorite");
 }
 
-export async function getCustomerLoyalty(): Promise<{ points: number; lifetimeSpend: number; orderCount: number; tier: string }> {
+export async function getCustomerLoyalty(): Promise<{
+  points: number;
+  lifetimeSpend: number;
+  orderCount: number;
+  tier: string;
+}> {
   const res = await apiFetch(`${API_BASE}/customer/loyalty`);
   if (!res.ok) throw new Error("Failed to fetch loyalty");
   return res.json();
@@ -513,15 +569,26 @@ export async function getCustomerWallet(): Promise<CustomerWallet> {
   return res.json();
 }
 
-export async function createWalletTopupSession(amount: number): Promise<{ orderId: string; paymentSessionId?: string; mode: "sandbox" | "production" }> {
-  const res = await apiFetch(`${API_BASE}/customer/wallet/topup/create`, { method: "POST", body: JSON.stringify({ amount }) });
+export async function createWalletTopupSession(
+  amount: number,
+): Promise<{ orderId: string; paymentSessionId?: string; mode: "sandbox" | "production" }> {
+  const res = await apiFetch(`${API_BASE}/customer/wallet/topup/create`, {
+    method: "POST",
+    body: JSON.stringify({ amount }),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to start wallet top-up");
   return json;
 }
 
-export async function verifyWalletTopup(orderId: string, amount: number): Promise<{ status: string; wallet: { balance: number; transaction: WalletTransaction } | null }> {
-  const res = await apiFetch(`${API_BASE}/customer/wallet/topup/verify`, { method: "POST", body: JSON.stringify({ orderId, amount }) });
+export async function verifyWalletTopup(
+  orderId: string,
+  amount: number,
+): Promise<{ status: string; wallet: { balance: number; transaction: WalletTransaction } | null }> {
+  const res = await apiFetch(`${API_BASE}/customer/wallet/topup/verify`, {
+    method: "POST",
+    body: JSON.stringify({ orderId, amount }),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to verify wallet top-up");
   return json;
@@ -545,8 +612,22 @@ export interface AdminCustomerUser {
   walletTransactions: WalletTransaction[];
   addresses: CustomerAddress[];
   favorites: Array<{ id: string; itemId: string; createdAt?: string }>;
-  reviews: Array<{ id: string; foodRating?: number; deliveryRating?: number; packagingRating?: number; comment?: string; createdAt: string }>;
-  notifications: Array<{ id: string; title: string; body: string; category: string; read: boolean; createdAt: string }>;
+  reviews: Array<{
+    id: string;
+    foodRating?: number;
+    deliveryRating?: number;
+    packagingRating?: number;
+    comment?: string;
+    createdAt: string;
+  }>;
+  notifications: Array<{
+    id: string;
+    title: string;
+    body: string;
+    category: string;
+    read: boolean;
+    createdAt: string;
+  }>;
   orders: Order[];
   profile?: Record<string, unknown>;
 }
@@ -563,15 +644,33 @@ export async function getAdminUser(id: string): Promise<AdminCustomerUser> {
   return res.json();
 }
 
-export async function adjustAdminUserWallet(id: string, input: { amount: number; direction: "credit" | "debit"; type?: string; reason: string; orderId?: string | null }): Promise<{ balance: number; transaction: WalletTransaction }> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/users/${id}/wallet/adjust`, { method: "POST", body: JSON.stringify(input) });
+export async function adjustAdminUserWallet(
+  id: string,
+  input: {
+    amount: number;
+    direction: "credit" | "debit";
+    type?: string;
+    reason: string;
+    orderId?: string | null;
+  },
+): Promise<{ balance: number; transaction: WalletTransaction }> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/users/${id}/wallet/adjust`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to update wallet");
   return json;
 }
 
-export async function refundAdminUserWallet(id: string, input: { amount: number; reason: string; orderId?: string | null }): Promise<{ balance: number; transaction: WalletTransaction }> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/users/${id}/wallet/refund`, { method: "POST", body: JSON.stringify(input) });
+export async function refundAdminUserWallet(
+  id: string,
+  input: { amount: number; reason: string; orderId?: string | null },
+): Promise<{ balance: number; transaction: WalletTransaction }> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/users/${id}/wallet/refund`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to refund wallet");
   return json;
@@ -636,8 +735,18 @@ export async function listSupportTickets(): Promise<SupportTicket[]> {
   return res.json();
 }
 
-export async function createSupportTicket(input: { category: string; subject: string; description: string; orderId?: string | null; priority?: SupportPriority; media?: string[] }): Promise<SupportTicket> {
-  const res = await apiFetch(`${API_BASE}/customer/support/tickets`, { method: "POST", body: JSON.stringify(input) });
+export async function createSupportTicket(input: {
+  category: string;
+  subject: string;
+  description: string;
+  orderId?: string | null;
+  priority?: SupportPriority;
+  media?: string[];
+}): Promise<SupportTicket> {
+  const res = await apiFetch(`${API_BASE}/customer/support/tickets`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to create support ticket");
   return json;
@@ -649,14 +758,22 @@ export async function getSupportTicket(id: string): Promise<SupportTicket> {
   return res.json();
 }
 
-export async function addSupportTicketMessage(id: string, input: { message: string; media?: string[] }): Promise<{ message: SupportTicketMessage; ticket: SupportTicket }> {
-  const res = await apiFetch(`${API_BASE}/customer/support/tickets/${id}/messages`, { method: "POST", body: JSON.stringify(input) });
+export async function addSupportTicketMessage(
+  id: string,
+  input: { message: string; media?: string[] },
+): Promise<{ message: SupportTicketMessage; ticket: SupportTicket }> {
+  const res = await apiFetch(`${API_BASE}/customer/support/tickets/${id}/messages`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to send message");
   return json;
 }
 
-export async function uploadSupportFile(file: File): Promise<{ url: string; filename: string; originalName: string }> {
+export async function uploadSupportFile(
+  file: File,
+): Promise<{ url: string; filename: string; originalName: string }> {
   const form = new FormData();
   form.append("file", file);
   const token = useAuth.getState().token;
@@ -691,22 +808,36 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-export async function listAdminSupportTickets(status?: SupportStatus | "all"): Promise<SupportTicket[]> {
+export async function listAdminSupportTickets(
+  status?: SupportStatus | "all",
+): Promise<SupportTicket[]> {
   const qs = status && status !== "all" ? `?status=${encodeURIComponent(status)}` : "";
   const res = await apiFetch(`${API_BASE}/customer/admin/support/tickets${qs}`);
   if (!res.ok) throw new Error("Failed to fetch support tickets");
   return res.json();
 }
 
-export async function updateAdminSupportTicket(id: string, patch: Partial<Pick<SupportTicket, "status" | "priority" | "resolution">>): Promise<SupportTicket> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/support/tickets/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+export async function updateAdminSupportTicket(
+  id: string,
+  patch: Partial<Pick<SupportTicket, "status" | "priority" | "resolution">>,
+): Promise<SupportTicket> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/support/tickets/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to update ticket");
   return json;
 }
 
-export async function addAdminSupportTicketMessage(id: string, input: { message: string; media?: string[] }): Promise<{ message: SupportTicketMessage; ticket: SupportTicket }> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/support/tickets/${id}/messages`, { method: "POST", body: JSON.stringify(input) });
+export async function addAdminSupportTicketMessage(
+  id: string,
+  input: { message: string; media?: string[] },
+): Promise<{ message: SupportTicketMessage; ticket: SupportTicket }> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/support/tickets/${id}/messages`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to send reply");
   return json;
@@ -718,15 +849,26 @@ export async function listAdminSupportFaqs(): Promise<SupportFaq[]> {
   return res.json();
 }
 
-export async function createAdminSupportFaq(input: Partial<SupportFaq> & { category: string; question: string; answer: string }): Promise<SupportFaq> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/support/faqs`, { method: "POST", body: JSON.stringify(input) });
+export async function createAdminSupportFaq(
+  input: Partial<SupportFaq> & { category: string; question: string; answer: string },
+): Promise<SupportFaq> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/support/faqs`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to create FAQ");
   return json;
 }
 
-export async function updateAdminSupportFaq(id: string, patch: Partial<SupportFaq>): Promise<SupportFaq> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/support/faqs/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+export async function updateAdminSupportFaq(
+  id: string,
+  patch: Partial<SupportFaq>,
+): Promise<SupportFaq> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/support/faqs/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to update FAQ");
   return json;
@@ -737,26 +879,47 @@ export async function deleteAdminSupportFaq(id: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete FAQ");
 }
 
-export async function getAdminCustomerContent(): Promise<{ store: CustomerStore; banners: CustomerBanner[]; announcements: CustomerAnnouncement[]; coupons: CustomerCoupon[] }> {
+export async function getAdminCustomerContent(): Promise<{
+  store: CustomerStore;
+  banners: CustomerBanner[];
+  announcements: CustomerAnnouncement[];
+  coupons: CustomerCoupon[];
+}> {
   const res = await apiFetch(`${API_BASE}/customer/admin/content`);
   if (!res.ok) throw new Error("Failed to fetch customer app content");
   return res.json();
 }
 
-export async function updateAdminCustomerStore(patch: Partial<CustomerStore>): Promise<CustomerStore> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/store`, { method: "PATCH", body: JSON.stringify(patch) });
+export async function updateAdminCustomerStore(
+  patch: Partial<CustomerStore>,
+): Promise<CustomerStore> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/store`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
   if (!res.ok) throw new Error("Failed to update store");
   return res.json();
 }
 
-export async function createAdminBanner(input: Partial<CustomerBanner> & { title: string; image: string }): Promise<CustomerBanner> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/banners`, { method: "POST", body: JSON.stringify(input) });
+export async function createAdminBanner(
+  input: Partial<CustomerBanner> & { title: string; image: string },
+): Promise<CustomerBanner> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/banners`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   if (!res.ok) throw new Error("Failed to create banner");
   return res.json();
 }
 
-export async function updateAdminBanner(id: string, patch: Partial<CustomerBanner>): Promise<CustomerBanner> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/banners/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+export async function updateAdminBanner(
+  id: string,
+  patch: Partial<CustomerBanner>,
+): Promise<CustomerBanner> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/banners/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
   if (!res.ok) throw new Error("Failed to update banner");
   return res.json();
 }
@@ -766,31 +929,55 @@ export async function deleteAdminBanner(id: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete banner");
 }
 
-export async function createAdminAnnouncement(input: Partial<CustomerAnnouncement> & { message: string }): Promise<CustomerAnnouncement> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/announcements`, { method: "POST", body: JSON.stringify(input) });
+export async function createAdminAnnouncement(
+  input: Partial<CustomerAnnouncement> & { message: string },
+): Promise<CustomerAnnouncement> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/announcements`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   if (!res.ok) throw new Error("Failed to create announcement");
   return res.json();
 }
 
-export async function updateAdminAnnouncement(id: string, patch: Partial<CustomerAnnouncement>): Promise<CustomerAnnouncement> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/announcements/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+export async function updateAdminAnnouncement(
+  id: string,
+  patch: Partial<CustomerAnnouncement>,
+): Promise<CustomerAnnouncement> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/announcements/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
   if (!res.ok) throw new Error("Failed to update announcement");
   return res.json();
 }
 
 export async function deleteAdminAnnouncement(id: string): Promise<void> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/announcements/${id}`, { method: "DELETE" });
+  const res = await apiFetch(`${API_BASE}/customer/admin/announcements/${id}`, {
+    method: "DELETE",
+  });
   if (!res.ok) throw new Error("Failed to delete announcement");
 }
 
-export async function createAdminCoupon(input: Partial<CustomerCoupon> & { code: string; title: string; discountValue: number }): Promise<CustomerCoupon> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/coupons`, { method: "POST", body: JSON.stringify(input) });
+export async function createAdminCoupon(
+  input: Partial<CustomerCoupon> & { code: string; title: string; discountValue: number },
+): Promise<CustomerCoupon> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/coupons`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   if (!res.ok) throw new Error("Failed to create coupon");
   return res.json();
 }
 
-export async function updateAdminCoupon(id: string, patch: Partial<CustomerCoupon>): Promise<CustomerCoupon> {
-  const res = await apiFetch(`${API_BASE}/customer/admin/coupons/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+export async function updateAdminCoupon(
+  id: string,
+  patch: Partial<CustomerCoupon>,
+): Promise<CustomerCoupon> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/coupons/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
   if (!res.ok) throw new Error("Failed to update coupon");
   return res.json();
 }
@@ -801,7 +988,10 @@ export async function deleteAdminCoupon(id: string): Promise<void> {
 }
 
 export async function updateMenuItem(id: string, patch: Partial<MenuItem>): Promise<MenuItem> {
-  const res = await apiFetch(`${API_BASE}/menu/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+  const res = await apiFetch(`${API_BASE}/menu/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
   if (!res.ok) throw new Error("Failed to update menu item");
   return res.json();
 }
@@ -833,11 +1023,44 @@ export interface CatalogCategory {
   updatedAt: string;
 }
 
-export interface CatalogImage { id: string; url: string; kind: string; alt?: string; sortOrder: number; }
-export interface CatalogSize { id: string; name: string; price: number; weight?: string; serves?: string; sku?: string; barcode?: string; sortOrder: number; }
-export interface CatalogAddon { id: string; name: string; price: number; active: boolean; sortOrder: number; }
-export interface CatalogVariantOption { id: string; name: string; price: number; active: boolean; sortOrder: number; }
-export interface CatalogVariantGroup { id: string; name: string; required: boolean; sortOrder: number; options: CatalogVariantOption[]; }
+export interface CatalogImage {
+  id: string;
+  url: string;
+  kind: string;
+  alt?: string;
+  sortOrder: number;
+}
+export interface CatalogSize {
+  id: string;
+  name: string;
+  price: number;
+  weight?: string;
+  serves?: string;
+  sku?: string;
+  barcode?: string;
+  sortOrder: number;
+}
+export interface CatalogAddon {
+  id: string;
+  name: string;
+  price: number;
+  active: boolean;
+  sortOrder: number;
+}
+export interface CatalogVariantOption {
+  id: string;
+  name: string;
+  price: number;
+  active: boolean;
+  sortOrder: number;
+}
+export interface CatalogVariantGroup {
+  id: string;
+  name: string;
+  required: boolean;
+  sortOrder: number;
+  options: CatalogVariantOption[];
+}
 
 export interface InventoryIngredient {
   id: string;
@@ -933,14 +1156,25 @@ export async function listCatalogCategories(): Promise<CatalogCategory[]> {
   return res.json();
 }
 
-export async function createCatalogCategory(input: Partial<CatalogCategory> & { name: string }): Promise<CatalogCategory> {
-  const res = await apiFetch(`${API_BASE}/catalog/categories`, { method: "POST", body: JSON.stringify(input) });
+export async function createCatalogCategory(
+  input: Partial<CatalogCategory> & { name: string },
+): Promise<CatalogCategory> {
+  const res = await apiFetch(`${API_BASE}/catalog/categories`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   if (!res.ok) throw new Error("Failed to create category");
   return res.json();
 }
 
-export async function updateCatalogCategory(id: string, patch: Partial<CatalogCategory>): Promise<CatalogCategory> {
-  const res = await apiFetch(`${API_BASE}/catalog/categories/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+export async function updateCatalogCategory(
+  id: string,
+  patch: Partial<CatalogCategory>,
+): Promise<CatalogCategory> {
+  const res = await apiFetch(`${API_BASE}/catalog/categories/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
   if (!res.ok) throw new Error("Failed to update category");
   return res.json();
 }
@@ -950,22 +1184,37 @@ export async function deleteCatalogCategory(id: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete category");
 }
 
-export async function listCatalogItems(params: { search?: string; category?: string; status?: string } = {}): Promise<CatalogItem[]> {
+export async function listCatalogItems(
+  params: { search?: string; category?: string; status?: string } = {},
+): Promise<CatalogItem[]> {
   const qs = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => { if (value) qs.set(key, value); });
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) qs.set(key, value);
+  });
   const res = await apiFetch(`${API_BASE}/catalog/items${qs.size ? `?${qs}` : ""}`);
   if (!res.ok) throw new Error("Failed to fetch catalog items");
   return res.json();
 }
 
-export async function createCatalogItem(input: Partial<CatalogItem> & { name: string }): Promise<CatalogItem> {
-  const res = await apiFetch(`${API_BASE}/catalog/items`, { method: "POST", body: JSON.stringify(input) });
+export async function createCatalogItem(
+  input: Partial<CatalogItem> & { name: string },
+): Promise<CatalogItem> {
+  const res = await apiFetch(`${API_BASE}/catalog/items`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   if (!res.ok) throw new Error("Failed to create item");
   return res.json();
 }
 
-export async function updateCatalogItem(id: string, patch: Partial<CatalogItem>): Promise<CatalogItem> {
-  const res = await apiFetch(`${API_BASE}/catalog/items/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+export async function updateCatalogItem(
+  id: string,
+  patch: Partial<CatalogItem>,
+): Promise<CatalogItem> {
+  const res = await apiFetch(`${API_BASE}/catalog/items/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
   if (!res.ok) throw new Error("Failed to update item");
   return res.json();
 }
@@ -981,12 +1230,20 @@ export async function duplicateCatalogItem(id: string): Promise<CatalogItem> {
   return res.json();
 }
 
-export async function bulkUpdateCatalogItems(ids: string[], patch: Partial<CatalogItem>): Promise<void> {
-  const res = await apiFetch(`${API_BASE}/catalog/items/bulk-update`, { method: "POST", body: JSON.stringify({ ids, patch }) });
+export async function bulkUpdateCatalogItems(
+  ids: string[],
+  patch: Partial<CatalogItem>,
+): Promise<void> {
+  const res = await apiFetch(`${API_BASE}/catalog/items/bulk-update`, {
+    method: "POST",
+    body: JSON.stringify({ ids, patch }),
+  });
   if (!res.ok) throw new Error("Failed to bulk update items");
 }
 
-export async function uploadCatalogFile(file: File): Promise<{ url: string; filename: string; originalName: string }> {
+export async function uploadCatalogFile(
+  file: File,
+): Promise<{ url: string; filename: string; originalName: string }> {
   const form = new FormData();
   form.append("file", file);
   const token = useAuth.getState().token;
@@ -1002,7 +1259,9 @@ export async function uploadCatalogFile(file: File): Promise<{ url: string; file
   return res.json();
 }
 
-export async function importCatalogExcel(file: File): Promise<{ created: number; updated: number; totalRows: number }> {
+export async function importCatalogExcel(
+  file: File,
+): Promise<{ created: number; updated: number; totalRows: number }> {
   const form = new FormData();
   form.append("file", file);
   const token = useAuth.getState().token;
@@ -1036,8 +1295,14 @@ export async function downloadCatalogExport(kind: "excel" | "catalog"): Promise<
   URL.revokeObjectURL(url);
 }
 
-export async function generateCatalogAi(task: "description" | "tags" | "seo" | "addons", input: Record<string, unknown>): Promise<{ text: string; model: string }> {
-  const res = await apiFetch(`${API_BASE}/catalog/ai/${task}`, { method: "POST", body: JSON.stringify(input) });
+export async function generateCatalogAi(
+  task: "description" | "tags" | "seo" | "addons",
+  input: Record<string, unknown>,
+): Promise<{ text: string; model: string }> {
+  const res = await apiFetch(`${API_BASE}/catalog/ai/${task}`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || "AI generation failed");
   return json;
@@ -1049,14 +1314,26 @@ export async function listInventoryIngredients(): Promise<InventoryIngredient[]>
   return res.json();
 }
 
-export async function createInventoryIngredient(input: Partial<InventoryIngredient> & { name: string }): Promise<InventoryIngredient> {
-  const res = await apiFetch(`${API_BASE}/catalog/inventory/ingredients`, { method: "POST", body: JSON.stringify(input) });
+export async function createInventoryIngredient(
+  input: Partial<InventoryIngredient> & { name: string },
+): Promise<InventoryIngredient> {
+  const res = await apiFetch(`${API_BASE}/catalog/inventory/ingredients`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   if (!res.ok) throw new Error("Failed to create ingredient");
   return res.json();
 }
 
-export async function adjustInventoryIngredient(id: string, quantity: number, note?: string): Promise<InventoryIngredient> {
-  const res = await apiFetch(`${API_BASE}/catalog/inventory/ingredients/${id}/adjust`, { method: "POST", body: JSON.stringify({ quantity, note }) });
+export async function adjustInventoryIngredient(
+  id: string,
+  quantity: number,
+  note?: string,
+): Promise<InventoryIngredient> {
+  const res = await apiFetch(`${API_BASE}/catalog/inventory/ingredients/${id}/adjust`, {
+    method: "POST",
+    body: JSON.stringify({ quantity, note }),
+  });
   if (!res.ok) throw new Error("Failed to adjust stock");
   return res.json();
 }
@@ -1096,28 +1373,52 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
   return res.json();
 }
 
-export async function createCashfreePaymentSession(order: CreateOrderInput): Promise<{ orderId: string; paymentSessionId?: string; mode: "sandbox" | "production"; alreadyPaid?: boolean; order?: Order }> {
-  const res = await apiFetch(`${API_BASE}/payments/cashfree/session`, { method: "POST", body: JSON.stringify({ order }) });
+export async function createCashfreePaymentSession(order: CreateOrderInput): Promise<{
+  orderId: string;
+  paymentSessionId?: string;
+  mode: "sandbox" | "production";
+  alreadyPaid?: boolean;
+  order?: Order;
+}> {
+  const res = await apiFetch(`${API_BASE}/payments/cashfree/session`, {
+    method: "POST",
+    body: JSON.stringify({ order }),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to start Cashfree payment");
   return json;
 }
 
-export async function verifyCashfreePayment(orderId: string, order?: CreateOrderInput): Promise<{ status: string; order: Order | null }> {
-  const res = await apiFetch(`${API_BASE}/payments/cashfree/verify/${orderId}`, { method: "POST", body: JSON.stringify({ order }) });
+export async function verifyCashfreePayment(
+  orderId: string,
+  order?: CreateOrderInput,
+): Promise<{ status: string; order: Order | null }> {
+  const res = await apiFetch(`${API_BASE}/payments/cashfree/verify/${orderId}`, {
+    method: "POST",
+    body: JSON.stringify({ order }),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to verify Cashfree payment");
   return json;
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
-  const res = await apiFetch(`${API_BASE}/orders/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+  const res = await apiFetch(`${API_BASE}/orders/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
   if (!res.ok) throw new Error("Failed to update order status");
   return res.json();
 }
 
-export async function updateOrderDelivery(id: string, delivery: Partial<DeliveryDetails>): Promise<Order> {
-  const res = await apiFetch(`${API_BASE}/orders/${id}/delivery`, { method: "PATCH", body: JSON.stringify(delivery) });
+export async function updateOrderDelivery(
+  id: string,
+  delivery: Partial<DeliveryDetails>,
+): Promise<Order> {
+  const res = await apiFetch(`${API_BASE}/orders/${id}/delivery`, {
+    method: "PATCH",
+    body: JSON.stringify(delivery),
+  });
   if (!res.ok) throw new Error("Failed to update delivery info");
   return res.json();
 }
@@ -1149,11 +1450,17 @@ export async function pickDeliveryOrder(
   orderId: string,
   input: Partial<DeliveryDetails> & { currentLocation?: DeliveryLocation } = {},
 ): Promise<Order> {
-  return deliveryRequest<Order>("pick", { method: "POST", body: JSON.stringify({ orderId, ...input }) });
+  return deliveryRequest<Order>("pick", {
+    method: "POST",
+    body: JSON.stringify({ orderId, ...input }),
+  });
 }
 
 export async function verifyDeliveryPickup(orderId: string, pickupPin: string): Promise<Order> {
-  return deliveryRequest<Order>("pickup-verify", { method: "POST", body: JSON.stringify({ orderId, pickupPin }) });
+  return deliveryRequest<Order>("pickup-verify", {
+    method: "POST",
+    body: JSON.stringify({ orderId, pickupPin }),
+  });
 }
 
 export async function completeDeliveryOrder(
@@ -1161,43 +1468,64 @@ export async function completeDeliveryOrder(
   deliveryOtp: string,
   input: Partial<DeliveryDetails> & { currentLocation?: DeliveryLocation } = {},
 ): Promise<Order> {
-  return deliveryRequest<Order>("deliver", { method: "POST", body: JSON.stringify({ orderId, deliveryOtp, ...input }) });
+  return deliveryRequest<Order>("deliver", {
+    method: "POST",
+    body: JSON.stringify({ orderId, deliveryOtp, ...input }),
+  });
 }
 
 export async function updateDeliveryLocation(
   orderId: string,
   input: Partial<DeliveryDetails> & { currentLocation: DeliveryLocation },
 ): Promise<Order> {
-  return deliveryRequest<Order>("location", { method: "PUT", body: JSON.stringify({ orderId, ...input }) });
+  return deliveryRequest<Order>("location", {
+    method: "PUT",
+    body: JSON.stringify({ orderId, ...input }),
+  });
 }
 
 export async function updateDeliveryPortalStatus(
   orderId: string,
   input: Pick<DeliveryDetails, "deliveryStage" | "delayReason" | "etaMinutes">,
 ): Promise<Order> {
-  return deliveryRequest<Order>("status", { method: "POST", body: JSON.stringify({ orderId, ...input }) });
+  return deliveryRequest<Order>("status", {
+    method: "POST",
+    body: JSON.stringify({ orderId, ...input }),
+  });
 }
 
 export async function updateOrderKds(
   id: string,
-  input: { status?: OrderStatus; metadata?: Partial<DeliveryDetails> }
+  input: { status?: OrderStatus; metadata?: Partial<DeliveryDetails> },
 ): Promise<Order> {
-  const res = await apiFetch(`${API_BASE}/orders/${id}/kds`, { method: "PATCH", body: JSON.stringify(input) });
+  const res = await apiFetch(`${API_BASE}/orders/${id}/kds`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
   if (!res.ok) throw new Error("Failed to update KDS order");
   return res.json();
 }
 
 export async function bulkUpdateOrderKds(
   ids: string[],
-  input: { status?: OrderStatus; metadata?: Partial<DeliveryDetails> }
+  input: { status?: OrderStatus; metadata?: Partial<DeliveryDetails> },
 ): Promise<{ updated: Order[] }> {
-  const res = await apiFetch(`${API_BASE}/orders/bulk-status`, { method: "POST", body: JSON.stringify({ ids, ...input }) });
+  const res = await apiFetch(`${API_BASE}/orders/bulk-status`, {
+    method: "POST",
+    body: JSON.stringify({ ids, ...input }),
+  });
   if (!res.ok) throw new Error("Failed to bulk update KDS orders");
   return res.json();
 }
 
 /* ---------------- Auth Staff API (Admin only) ---------------- */
-export interface StaffUser { id: string; name: string; phone: string; role: string; createdAt: string; }
+export interface StaffUser {
+  id: string;
+  name: string;
+  phone: string;
+  role: string;
+  createdAt: string;
+}
 
 export async function listStaff(): Promise<StaffUser[]> {
   const res = await apiFetch(`${API_BASE}/auth/staff`);
@@ -1205,8 +1533,16 @@ export async function listStaff(): Promise<StaffUser[]> {
   return res.json();
 }
 
-export async function registerStaff(data: { name: string; phone: string; password: string; role: 'KITCHEN' | 'DELIVERY' }): Promise<StaffUser> {
-  const res = await apiFetch(`${API_BASE}/auth/register-staff`, { method: "POST", body: JSON.stringify(data) });
+export async function registerStaff(data: {
+  name: string;
+  phone: string;
+  password: string;
+  role: "KITCHEN" | "DELIVERY";
+}): Promise<StaffUser> {
+  const res = await apiFetch(`${API_BASE}/auth/register-staff`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || "Failed to register staff");
   return json.user;

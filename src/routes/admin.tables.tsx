@@ -23,7 +23,8 @@ function AdminTables() {
         <div>
           <h1 className="font-display text-4xl tracking-wide">QR Tables</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Print and stick on each table. Scanning opens the menu for that table and routes orders to the kitchen as KOT.
+            Print and stick on each table. Scanning opens the menu for that table and routes orders
+            to the kitchen as KOT.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -52,7 +53,9 @@ function AdminTables() {
           const url = `${origin}/t/${t}`;
           return (
             <article key={t} className="rounded-xl border border-border bg-surface p-4 text-center">
-              <div className="font-display text-xs tracking-[0.3em] text-muted-foreground">ANKAPUR DHABA</div>
+              <div className="font-display text-xs tracking-[0.3em] text-muted-foreground">
+                ANKAPUR DHABA
+              </div>
               <div className="mt-1 font-display text-4xl tracking-wide text-primary">TABLE {t}</div>
               <div className="mt-3 grid place-items-center rounded-md bg-white p-3">
                 <img src={qrSrc(url)} alt={`QR for table ${t}`} className="h-44 w-44" />

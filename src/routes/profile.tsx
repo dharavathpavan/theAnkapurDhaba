@@ -101,15 +101,52 @@ function ProfilePage() {
     support: true,
   });
 
-  const profileQuery = useQuery({ queryKey: ["customer-profile"], queryFn: getCustomerProfile, enabled: authed });
-  const loyaltyQuery = useQuery({ queryKey: ["customer-loyalty"], queryFn: getCustomerLoyalty, enabled: authed });
-  const walletQuery = useQuery({ queryKey: ["customer-wallet"], queryFn: getCustomerWallet, enabled: authed });
-  const addressQuery = useQuery({ queryKey: ["customer-addresses"], queryFn: listCustomerAddresses, enabled: authed });
-  const ordersQuery = useQuery({ queryKey: ["my-orders"], queryFn: listMyOrders, enabled: authed, refetchInterval: 8000 });
-  const ticketQuery = useQuery({ queryKey: ["support-tickets"], queryFn: listSupportTickets, enabled: authed });
-  const notificationQuery = useQuery({ queryKey: ["customer-notifications"], queryFn: listCustomerNotifications, enabled: authed });
-  const favoriteQuery = useQuery({ queryKey: ["customer-favorites"], queryFn: listCustomerFavorites, enabled: authed });
-  const couponQuery = useQuery({ queryKey: ["customer-coupons", user?.phone], queryFn: () => listCustomerCoupons(user?.phone), enabled: authed });
+  const profileQuery = useQuery({
+    queryKey: ["customer-profile"],
+    queryFn: getCustomerProfile,
+    enabled: authed,
+  });
+  const loyaltyQuery = useQuery({
+    queryKey: ["customer-loyalty"],
+    queryFn: getCustomerLoyalty,
+    enabled: authed,
+  });
+  const walletQuery = useQuery({
+    queryKey: ["customer-wallet"],
+    queryFn: getCustomerWallet,
+    enabled: authed,
+  });
+  const addressQuery = useQuery({
+    queryKey: ["customer-addresses"],
+    queryFn: listCustomerAddresses,
+    enabled: authed,
+  });
+  const ordersQuery = useQuery({
+    queryKey: ["my-orders"],
+    queryFn: listMyOrders,
+    enabled: authed,
+    refetchInterval: 8000,
+  });
+  const ticketQuery = useQuery({
+    queryKey: ["support-tickets"],
+    queryFn: listSupportTickets,
+    enabled: authed,
+  });
+  const notificationQuery = useQuery({
+    queryKey: ["customer-notifications"],
+    queryFn: listCustomerNotifications,
+    enabled: authed,
+  });
+  const favoriteQuery = useQuery({
+    queryKey: ["customer-favorites"],
+    queryFn: listCustomerFavorites,
+    enabled: authed,
+  });
+  const couponQuery = useQuery({
+    queryKey: ["customer-coupons", user?.phone],
+    queryFn: () => listCustomerCoupons(user?.phone),
+    enabled: authed,
+  });
 
   const profileData = profileQuery.data;
   const profileUser = profileData?.user ?? user;
@@ -122,7 +159,9 @@ function ProfilePage() {
   const tickets = ticketQuery.data ?? [];
   const notifications = notificationQuery.data ?? [];
   const unreadNotifications = notifications.filter((notice) => !notice.read);
-  const currentOrders = orders.filter((order) => !["delivered", "cancelled"].includes(order.status));
+  const currentOrders = orders.filter(
+    (order) => !["delivered", "cancelled"].includes(order.status),
+  );
   const recentOrders = orders.slice(0, 3);
   const openTickets = tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
   const defaultAddress = addresses.find((address) => address.isDefault) || addresses[0];
@@ -151,12 +190,16 @@ function ProfilePage() {
       toast.success("Profile updated");
       setEditOpen(false);
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to update profile"),
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Failed to update profile"),
   });
 
   const saveAddress = useMutation({
     mutationFn: async () => {
-      const payload = { ...addressDraft, isDefault: addressDraft.isDefault || addresses.length === 0 };
+      const payload = {
+        ...addressDraft,
+        isDefault: addressDraft.isDefault || addresses.length === 0,
+      };
       if (editingAddressId) return updateCustomerAddress(editingAddressId, payload);
       return createCustomerAddress(payload);
     },
@@ -165,7 +208,8 @@ function ProfilePage() {
       toast.success(editingAddressId ? "Address updated" : "Address saved");
       closeAddressEditor();
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to save address"),
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Failed to save address"),
   });
 
   const removeAddress = useMutation({
@@ -174,7 +218,8 @@ function ProfilePage() {
       qc.invalidateQueries({ queryKey: ["customer-addresses"] });
       toast.success("Address removed");
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to delete address"),
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Failed to delete address"),
   });
 
   const readNotification = useMutation({
@@ -199,11 +244,14 @@ function ProfilePage() {
     onError: (error) => toast.error(error instanceof Error ? error.message : "Photo upload failed"),
   });
 
-  const summary = useMemo(() => [
-    { label: "Orders", value: loyalty?.orderCount ?? orders.length, icon: Package },
-    { label: "Points", value: loyalty?.points ?? 0, icon: Star },
-    { label: "Wallet", value: `Rs ${Math.round(wallet?.balance ?? 0)}`, icon: Wallet },
-  ], [loyalty?.orderCount, loyalty?.points, orders.length, wallet?.balance]);
+  const summary = useMemo(
+    () => [
+      { label: "Orders", value: loyalty?.orderCount ?? orders.length, icon: Package },
+      { label: "Points", value: loyalty?.points ?? 0, icon: Star },
+      { label: "Wallet", value: `Rs ${Math.round(wallet?.balance ?? 0)}`, icon: Wallet },
+    ],
+    [loyalty?.orderCount, loyalty?.points, orders.length, wallet?.balance],
+  );
 
   if (!authed || !user) {
     return <SignedOutProfile />;
@@ -225,7 +273,12 @@ function ProfilePage() {
       });
     } else {
       setEditingAddressId(null);
-      setAddressDraft({ ...blankAddress, name: profileUser?.name || "", phone: profileUser?.phone || "", isDefault: addresses.length === 0 });
+      setAddressDraft({
+        ...blankAddress,
+        name: profileUser?.name || "",
+        phone: profileUser?.phone || "",
+        isDefault: addresses.length === 0,
+      });
     }
     setAddressOpen(true);
   }
@@ -270,25 +323,44 @@ function ProfilePage() {
           <div className="relative flex flex-col gap-3 md:gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 items-center gap-3 md:gap-4">
               <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[18px] bg-white/10 text-lg font-black ring-1 ring-white/15 sm:h-14 sm:w-14 md:h-20 md:w-20 md:rounded-[28px] md:text-3xl">
-                {photoUrl ? <img src={photoUrl} alt={profileUser?.name || "Profile"} className="h-full w-full object-cover" /> : profileUser?.name?.charAt(0).toUpperCase()}
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt={profileUser?.name || "Profile"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  profileUser?.name?.charAt(0).toUpperCase()
+                )}
               </div>
               <div className="min-w-0">
-                <div className="text-[9px] font-black uppercase tracking-[0.14em] text-red-200 md:text-xs md:tracking-[0.22em]">My Account</div>
-                <h1 className="mt-0.5 max-w-[210px] truncate text-lg font-black leading-tight sm:max-w-none sm:text-xl md:mt-1 md:text-5xl">{profileUser?.name}</h1>
-                <p className="mt-0.5 text-xs font-semibold text-white/65 md:mt-1 md:text-sm">{profileUser?.phone}</p>
+                <div className="text-[9px] font-black uppercase tracking-[0.14em] text-red-200 md:text-xs md:tracking-[0.22em]">
+                  My Account
+                </div>
+                <h1 className="mt-0.5 max-w-[210px] truncate text-lg font-black leading-tight sm:max-w-none sm:text-xl md:mt-1 md:text-5xl">
+                  {profileUser?.name}
+                </h1>
+                <p className="mt-0.5 text-xs font-semibold text-white/65 md:mt-1 md:text-sm">
+                  {profileUser?.phone}
+                </p>
                 <div className="mt-2 flex flex-wrap gap-1.5 md:mt-3 md:gap-2">
                   <Badge>{loyalty?.tier || "Bronze"} member</Badge>
                   <Badge>{defaultAddress ? defaultAddress.label : "No address saved"}</Badge>
                 </div>
               </div>
             </div>
-            <button onClick={() => setEditOpen(true)} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 text-xs font-black text-zinc-950 sm:w-auto md:min-h-12 md:px-5 md:text-sm">
+            <button
+              onClick={() => setEditOpen(true)}
+              className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 text-xs font-black text-zinc-950 sm:w-auto md:min-h-12 md:px-5 md:text-sm"
+            >
               <Pencil className="h-4 w-4" /> Edit Profile
             </button>
           </div>
 
           <div className="relative mt-4 grid grid-cols-3 gap-2 md:mt-6 md:gap-3">
-            {summary.map((item) => <HeroStat key={item.label} {...item} />)}
+            {summary.map((item) => (
+              <HeroStat key={item.label} {...item} />
+            ))}
           </div>
         </div>
       </section>
@@ -296,41 +368,92 @@ function ProfilePage() {
       <section className="mt-3 grid grid-cols-4 gap-2 md:mt-4 md:grid-cols-8 md:gap-3">
         <QuickAction to="/orders" icon={Package} label="Orders" tone="red" />
         <QuickAction to="/wallet" icon={Wallet} label="Wallet" tone="green" />
-        <QuickAction onClick={() => openAddressEditor()} icon={MapPin} label="Address" tone="blue" />
+        <QuickAction
+          onClick={() => openAddressEditor()}
+          icon={MapPin}
+          label="Address"
+          tone="blue"
+        />
         <QuickAction to="/support" icon={Headphones} label="Support" tone="dark" />
         <QuickAction to="/favorites" icon={Heart} label="Favorites" tone="pink" />
         <QuickAction to="/cart" icon={Ticket} label="Coupons" tone="yellow" />
-        <QuickAction onClick={() => readAllNotifications.mutate()} icon={Bell} label="Alerts" tone="purple" />
+        <QuickAction
+          onClick={() => readAllNotifications.mutate()}
+          icon={Bell}
+          label="Alerts"
+          tone="purple"
+        />
         <QuickAction to="/privacy-policy" icon={ShieldCheck} label="Legal" tone="slate" />
       </section>
 
       <div className="mt-4 grid gap-4 md:mt-5 md:gap-5 lg:grid-cols-[1.1fr_0.9fr]">
         <main className="space-y-4 md:space-y-5">
           {activeOrder && (
-            <Link to="/orders/$orderId" params={{ orderId: activeOrder.id }} className="block rounded-[24px] bg-gradient-to-br from-red-600 to-red-800 p-4 text-white shadow-xl shadow-red-600/20 md:rounded-[30px] md:p-5">
+            <Link
+              to="/orders/$orderId"
+              params={{ orderId: activeOrder.id }}
+              className="block rounded-[24px] bg-gradient-to-br from-red-600 to-red-800 p-4 text-white shadow-xl shadow-red-600/20 md:rounded-[30px] md:p-5"
+            >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-white/65">Active live order</p>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-white/65">
+                    Active live order
+                  </p>
                   <h2 className="mt-1 text-xl font-black md:text-2xl">#{activeOrder.id}</h2>
-                  <p className="mt-1 text-sm font-semibold capitalize text-white/75">{activeOrder.status.replace(/_/g, " ")}</p>
+                  <p className="mt-1 text-sm font-semibold capitalize text-white/75">
+                    {activeOrder.status.replace(/_/g, " ")}
+                  </p>
                 </div>
-                <span className="rounded-2xl bg-white px-3 py-2 text-xs font-black text-red-700 md:px-4 md:text-sm">Track</span>
+                <span className="rounded-2xl bg-white px-3 py-2 text-xs font-black text-red-700 md:px-4 md:text-sm">
+                  Track
+                </span>
               </div>
             </Link>
           )}
 
-          <Panel title="Recent orders" action={<Link to="/orders" className="text-sm font-black text-red-600">View all</Link>} loading={ordersQuery.isLoading}>
-            {recentOrders.length === 0 ? <EmptyState icon={Package} title="No orders yet" text="Your food journey starts from the menu." action={<Link to="/menu" className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-black text-white">Order now</Link>} /> : (
+          <Panel
+            title="Recent orders"
+            action={
+              <Link to="/orders" className="text-sm font-black text-red-600">
+                View all
+              </Link>
+            }
+            loading={ordersQuery.isLoading}
+          >
+            {recentOrders.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title="No orders yet"
+                text="Your food journey starts from the menu."
+                action={
+                  <Link
+                    to="/menu"
+                    className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-black text-white"
+                  >
+                    Order now
+                  </Link>
+                }
+              />
+            ) : (
               <div className="space-y-3">
                 {recentOrders.map((order) => (
-                  <Link key={order.id} to="/orders/$orderId" params={{ orderId: order.id }} className="flex items-center justify-between gap-3 rounded-[22px] bg-zinc-50 p-3 md:rounded-3xl md:p-4">
+                  <Link
+                    key={order.id}
+                    to="/orders/$orderId"
+                    params={{ orderId: order.id }}
+                    className="flex items-center justify-between gap-3 rounded-[22px] bg-zinc-50 p-3 md:rounded-3xl md:p-4"
+                  >
                     <span className="min-w-0">
                       <span className="block truncate font-black">#{order.id}</span>
-                      <span className="mt-1 block truncate text-sm font-semibold text-zinc-500">{order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}</span>
+                      <span className="mt-1 block truncate text-sm font-semibold text-zinc-500">
+                        {order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}
+                      </span>
                     </span>
                     <span className="shrink-0 text-right">
                       <span className="block font-black">Rs {order.total}</span>
-                      <span className="text-xs font-black capitalize text-zinc-400">{order.status.replace(/_/g, " ")}</span>
+                      <span className="text-xs font-black capitalize text-zinc-400">
+                        {order.status.replace(/_/g, " ")}
+                      </span>
                     </span>
                   </Link>
                 ))}
@@ -338,21 +461,56 @@ function ProfilePage() {
             )}
           </Panel>
 
-          <Panel title="Saved addresses" action={<button onClick={() => openAddressEditor()} className="inline-flex items-center gap-1 text-sm font-black text-red-600"><Plus className="h-4 w-4" /> Add</button>} loading={addressQuery.isLoading}>
-            {addresses.length === 0 ? <EmptyState icon={MapPin} title="No address saved" text="Add your delivery address for faster checkout." /> : (
+          <Panel
+            title="Saved addresses"
+            action={
+              <button
+                onClick={() => openAddressEditor()}
+                className="inline-flex items-center gap-1 text-sm font-black text-red-600"
+              >
+                <Plus className="h-4 w-4" /> Add
+              </button>
+            }
+            loading={addressQuery.isLoading}
+          >
+            {addresses.length === 0 ? (
+              <EmptyState
+                icon={MapPin}
+                title="No address saved"
+                text="Add your delivery address for faster checkout."
+              />
+            ) : (
               <div className="grid gap-3 md:grid-cols-2">
                 {addresses.map((address) => (
-                  <article key={address.id} className="rounded-[22px] bg-zinc-50 p-3 md:rounded-3xl md:p-4">
+                  <article
+                    key={address.id}
+                    className="rounded-[22px] bg-zinc-50 p-3 md:rounded-3xl md:p-4"
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2 font-black">
                           <Home className="h-4 w-4 text-red-600" /> {address.label}
-                          {address.isDefault && <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black text-green-700">Default</span>}
+                          {address.isDefault && (
+                            <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black text-green-700">
+                              Default
+                            </span>
+                          )}
                         </div>
-                        <p className="mt-2 line-clamp-3 text-sm font-semibold leading-5 text-zinc-600">{address.address}</p>
-                        {address.landmark && <p className="mt-1 text-xs font-bold text-zinc-400">Landmark: {address.landmark}</p>}
+                        <p className="mt-2 line-clamp-3 text-sm font-semibold leading-5 text-zinc-600">
+                          {address.address}
+                        </p>
+                        {address.landmark && (
+                          <p className="mt-1 text-xs font-bold text-zinc-400">
+                            Landmark: {address.landmark}
+                          </p>
+                        )}
                       </div>
-                      <button onClick={() => openAddressEditor(address)} className="rounded-2xl bg-white p-2 text-zinc-600 ring-1 ring-zinc-200"><Pencil className="h-4 w-4" /></button>
+                      <button
+                        onClick={() => openAddressEditor(address)}
+                        className="rounded-2xl bg-white p-2 text-zinc-600 ring-1 ring-zinc-200"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
                     </div>
                   </article>
                 ))}
@@ -360,16 +518,29 @@ function ProfilePage() {
             )}
           </Panel>
 
-          <Panel title="Food preferences" action={<span className="text-xs font-black text-zinc-400">{saveProfile.isPending ? "Saving..." : "Tap to update"}</span>}>
+          <Panel
+            title="Food preferences"
+            action={
+              <span className="text-xs font-black text-zinc-400">
+                {saveProfile.isPending ? "Saving..." : "Tap to update"}
+              </span>
+            }
+          >
             <div className="space-y-4">
               {Object.entries(preferenceGroups).map(([group, values]) => (
                 <div key={group}>
-                  <div className="mb-2 text-sm font-black capitalize text-zinc-700">{group.replace(/([A-Z])/g, " $1")}</div>
+                  <div className="mb-2 text-sm font-black capitalize text-zinc-700">
+                    {group.replace(/([A-Z])/g, " $1")}
+                  </div>
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {values.map((value) => {
                       const active = Boolean(preferences[group]?.includes(value));
                       return (
-                        <button key={value} onClick={() => togglePreference(group, value)} className={`min-w-fit rounded-2xl px-4 py-2 text-sm font-black transition ${active ? "bg-red-600 text-white shadow-lg shadow-red-600/20" : "bg-zinc-100 text-zinc-600"}`}>
+                        <button
+                          key={value}
+                          onClick={() => togglePreference(group, value)}
+                          className={`min-w-fit rounded-2xl px-4 py-2 text-sm font-black transition ${active ? "bg-red-600 text-white shadow-lg shadow-red-600/20" : "bg-zinc-100 text-zinc-600"}`}
+                        >
                           {value}
                         </button>
                       );
@@ -382,26 +553,70 @@ function ProfilePage() {
         </main>
 
         <aside className="space-y-4 md:space-y-5">
-          <Panel title="Main Wallet" action={<Link to="/wallet" className="text-sm font-black text-red-600">Open</Link>} loading={walletQuery.isLoading}>
+          <Panel
+            title="Main Wallet"
+            action={
+              <Link to="/wallet" className="text-sm font-black text-red-600">
+                Open
+              </Link>
+            }
+            loading={walletQuery.isLoading}
+          >
             <div className="rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-800 p-4 text-white md:rounded-[28px] md:p-5">
               <Wallet className="h-6 w-6 md:h-7 md:w-7" />
-              <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-white/65 md:mt-6 md:text-xs md:tracking-[0.2em]">Available balance</p>
-              <div className="mt-1 text-3xl font-black md:text-4xl">Rs {Math.round(wallet?.balance ?? 0)}</div>
+              <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-white/65 md:mt-6 md:text-xs md:tracking-[0.2em]">
+                Available balance
+              </p>
+              <div className="mt-1 text-3xl font-black md:text-4xl">
+                Rs {Math.round(wallet?.balance ?? 0)}
+              </div>
             </div>
             <div className="mt-3 space-y-2">
-              {(wallet?.transactions ?? []).slice(0, 3).map((tx) => <LedgerRow key={tx.id} title={tx.type.replace(/_/g, " ")} text={tx.reason} amount={tx.amount} />)}
-              {(wallet?.transactions ?? []).length === 0 && <p className="rounded-2xl bg-zinc-50 p-4 text-sm font-semibold text-zinc-500">No wallet activity yet.</p>}
+              {(wallet?.transactions ?? []).slice(0, 3).map((tx) => (
+                <LedgerRow
+                  key={tx.id}
+                  title={tx.type.replace(/_/g, " ")}
+                  text={tx.reason}
+                  amount={tx.amount}
+                />
+              ))}
+              {(wallet?.transactions ?? []).length === 0 && (
+                <p className="rounded-2xl bg-zinc-50 p-4 text-sm font-semibold text-zinc-500">
+                  No wallet activity yet.
+                </p>
+              )}
             </div>
           </Panel>
 
-          <Panel title="Support" action={<Link to="/support" className="text-sm font-black text-red-600">Help center</Link>} loading={ticketQuery.isLoading}>
-            {openTickets.length === 0 ? <EmptyState icon={MessageCircle} title="No open tickets" text="Need help? Create a support ticket anytime." /> : (
+          <Panel
+            title="Support"
+            action={
+              <Link to="/support" className="text-sm font-black text-red-600">
+                Help center
+              </Link>
+            }
+            loading={ticketQuery.isLoading}
+          >
+            {openTickets.length === 0 ? (
+              <EmptyState
+                icon={MessageCircle}
+                title="No open tickets"
+                text="Need help? Create a support ticket anytime."
+              />
+            ) : (
               <div className="space-y-2">
                 {openTickets.slice(0, 3).map((ticket) => (
-                  <Link key={ticket.id} to="/support/chat/$ticketId" params={{ ticketId: ticket.id }} className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-3 md:p-4">
+                  <Link
+                    key={ticket.id}
+                    to="/support/chat/$ticketId"
+                    params={{ ticketId: ticket.id }}
+                    className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-3 md:p-4"
+                  >
                     <span className="min-w-0">
                       <span className="block truncate font-black">{ticket.subject}</span>
-                      <span className="text-xs font-bold capitalize text-zinc-500">{ticket.status.replace(/_/g, " ")}</span>
+                      <span className="text-xs font-bold capitalize text-zinc-500">
+                        {ticket.status.replace(/_/g, " ")}
+                      </span>
                     </span>
                     <ChevronRight className="h-4 w-4 text-zinc-400" />
                   </Link>
@@ -412,19 +627,42 @@ function ProfilePage() {
 
           <Panel
             title="Notifications"
-            action={unreadNotifications.length > 0 ? <button onClick={() => readAllNotifications.mutate()} className="text-sm font-black text-red-600">Mark all read</button> : null}
+            action={
+              unreadNotifications.length > 0 ? (
+                <button
+                  onClick={() => readAllNotifications.mutate()}
+                  className="text-sm font-black text-red-600"
+                >
+                  Mark all read
+                </button>
+              ) : null
+            }
             loading={notificationQuery.isLoading}
           >
-            {notifications.length === 0 ? <EmptyState icon={Bell} title="No notifications" text="Order updates and support replies will appear here." /> : (
+            {notifications.length === 0 ? (
+              <EmptyState
+                icon={Bell}
+                title="No notifications"
+                text="Order updates and support replies will appear here."
+              />
+            ) : (
               <div className="space-y-2">
                 {notifications.slice(0, 5).map((notice) => (
-                  <button key={notice.id} onClick={() => !notice.read && readNotification.mutate(notice.id)} className={`w-full rounded-2xl p-3 text-left md:p-4 ${notice.read ? "bg-zinc-50" : "bg-red-50 ring-1 ring-red-100"}`}>
+                  <button
+                    key={notice.id}
+                    onClick={() => !notice.read && readNotification.mutate(notice.id)}
+                    className={`w-full rounded-2xl p-3 text-left md:p-4 ${notice.read ? "bg-zinc-50" : "bg-red-50 ring-1 ring-red-100"}`}
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="font-black">{notice.title}</div>
-                        <p className="mt-1 text-sm font-semibold leading-5 text-zinc-600">{notice.body}</p>
+                        <p className="mt-1 text-sm font-semibold leading-5 text-zinc-600">
+                          {notice.body}
+                        </p>
                       </div>
-                      {!notice.read && <span className="mt-1 h-2.5 w-2.5 rounded-full bg-red-600" />}
+                      {!notice.read && (
+                        <span className="mt-1 h-2.5 w-2.5 rounded-full bg-red-600" />
+                      )}
                     </div>
                   </button>
                 ))}
@@ -434,13 +672,30 @@ function ProfilePage() {
 
           <Panel title="Rewards and extras">
             <div className="grid gap-3">
-              <InfoTile icon={Gift} title={`${couponQuery.data?.length ?? 0} coupons`} text="Apply offers during checkout." to="/cart" />
-              <InfoTile icon={Heart} title={`${favoriteQuery.data?.length ?? 0} favorites`} text="Quickly reorder loved dishes." to="/favorites" />
-              <InfoTile icon={Sparkles} title={`Referral ${profile?.referralCode || "ADFOOD"}`} text="Share with friends and earn rewards." />
+              <InfoTile
+                icon={Gift}
+                title={`${couponQuery.data?.length ?? 0} coupons`}
+                text="Apply offers during checkout."
+                to="/cart"
+              />
+              <InfoTile
+                icon={Heart}
+                title={`${favoriteQuery.data?.length ?? 0} favorites`}
+                text="Quickly reorder loved dishes."
+                to="/favorites"
+              />
+              <InfoTile
+                icon={Sparkles}
+                title={`Referral ${profile?.referralCode || "ADFOOD"}`}
+                text="Share with friends and earn rewards."
+              />
             </div>
           </Panel>
 
-          <button onClick={signOut} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-3xl bg-zinc-950 font-black text-white md:min-h-14">
+          <button
+            onClick={signOut}
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-3xl bg-zinc-950 font-black text-white md:min-h-14"
+          >
             <LogOut className="h-5 w-5" /> Sign out
           </button>
         </aside>
@@ -451,32 +706,84 @@ function ProfilePage() {
           <form onSubmit={submitProfile} className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-[26px] bg-zinc-100 text-2xl font-black">
-                {photoUrl ? <img src={photoUrl} alt="Profile preview" className="h-full w-full object-cover" /> : profileUser?.name?.charAt(0).toUpperCase()}
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt="Profile preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  profileUser?.name?.charAt(0).toUpperCase()
+                )}
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-black text-white">
-                <Upload className="h-4 w-4" /> {uploadPhoto.isPending ? "Uploading..." : "Upload photo"}
-                <input type="file" accept="image/*" className="hidden" disabled={uploadPhoto.isPending} onChange={(event) => event.target.files?.[0] && uploadPhoto.mutate(event.target.files[0])} />
+                <Upload className="h-4 w-4" />{" "}
+                {uploadPhoto.isPending ? "Uploading..." : "Upload photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadPhoto.isPending}
+                  onChange={(event) =>
+                    event.target.files?.[0] && uploadPhoto.mutate(event.target.files[0])
+                  }
+                />
               </label>
             </div>
             <Field label="Name" name="name" defaultValue={profileUser?.name || ""} />
             <Field label="Phone" name="phone" defaultValue={profileUser?.phone || ""} disabled />
-            <Field label="Email" name="email" type="email" defaultValue={profile?.email || ""} icon={Mail} />
+            <Field
+              label="Email"
+              name="email"
+              type="email"
+              defaultValue={profile?.email || ""}
+              icon={Mail}
+            />
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Birthday" name="dateOfBirth" type="date" defaultValue={profile?.dateOfBirth || ""} icon={CalendarDays} />
-              <Field label="Anniversary" name="anniversary" type="date" defaultValue={profile?.anniversary || ""} icon={CalendarDays} />
+              <Field
+                label="Birthday"
+                name="dateOfBirth"
+                type="date"
+                defaultValue={profile?.dateOfBirth || ""}
+                icon={CalendarDays}
+              />
+              <Field
+                label="Anniversary"
+                name="anniversary"
+                type="date"
+                defaultValue={profile?.anniversary || ""}
+                icon={CalendarDays}
+              />
             </div>
             <div className="rounded-3xl bg-zinc-50 p-4">
               <div className="font-black">Notification preferences</div>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {["orders", "offers", "coupons", "announcements", "support"].map((key) => (
-                  <label key={key} className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-black capitalize">
+                  <label
+                    key={key}
+                    className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-black capitalize"
+                  >
                     {key}
-                    <input type="checkbox" checked={Boolean(notificationSettings[key])} onChange={(event) => setNotificationSettings((current) => ({ ...current, [key]: event.target.checked }))} />
+                    <input
+                      type="checkbox"
+                      checked={Boolean(notificationSettings[key])}
+                      onChange={(event) =>
+                        setNotificationSettings((current) => ({
+                          ...current,
+                          [key]: event.target.checked,
+                        }))
+                      }
+                    />
                   </label>
                 ))}
               </div>
             </div>
-            <button disabled={saveProfile.isPending || uploadPhoto.isPending} className="min-h-14 w-full rounded-2xl bg-red-600 font-black text-white disabled:opacity-60">{saveProfile.isPending ? "Saving..." : "Save Profile"}</button>
+            <button
+              disabled={saveProfile.isPending || uploadPhoto.isPending}
+              className="min-h-14 w-full rounded-2xl bg-red-600 font-black text-white disabled:opacity-60"
+            >
+              {saveProfile.isPending ? "Saving..." : "Save Profile"}
+            </button>
           </form>
         </Modal>
       )}
@@ -485,15 +792,24 @@ function ProfilePage() {
         <AddressSheet
           title={editingAddressId ? "Edit delivery address" : "Add delivery address"}
           onClose={closeAddressEditor}
-          footer={(
+          footer={
             <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
               <button
                 type="button"
                 onClick={() => saveAddress.mutate()}
-                disabled={saveAddress.isPending || !addressDraft.name || !addressDraft.phone || !addressDraft.address}
+                disabled={
+                  saveAddress.isPending ||
+                  !addressDraft.name ||
+                  !addressDraft.phone ||
+                  !addressDraft.address
+                }
                 className="min-h-14 rounded-2xl bg-red-600 px-5 font-black text-white shadow-lg shadow-red-600/20 disabled:opacity-60"
               >
-                {saveAddress.isPending ? "Saving..." : selectedAddressCoords ? "Save accurate address" : "Save address"}
+                {saveAddress.isPending
+                  ? "Saving..."
+                  : selectedAddressCoords
+                    ? "Save accurate address"
+                    : "Save address"}
               </button>
               {editingAddressId && (
                 <button
@@ -506,7 +822,7 @@ function ProfilePage() {
                 </button>
               )}
             </div>
-          )}
+          }
         >
           <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
             <section className="space-y-3">
@@ -516,12 +832,19 @@ function ProfilePage() {
                     <MapPin className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <div className="text-sm font-black uppercase tracking-[0.18em] text-red-100">Delivery pin</div>
-                    <p className="mt-1 text-sm font-semibold text-white/70">Search, use current location, or drag the branded pointer to the exact doorstep.</p>
+                    <div className="text-sm font-black uppercase tracking-[0.18em] text-red-100">
+                      Delivery pin
+                    </div>
+                    <p className="mt-1 text-sm font-semibold text-white/70">
+                      Search, use current location, or drag the branded pointer to the exact
+                      doorstep.
+                    </p>
                   </div>
                 </div>
                 <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-xs font-black text-white/80 ring-1 ring-white/10">
-                  <span className={`h-2.5 w-2.5 rounded-full ${selectedAddressCoords ? "bg-emerald-400" : "bg-yellow-300"}`} />
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${selectedAddressCoords ? "bg-emerald-400" : "bg-yellow-300"}`}
+                  />
                   <span className="truncate">
                     {selectedAddressCoords
                       ? `Location selected: ${selectedAddressCoords.lat.toFixed(5)}, ${selectedAddressCoords.lng.toFixed(5)}`
@@ -545,31 +868,69 @@ function ProfilePage() {
               />
             </section>
 
-            <form onSubmit={(event) => { event.preventDefault(); saveAddress.mutate(); }} className="space-y-3">
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                saveAddress.mutate();
+              }}
+              className="space-y-3"
+            >
               <div className="rounded-[26px] bg-red-50 p-4">
                 <h3 className="text-lg font-black text-zinc-950">Address details</h3>
-                <p className="mt-1 text-sm font-semibold text-zinc-500">These details help the delivery partner find you quickly.</p>
+                <p className="mt-1 text-sm font-semibold text-zinc-500">
+                  These details help the delivery partner find you quickly.
+                </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Label" value={addressDraft.label} onChange={(value) => setAddressDraft((current) => ({ ...current, label: value }))} />
-                <Field label="Name" value={addressDraft.name} onChange={(value) => setAddressDraft((current) => ({ ...current, name: value }))} />
+                <Field
+                  label="Label"
+                  value={addressDraft.label}
+                  onChange={(value) => setAddressDraft((current) => ({ ...current, label: value }))}
+                />
+                <Field
+                  label="Name"
+                  value={addressDraft.name}
+                  onChange={(value) => setAddressDraft((current) => ({ ...current, name: value }))}
+                />
               </div>
-              <Field label="Phone" value={addressDraft.phone} onChange={(value) => setAddressDraft((current) => ({ ...current, phone: value }))} />
+              <Field
+                label="Phone"
+                value={addressDraft.phone}
+                onChange={(value) => setAddressDraft((current) => ({ ...current, phone: value }))}
+              />
               <label className="block">
                 <span className="text-sm font-black">Full address</span>
                 <textarea
                   value={addressDraft.address}
-                  onChange={(event) => setAddressDraft((current) => ({ ...current, address: event.target.value }))}
+                  onChange={(event) =>
+                    setAddressDraft((current) => ({ ...current, address: event.target.value }))
+                  }
                   rows={4}
                   className="mt-2 w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-4 font-semibold outline-none focus:border-red-500"
                   required
                 />
               </label>
-              <Field label="Landmark" value={addressDraft.landmark || ""} onChange={(value) => setAddressDraft((current) => ({ ...current, landmark: value }))} />
-              <Field label="Delivery notes" value={addressDraft.notes || ""} onChange={(value) => setAddressDraft((current) => ({ ...current, notes: value }))} />
+              <Field
+                label="Landmark"
+                value={addressDraft.landmark || ""}
+                onChange={(value) =>
+                  setAddressDraft((current) => ({ ...current, landmark: value }))
+                }
+              />
+              <Field
+                label="Delivery notes"
+                value={addressDraft.notes || ""}
+                onChange={(value) => setAddressDraft((current) => ({ ...current, notes: value }))}
+              />
               <label className="flex items-center justify-between rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-black">
                 Make default address
-                <input type="checkbox" checked={addressDraft.isDefault} onChange={(event) => setAddressDraft((current) => ({ ...current, isDefault: event.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={addressDraft.isDefault}
+                  onChange={(event) =>
+                    setAddressDraft((current) => ({ ...current, isDefault: event.target.checked }))
+                  }
+                />
               </label>
             </form>
           </div>
@@ -581,40 +942,92 @@ function ProfilePage() {
 
 function SignedOutProfile() {
   return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center md:py-20">
+    <div className="mx-auto max-w-md px-4 py-16 text-center md:py-20">
       <div className="mx-auto grid h-20 w-20 place-items-center rounded-[30px] bg-red-50 text-red-600">
         <User className="h-10 w-10" />
       </div>
       <h1 className="mt-5 text-3xl font-black">Sign in to your account</h1>
-      <p className="mt-2 text-zinc-500">Manage orders, wallet, support chats, addresses, rewards and preferences from one place.</p>
+      <p className="mt-2 text-zinc-500">
+        Manage orders, wallet, support chats, addresses, rewards and preferences from one place.
+      </p>
       <div className="mt-6 grid gap-3">
-        <Link to="/login" className="rounded-3xl bg-red-600 px-6 py-4 font-black text-white">Sign in</Link>
-        <Link to="/signup" className="rounded-3xl bg-white px-6 py-4 font-black text-zinc-900 ring-1 ring-zinc-100">Create account</Link>
+        <Link to="/login" className="rounded-3xl bg-red-600 px-6 py-4 font-black text-white">
+          Sign in
+        </Link>
+        <Link
+          to="/signup"
+          className="rounded-3xl bg-white px-6 py-4 font-black text-zinc-900 ring-1 ring-zinc-100"
+        >
+          Create account
+        </Link>
       </div>
     </div>
   );
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-full bg-white/12 px-2 py-0.5 text-[9px] font-black capitalize text-white/80 ring-1 ring-white/10 md:px-3 md:py-1 md:text-xs">{children}</span>;
+  return (
+    <span className="rounded-full bg-white/12 px-2 py-0.5 text-[9px] font-black capitalize text-white/80 ring-1 ring-white/10 md:px-3 md:py-1 md:text-xs">
+      {children}
+    </span>
+  );
 }
 
-function HeroStat({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ElementType }) {
+function HeroStat({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+}) {
   return (
     <div className="min-w-0 rounded-2xl bg-white/10 p-2.5 ring-1 ring-white/10 md:rounded-3xl md:p-4">
       <Icon className="h-4 w-4 text-red-200 md:h-5 md:w-5" />
-      <div className="mt-1.5 truncate text-[10px] font-bold text-white/55 md:mt-3 md:text-xs">{label}</div>
+      <div className="mt-1.5 truncate text-[10px] font-bold text-white/55 md:mt-3 md:text-xs">
+        {label}
+      </div>
       <div className="truncate text-sm font-black md:text-xl">{value}</div>
     </div>
   );
 }
 
-function QuickAction({ to, onClick, icon: Icon, label, tone }: { to?: string; onClick?: () => void; icon: React.ElementType; label: string; tone: string }) {
-  const className = "flex min-h-[70px] flex-col items-center justify-center gap-1.5 rounded-[20px] bg-white p-2 text-center text-[10px] font-black text-zinc-800 shadow-sm ring-1 ring-zinc-100 transition hover:-translate-y-0.5 hover:shadow-md md:min-h-[86px] md:gap-2 md:rounded-[24px] md:p-3 md:text-xs";
+function QuickAction({
+  to,
+  onClick,
+  icon: Icon,
+  label,
+  tone,
+}: {
+  to?: string;
+  onClick?: () => void;
+  icon: React.ElementType;
+  label: string;
+  tone: string;
+}) {
+  const className =
+    "flex min-h-[70px] flex-col items-center justify-center gap-1.5 rounded-[20px] bg-white p-2 text-center text-[10px] font-black text-zinc-800 shadow-sm ring-1 ring-zinc-100 transition hover:-translate-y-0.5 hover:shadow-md md:min-h-[86px] md:gap-2 md:rounded-[24px] md:p-3 md:text-xs";
   const iconClass = `grid h-9 w-9 place-items-center rounded-[16px] md:h-11 md:w-11 md:rounded-2xl ${toneClass(tone)}`;
-  const content = <><span className={iconClass}><Icon className="h-4 w-4 md:h-5 md:w-5" /></span><span className="leading-tight">{label}</span></>;
-  if (to) return <Link to={to as never} className={className}>{content}</Link>;
-  return <button type="button" onClick={onClick} className={className}>{content}</button>;
+  const content = (
+    <>
+      <span className={iconClass}>
+        <Icon className="h-4 w-4 md:h-5 md:w-5" />
+      </span>
+      <span className="leading-tight">{label}</span>
+    </>
+  );
+  if (to)
+    return (
+      <Link to={to as never} className={className}>
+        {content}
+      </Link>
+    );
+  return (
+    <button type="button" onClick={onClick} className={className}>
+      {content}
+    </button>
+  );
 }
 
 function toneClass(tone: string) {
@@ -631,7 +1044,17 @@ function toneClass(tone: string) {
   return map[tone] || map.red;
 }
 
-function Panel({ title, action, loading, children }: { title: string; action?: React.ReactNode; loading?: boolean; children: React.ReactNode }) {
+function Panel({
+  title,
+  action,
+  loading,
+  children,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  loading?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <section className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-zinc-100 md:rounded-[30px] md:p-5">
       <div className="mb-3 flex items-center justify-between gap-3 md:mb-4">
@@ -643,7 +1066,17 @@ function Panel({ title, action, loading, children }: { title: string; action?: R
   );
 }
 
-function EmptyState({ icon: Icon, title, text, action }: { icon: React.ElementType; title: string; text: string; action?: React.ReactNode }) {
+function EmptyState({
+  icon: Icon,
+  title,
+  text,
+  action,
+}: {
+  icon: React.ElementType;
+  title: string;
+  text: string;
+  action?: React.ReactNode;
+}) {
   return (
     <div className="rounded-[22px] bg-zinc-50 p-4 text-center md:rounded-3xl md:p-5">
       <Icon className="mx-auto h-8 w-8 text-zinc-400" />
@@ -661,12 +1094,24 @@ function LedgerRow({ title, text, amount }: { title: string; text: string; amoun
         <div className="truncate font-black capitalize">{title}</div>
         <div className="truncate text-xs font-semibold text-zinc-500">{text}</div>
       </div>
-      <div className={`shrink-0 font-black ${amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>{amount >= 0 ? "+" : "-"}Rs {Math.abs(amount)}</div>
+      <div className={`shrink-0 font-black ${amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+        {amount >= 0 ? "+" : "-"}Rs {Math.abs(amount)}
+      </div>
     </div>
   );
 }
 
-function InfoTile({ icon: Icon, title, text, to }: { icon: React.ElementType; title: string; text: string; to?: string }) {
+function InfoTile({
+  icon: Icon,
+  title,
+  text,
+  to,
+}: {
+  icon: React.ElementType;
+  title: string;
+  text: string;
+  to?: string;
+}) {
   const content = (
     <>
       <Icon className="h-5 w-5 text-red-600" />
@@ -678,11 +1123,26 @@ function InfoTile({ icon: Icon, title, text, to }: { icon: React.ElementType; ti
     </>
   );
   const className = "flex items-center gap-3 rounded-2xl bg-zinc-50 p-3 text-left md:p-4";
-  if (to) return <Link to={to as never} className={className}>{content}</Link>;
+  if (to)
+    return (
+      <Link to={to as never} className={className}>
+        {content}
+      </Link>
+    );
   return <div className={className}>{content}</div>;
 }
 
-function AddressSheet({ title, onClose, children, footer }: { title: string; onClose: () => void; children: React.ReactNode; footer: React.ReactNode }) {
+function AddressSheet({
+  title,
+  onClose,
+  children,
+  footer,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+  footer: React.ReactNode;
+}) {
   return (
     <div className="fixed inset-0 z-[90] bg-zinc-950/60 backdrop-blur-sm">
       <div className="flex min-h-full items-end md:items-center md:justify-center md:p-4">
@@ -690,13 +1150,21 @@ function AddressSheet({ title, onClose, children, footer }: { title: string; onC
           <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-3.5 py-3.5 md:px-5 md:py-4">
             <div className="min-w-0">
               <h2 className="truncate text-xl font-black md:text-2xl">{title}</h2>
-              <p className="mt-0.5 text-xs font-bold text-zinc-500">Choose the exact delivery spot for faster ETA and tracking.</p>
+              <p className="mt-0.5 text-xs font-bold text-zinc-500">
+                Choose the exact delivery spot for faster ETA and tracking.
+              </p>
             </div>
-            <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-zinc-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-zinc-100"
+            >
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5 md:px-5 md:py-4">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5 md:px-5 md:py-4">
+            {children}
+          </div>
           <div className="border-t border-zinc-100 bg-white/95 px-3.5 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] md:px-5">
             {footer}
           </div>
@@ -706,14 +1174,27 @@ function AddressSheet({ title, onClose, children, footer }: { title: string; onC
   );
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <div className="fixed inset-0 z-[90] bg-zinc-950/55 p-4 backdrop-blur-sm">
       <div className="mx-auto flex min-h-full max-w-xl items-end md:items-center">
         <section className="max-h-[92vh] w-full overflow-y-auto rounded-[32px] bg-white p-5 shadow-2xl">
           <div className="mb-5 flex items-center justify-between gap-3">
             <h2 className="text-2xl font-black">{title}</h2>
-            <button onClick={onClose} className="grid h-10 w-10 place-items-center rounded-2xl bg-zinc-100"><X className="h-5 w-5" /></button>
+            <button
+              onClick={onClose}
+              className="grid h-10 w-10 place-items-center rounded-2xl bg-zinc-100"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
           {children}
         </section>
@@ -754,7 +1235,9 @@ function Field({
           onChange={(event) => onChange?.(event.target.value)}
           disabled={disabled}
           className="min-w-0 flex-1 bg-transparent font-bold outline-none disabled:text-zinc-400"
-          required={!disabled && (label === "Name" || label === "Phone" || label === "Full address")}
+          required={
+            !disabled && (label === "Name" || label === "Phone" || label === "Full address")
+          }
         />
       </span>
     </label>

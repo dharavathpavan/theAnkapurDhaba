@@ -185,7 +185,11 @@ export function listCustomerMeta(): Record<string, CustomerMeta> {
 
 export function setCustomerMeta(phone: string, patch: Partial<CustomerMeta>) {
   const all = listCustomerMeta();
-  const existing = all[phone] ?? { phone, tier: "bronze" as CustomerTier, updatedAt: new Date().toISOString() };
+  const existing = all[phone] ?? {
+    phone,
+    tier: "bronze" as CustomerTier,
+    updatedAt: new Date().toISOString(),
+  };
   all[phone] = { ...existing, ...patch, phone, updatedAt: new Date().toISOString() };
   localStorage.setItem(LS_CUSTOMER_META, JSON.stringify(all));
   window.dispatchEvent(new CustomEvent("ankapurdhaba:customers-changed"));

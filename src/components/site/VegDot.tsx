@@ -20,7 +20,9 @@ export function SpiceLevel({ level }: { level: 1 | 2 | 3 }) {
         <span
           key={i}
           className="text-xs"
-          style={{ color: i <= level ? "var(--color-primary-glow)" : "var(--color-muted-foreground)" }}
+          style={{
+            color: i <= level ? "var(--color-primary-glow)" : "var(--color-muted-foreground)",
+          }}
         >
           ▲
         </span>

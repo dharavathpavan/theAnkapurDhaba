@@ -31,7 +31,9 @@ export function StoreStatusBanner() {
       <div className="border-b border-accent/40 bg-accent/10 text-accent">
         <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2 font-display text-xs tracking-widest md:px-6">
           <AlertTriangle className="h-4 w-4" />
-          <span>HIGH DEMAND · {store.statusMessage || "Wait times slightly longer than usual."}</span>
+          <span>
+            HIGH DEMAND · {store.statusMessage || "Wait times slightly longer than usual."}
+          </span>
         </div>
       </div>
     );

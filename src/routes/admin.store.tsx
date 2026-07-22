@@ -1,7 +1,28 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Crosshair, Eye, GripVertical, ImagePlus, LocateFixed, MapPin, Megaphone, Monitor, Navigation, Palette, Pencil, Save, Smartphone, Ticket, Trash2, Upload, Wifi, WifiOff, X } from "lucide-react";
+import {
+  Crosshair,
+  Eye,
+  GripVertical,
+  ImagePlus,
+  LocateFixed,
+  MapPin,
+  Megaphone,
+  Monitor,
+  Navigation,
+  Palette,
+  Pencil,
+  Save,
+  Smartphone,
+  Ticket,
+  Trash2,
+  Upload,
+  Wifi,
+  WifiOff,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   createAdminAnnouncement,
@@ -53,11 +74,21 @@ const defaultBannerForm: Partial<CustomerBanner> = {
 
 function StorePage() {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["admin-customer-content"], queryFn: getAdminCustomerContent });
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-customer-content"],
+    queryFn: getAdminCustomerContent,
+  });
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin-customer-content"] });
-  const saveStore = useMutation({ mutationFn: updateAdminCustomerStore, onSuccess: () => { refresh(); toast.success("Customer app synced"); } });
+  const saveStore = useMutation({
+    mutationFn: updateAdminCustomerStore,
+    onSuccess: () => {
+      refresh();
+      toast.success("Customer app synced");
+    },
+  });
 
-  if (isLoading || !data) return <div className="p-8 text-muted-foreground">Loading customer app settings...</div>;
+  if (isLoading || !data)
+    return <div className="p-8 text-muted-foreground">Loading customer app settings...</div>;
   const store = data.store;
 
   return (
@@ -65,9 +96,13 @@ function StorePage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-4xl tracking-wide">Customer App Setup</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Control store status, delivery rules, timings, splash content and customer app theme.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Control store status, delivery rules, timings, splash content and customer app theme.
+          </p>
         </div>
-        <span className={`rounded-full px-3 py-1.5 font-display text-xs tracking-widest ${store.status === "online" ? "bg-veg/10 text-veg" : store.status === "busy" ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}>
+        <span
+          className={`rounded-full px-3 py-1.5 font-display text-xs tracking-widest ${store.status === "online" ? "bg-veg/10 text-veg" : store.status === "busy" ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}
+        >
           {store.status.toUpperCase()}
         </span>
       </div>
@@ -76,35 +111,138 @@ function StorePage() {
         <div className="rounded-xl border border-border bg-surface p-6">
           <h2 className="font-display text-2xl tracking-wide">Store & delivery rules</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <Field label="Restaurant name" value={store.name} onChange={(name) => saveStore.mutate({ name })} />
-            <Field label="Phone" value={store.phone} onChange={(phone) => saveStore.mutate({ phone })} />
-            <Field label="Address" value={store.address} onChange={(address) => saveStore.mutate({ address })} className="md:col-span-2" />
-            <Field label="Open time" value={store.openTime} onChange={(openTime) => saveStore.mutate({ openTime })} type="time" />
-            <Field label="Close time" value={store.closeTime} onChange={(closeTime) => saveStore.mutate({ closeTime })} type="time" />
-            <NumberField label="Min order" value={store.minimumOrder} onChange={(minimumOrder) => saveStore.mutate({ minimumOrder })} />
-            <NumberField label="Delivery charge" value={store.deliveryCharge} onChange={(deliveryCharge) => saveStore.mutate({ deliveryCharge })} />
-            <NumberField label="Free delivery above" value={store.freeDeliveryAbove} onChange={(freeDeliveryAbove) => saveStore.mutate({ freeDeliveryAbove })} />
-            <NumberField label="Average delivery min" value={store.averageDeliveryMin} onChange={(averageDeliveryMin) => saveStore.mutate({ averageDeliveryMin })} />
-            <NumberField label="Packing charge" value={store.packingCharge} onChange={(packingCharge) => saveStore.mutate({ packingCharge })} />
-            <NumberField label="Radius KM" value={store.zoneRadiusKm} onChange={(zoneRadiusKm) => saveStore.mutate({ zoneRadiusKm })} />
-            <Field label="Status message" value={store.statusMessage} onChange={(statusMessage) => saveStore.mutate({ statusMessage })} className="md:col-span-2" />
+            <Field
+              label="Restaurant name"
+              value={store.name}
+              onChange={(name) => saveStore.mutate({ name })}
+            />
+            <Field
+              label="Phone"
+              value={store.phone}
+              onChange={(phone) => saveStore.mutate({ phone })}
+            />
+            <Field
+              label="Address"
+              value={store.address}
+              onChange={(address) => saveStore.mutate({ address })}
+              className="md:col-span-2"
+            />
+            <Field
+              label="Open time"
+              value={store.openTime}
+              onChange={(openTime) => saveStore.mutate({ openTime })}
+              type="time"
+            />
+            <Field
+              label="Close time"
+              value={store.closeTime}
+              onChange={(closeTime) => saveStore.mutate({ closeTime })}
+              type="time"
+            />
+            <NumberField
+              label="Min order"
+              value={store.minimumOrder}
+              onChange={(minimumOrder) => saveStore.mutate({ minimumOrder })}
+            />
+            <NumberField
+              label="Delivery charge"
+              value={store.deliveryCharge}
+              onChange={(deliveryCharge) => saveStore.mutate({ deliveryCharge })}
+            />
+            <NumberField
+              label="Free delivery above"
+              value={store.freeDeliveryAbove}
+              onChange={(freeDeliveryAbove) => saveStore.mutate({ freeDeliveryAbove })}
+            />
+            <NumberField
+              label="Average delivery min"
+              value={store.averageDeliveryMin}
+              onChange={(averageDeliveryMin) => saveStore.mutate({ averageDeliveryMin })}
+            />
+            <NumberField
+              label="Packing charge"
+              value={store.packingCharge}
+              onChange={(packingCharge) => saveStore.mutate({ packingCharge })}
+            />
+            <NumberField
+              label="Radius KM"
+              value={store.zoneRadiusKm}
+              onChange={(zoneRadiusKm) => saveStore.mutate({ zoneRadiusKm })}
+            />
+            <ToggleField
+              label="Allow delivery COD"
+              checked={store.allowDeliveryCod === true}
+              onChange={(allowDeliveryCod) => saveStore.mutate({ allowDeliveryCod })}
+            />
+            <Field
+              label="Status message"
+              value={store.statusMessage}
+              onChange={(statusMessage) => saveStore.mutate({ statusMessage })}
+              className="md:col-span-2"
+            />
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <StatusButton icon={Wifi} label="Online" active={store.status === "online"} onClick={() => saveStore.mutate({ status: "online", statusMessage: "" })} />
-            <StatusButton icon={Megaphone} label="Busy" active={store.status === "busy"} onClick={() => saveStore.mutate({ status: "busy", statusMessage: "Kitchen is busy. Expect a little delay." })} />
-            <StatusButton icon={WifiOff} label="Offline" active={store.status === "offline"} onClick={() => saveStore.mutate({ status: "offline", statusMessage: "We are closed right now. See you soon!" })} />
+            <StatusButton
+              icon={Wifi}
+              label="Online"
+              active={store.status === "online"}
+              onClick={() => saveStore.mutate({ status: "online", statusMessage: "" })}
+            />
+            <StatusButton
+              icon={Megaphone}
+              label="Busy"
+              active={store.status === "busy"}
+              onClick={() =>
+                saveStore.mutate({
+                  status: "busy",
+                  statusMessage: "Kitchen is busy. Expect a little delay.",
+                })
+              }
+            />
+            <StatusButton
+              icon={WifiOff}
+              label="Offline"
+              active={store.status === "offline"}
+              onClick={() =>
+                saveStore.mutate({
+                  status: "offline",
+                  statusMessage: "We are closed right now. See you soon!",
+                })
+              }
+            />
           </div>
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-6">
-          <h2 className="flex items-center gap-2 font-display text-2xl tracking-wide"><Palette className="h-5 w-5 text-primary" /> Theme & splash</h2>
+          <h2 className="flex items-center gap-2 font-display text-2xl tracking-wide">
+            <Palette className="h-5 w-5 text-primary" /> Theme & splash
+          </h2>
           <div className="mt-5 grid gap-4">
-            <Field label="Splash title" value={store.splashTitle} onChange={(splashTitle) => saveStore.mutate({ splashTitle })} />
-            <Field label="Splash subtitle" value={store.splashSubtitle} onChange={(splashSubtitle) => saveStore.mutate({ splashSubtitle })} />
+            <Field
+              label="Splash title"
+              value={store.splashTitle}
+              onChange={(splashTitle) => saveStore.mutate({ splashTitle })}
+            />
+            <Field
+              label="Splash subtitle"
+              value={store.splashSubtitle}
+              onChange={(splashSubtitle) => saveStore.mutate({ splashSubtitle })}
+            />
             {(["primary", "secondary", "accent", "background"] as const).map((key) => (
-              <label key={key} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
-                <span className="font-display text-xs tracking-widest text-muted-foreground">{key.toUpperCase()}</span>
-                <input type="color" value={store.theme[key] || "#C62828"} onChange={(e) => saveStore.mutate({ theme: { ...store.theme, [key]: e.target.value } })} />
+              <label
+                key={key}
+                className="flex items-center justify-between rounded-lg border border-border bg-background p-3"
+              >
+                <span className="font-display text-xs tracking-widest text-muted-foreground">
+                  {key.toUpperCase()}
+                </span>
+                <input
+                  type="color"
+                  value={store.theme[key] || "#C62828"}
+                  onChange={(e) =>
+                    saveStore.mutate({ theme: { ...store.theme, [key]: e.target.value } })
+                  }
+                />
               </label>
             ))}
           </div>
@@ -124,7 +262,10 @@ function StorePage() {
 
       <section className="mt-6 rounded-xl border border-border bg-surface p-6">
         <h2 className="font-display text-2xl tracking-wide">Marketing moved</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Hero banners, ad spaces, announcements, push notifications and coupons are now managed from the Marketing page.</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Hero banners, ad spaces, announcements, push notifications and coupons are now managed
+          from the Marketing page.
+        </p>
       </section>
     </div>
   );
@@ -139,9 +280,17 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
   const [step, setStep] = useState<"media" | "content" | "actions" | "display">("media");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [orderedBanners, setOrderedBanners] = useState<CustomerBanner[]>([]);
-  const sorted = useMemo(() => [...banners].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)), [banners]);
+  const sorted = useMemo(
+    () => [...banners].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)),
+    [banners],
+  );
   const orderChanged = orderedBanners.some((item, index) => item.id !== sorted[index]?.id);
-  const previewBanner = { ...defaultBannerForm, ...form, image: previewMedia.image || form.image, mobileImage: previewMedia.mobileImage || form.mobileImage } as CustomerBanner;
+  const previewBanner = {
+    ...defaultBannerForm,
+    ...form,
+    image: previewMedia.image || form.image,
+    mobileImage: previewMedia.mobileImage || form.mobileImage,
+  } as CustomerBanner;
   const saving = useMutation({
     mutationFn: async () => {
       const payload = bannerPayload(form);
@@ -158,10 +307,14 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
       refresh();
       toast.success("Hero banner synced");
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Could not save banner"),
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Could not save banner"),
   });
   const saveOrder = useMutation({
-    mutationFn: async () => Promise.all(orderedBanners.map((item, index) => updateAdminBanner(item.id, { priority: index }))),
+    mutationFn: async () =>
+      Promise.all(
+        orderedBanners.map((item, index) => updateAdminBanner(item.id, { priority: index })),
+      ),
     onSuccess: () => {
       refresh();
       toast.success("Banner order saved");
@@ -203,7 +356,12 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
   function edit(item: CustomerBanner) {
     setEditingId(item.id);
     setPreviewMedia({});
-    setForm({ ...defaultBannerForm, ...item, startsAt: toInputDateTime(item.startsAt), endsAt: toInputDateTime(item.endsAt) });
+    setForm({
+      ...defaultBannerForm,
+      ...item,
+      startsAt: toInputDateTime(item.startsAt),
+      endsAt: toInputDateTime(item.endsAt),
+    });
     setStep("media");
   }
 
@@ -249,10 +407,15 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl tracking-widest">Hero banners</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Build a responsive banner in four quick steps, then save it live to the customer app.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Build a responsive banner in four quick steps, then save it live to the customer app.
+          </p>
         </div>
         {editingId && (
-          <button onClick={resetForm} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
+          <button
+            onClick={resetForm}
+            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
+          >
             <X className="h-4 w-4" /> Cancel edit
           </button>
         )}
@@ -267,10 +430,20 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
                 onClick={() => setStep(item.id)}
                 className={`flex min-h-16 items-center gap-3 px-4 py-3 text-left transition ${step === item.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
               >
-                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black ${step === item.id ? "bg-white/20" : "bg-surface text-primary"}`}>{index + 1}</span>
+                <span
+                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black ${step === item.id ? "bg-white/20" : "bg-surface text-primary"}`}
+                >
+                  {index + 1}
+                </span>
                 <span className="min-w-0">
-                  <span className="block font-display text-xs tracking-widest">{item.label.toUpperCase()}</span>
-                  <span className={`block truncate text-xs ${step === item.id ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{item.caption}</span>
+                  <span className="block font-display text-xs tracking-widest">
+                    {item.label.toUpperCase()}
+                  </span>
+                  <span
+                    className={`block truncate text-xs ${step === item.id ? "text-primary-foreground/80" : "text-muted-foreground"}`}
+                  >
+                    {item.caption}
+                  </span>
                 </span>
               </button>
             ))}
@@ -298,44 +471,132 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
                   />
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <MiniInput label="Desktop media URL" value={form.image || ""} onChange={(image) => setForm({ ...form, image })} />
-                  <MiniInput label="Mobile media URL" value={form.mobileImage || ""} onChange={(mobileImage) => setForm({ ...form, mobileImage })} />
+                  <MiniInput
+                    label="Desktop media URL"
+                    value={form.image || ""}
+                    onChange={(image) => setForm({ ...form, image })}
+                  />
+                  <MiniInput
+                    label="Mobile media URL"
+                    value={form.mobileImage || ""}
+                    onChange={(mobileImage) => setForm({ ...form, mobileImage })}
+                  />
                 </div>
               </div>
             )}
 
             {step === "content" && (
               <div className="grid gap-3 md:grid-cols-2">
-                <MiniInput label="Title" value={form.title || ""} onChange={(title) => setForm({ ...form, title })} />
-                <MiniInput label="Badge / type" value={form.type || "hero"} onChange={(type) => setForm({ ...form, type })} />
-                <MiniInput label="Subtitle" value={form.subtitle || ""} onChange={(subtitle) => setForm({ ...form, subtitle })} className="md:col-span-2" />
+                <MiniInput
+                  label="Title"
+                  value={form.title || ""}
+                  onChange={(title) => setForm({ ...form, title })}
+                />
+                <MiniInput
+                  label="Badge / type"
+                  value={form.type || "hero"}
+                  onChange={(type) => setForm({ ...form, type })}
+                />
+                <MiniInput
+                  label="Subtitle"
+                  value={form.subtitle || ""}
+                  onChange={(subtitle) => setForm({ ...form, subtitle })}
+                  className="md:col-span-2"
+                />
               </div>
             )}
 
             {step === "actions" && (
               <div className="grid gap-3 md:grid-cols-2">
-                <ToggleField label="Primary CTA" checked={form.ctaEnabled !== false} onChange={(ctaEnabled) => setForm({ ...form, ctaEnabled })} />
-                <ToggleField label="Secondary CTA" checked={form.secondaryCtaEnabled !== false} onChange={(secondaryCtaEnabled) => setForm({ ...form, secondaryCtaEnabled })} />
-                <MiniInput label="Primary CTA label" value={form.ctaLabel || ""} onChange={(ctaLabel) => setForm({ ...form, ctaLabel })} />
-                <MiniInput label="Primary CTA link" value={form.ctaLink || ""} onChange={(ctaLink) => setForm({ ...form, ctaLink })} />
-                <MiniInput label="Secondary CTA label" value={form.secondaryCtaLabel || ""} onChange={(secondaryCtaLabel) => setForm({ ...form, secondaryCtaLabel })} />
-                <MiniInput label="Secondary CTA link" value={form.secondaryCtaLink || ""} onChange={(secondaryCtaLink) => setForm({ ...form, secondaryCtaLink })} />
+                <ToggleField
+                  label="Primary CTA"
+                  checked={form.ctaEnabled !== false}
+                  onChange={(ctaEnabled) => setForm({ ...form, ctaEnabled })}
+                />
+                <ToggleField
+                  label="Secondary CTA"
+                  checked={form.secondaryCtaEnabled !== false}
+                  onChange={(secondaryCtaEnabled) => setForm({ ...form, secondaryCtaEnabled })}
+                />
+                <MiniInput
+                  label="Primary CTA label"
+                  value={form.ctaLabel || ""}
+                  onChange={(ctaLabel) => setForm({ ...form, ctaLabel })}
+                />
+                <MiniInput
+                  label="Primary CTA link"
+                  value={form.ctaLink || ""}
+                  onChange={(ctaLink) => setForm({ ...form, ctaLink })}
+                />
+                <MiniInput
+                  label="Secondary CTA label"
+                  value={form.secondaryCtaLabel || ""}
+                  onChange={(secondaryCtaLabel) => setForm({ ...form, secondaryCtaLabel })}
+                />
+                <MiniInput
+                  label="Secondary CTA link"
+                  value={form.secondaryCtaLink || ""}
+                  onChange={(secondaryCtaLink) => setForm({ ...form, secondaryCtaLink })}
+                />
               </div>
             )}
 
             {step === "display" && (
               <div className="grid gap-3 md:grid-cols-3">
-                <SelectField label="Mobile height" value={form.heightMobile || "compact"} options={["compact", "standard", "tall"]} onChange={(heightMobile) => setForm({ ...form, heightMobile })} />
-                <SelectField label="Desktop height" value={form.heightDesktop || "standard"} options={["compact", "standard", "tall"]} onChange={(heightDesktop) => setForm({ ...form, heightDesktop })} />
-                <SelectField label="Text align" value={form.textAlign || "left"} options={["left", "center", "right"]} onChange={(textAlign) => setForm({ ...form, textAlign })} />
-                <SelectField label="Overlay" value={form.overlayStrength || "dark"} options={["light", "medium", "dark"]} onChange={(overlayStrength) => setForm({ ...form, overlayStrength })} />
-                <SelectField label="Text color" value={form.textColorMode || "light"} options={["light", "dark"]} onChange={(textColorMode) => setForm({ ...form, textColorMode })} />
-                <MiniInput label="Priority" value={form.priority ?? 0} onChange={(priority) => setForm({ ...form, priority: Number(priority) || 0 })} />
-                <MiniInput label="Starts at" type="datetime-local" value={toInputDateTime(form.startsAt)} onChange={(startsAt) => setForm({ ...form, startsAt: startsAt || null })} />
-                <MiniInput label="Ends at" type="datetime-local" value={toInputDateTime(form.endsAt)} onChange={(endsAt) => setForm({ ...form, endsAt: endsAt || null })} />
+                <SelectField
+                  label="Mobile height"
+                  value={form.heightMobile || "compact"}
+                  options={["compact", "standard", "tall"]}
+                  onChange={(heightMobile) => setForm({ ...form, heightMobile })}
+                />
+                <SelectField
+                  label="Desktop height"
+                  value={form.heightDesktop || "standard"}
+                  options={["compact", "standard", "tall"]}
+                  onChange={(heightDesktop) => setForm({ ...form, heightDesktop })}
+                />
+                <SelectField
+                  label="Text align"
+                  value={form.textAlign || "left"}
+                  options={["left", "center", "right"]}
+                  onChange={(textAlign) => setForm({ ...form, textAlign })}
+                />
+                <SelectField
+                  label="Overlay"
+                  value={form.overlayStrength || "dark"}
+                  options={["light", "medium", "dark"]}
+                  onChange={(overlayStrength) => setForm({ ...form, overlayStrength })}
+                />
+                <SelectField
+                  label="Text color"
+                  value={form.textColorMode || "light"}
+                  options={["light", "dark"]}
+                  onChange={(textColorMode) => setForm({ ...form, textColorMode })}
+                />
+                <MiniInput
+                  label="Priority"
+                  value={form.priority ?? 0}
+                  onChange={(priority) => setForm({ ...form, priority: Number(priority) || 0 })}
+                />
+                <MiniInput
+                  label="Starts at"
+                  type="datetime-local"
+                  value={toInputDateTime(form.startsAt)}
+                  onChange={(startsAt) => setForm({ ...form, startsAt: startsAt || null })}
+                />
+                <MiniInput
+                  label="Ends at"
+                  type="datetime-local"
+                  value={toInputDateTime(form.endsAt)}
+                  onChange={(endsAt) => setForm({ ...form, endsAt: endsAt || null })}
+                />
                 <label className="flex items-center justify-between rounded-md border border-border bg-background p-3 text-sm">
                   <span>Active</span>
-                  <input type="checkbox" checked={form.active !== false} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+                  <input
+                    type="checkbox"
+                    checked={form.active !== false}
+                    onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                  />
                 </label>
               </div>
             )}
@@ -343,16 +604,26 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
 
           <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface/95 p-4 backdrop-blur">
             <div className="text-xs text-muted-foreground">
-              {uploadingField ? "Uploading media..." : editingId ? "Editing existing banner" : "Ready to create banner"}
+              {uploadingField
+                ? "Uploading media..."
+                : editingId
+                  ? "Editing existing banner"
+                  : "Ready to create banner"}
             </div>
-            <button onClick={() => saving.mutate()} disabled={saving.isPending || Boolean(uploadingField)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 font-display text-xs tracking-widest text-primary-foreground disabled:opacity-60">
+            <button
+              onClick={() => saving.mutate()}
+              disabled={saving.isPending || Boolean(uploadingField)}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 font-display text-xs tracking-widest text-primary-foreground disabled:opacity-60"
+            >
               <Save className="h-4 w-4" /> {editingId ? "SAVE BANNER" : "ADD BANNER"}
             </button>
           </div>
         </div>
 
         <div className="xl:sticky xl:top-6 xl:self-start">
-          <div className="mb-2 flex items-center gap-2 text-sm font-bold text-muted-foreground"><Eye className="h-4 w-4" /> Live preview</div>
+          <div className="mb-2 flex items-center gap-2 text-sm font-bold text-muted-foreground">
+            <Eye className="h-4 w-4" /> Live preview
+          </div>
           <BannerPreview banner={previewBanner} />
         </div>
       </div>
@@ -360,10 +631,16 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
       <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-xl tracking-widest">Saved banners</h3>
-          <p className="text-sm text-muted-foreground">Drag cards to reorder, then save priorities.</p>
+          <p className="text-sm text-muted-foreground">
+            Drag cards to reorder, then save priorities.
+          </p>
         </div>
         {orderChanged && (
-          <button onClick={() => saveOrder.mutate()} disabled={saveOrder.isPending} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 font-display text-xs tracking-widest text-primary-foreground disabled:opacity-60">
+          <button
+            onClick={() => saveOrder.mutate()}
+            disabled={saveOrder.isPending}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 font-display text-xs tracking-widest text-primary-foreground disabled:opacity-60"
+          >
             <Save className="h-4 w-4" /> SAVE ORDER
           </button>
         )}
@@ -390,19 +667,38 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
               <MediaThumb url={item.mobileImage || item.image} />
               <div className="min-w-0 flex-1">
                 <div className="truncate font-display tracking-wide">{item.title}</div>
-                <div className="truncate text-xs text-muted-foreground">{item.type} - {item.subtitle}</div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {item.type} - {item.subtitle}
+                </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                   <span>#{index + 1}</span>
                   <span>{item.textAlign || "left"}</span>
                   <span>{item.overlayStrength || "dark"}</span>
-                  <span>{item.heightMobile || "compact"}/{item.heightDesktop || "standard"}</span>
+                  <span>
+                    {item.heightMobile || "compact"}/{item.heightDesktop || "standard"}
+                  </span>
                 </div>
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button onClick={() => toggle(item)} className={`rounded-full px-3 py-1 text-xs font-bold ${item.active ? "bg-veg/10 text-veg" : "bg-muted text-muted-foreground"}`}>{item.active ? "Active" : "Inactive"}</button>
-              <button onClick={() => edit(item)} className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground"><Pencil className="h-3 w-3" /> Edit</button>
-              <button onClick={() => remove(item.id)} className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-3 py-1 text-xs font-bold text-destructive"><Trash2 className="h-3 w-3" /> Delete</button>
+              <button
+                onClick={() => toggle(item)}
+                className={`rounded-full px-3 py-1 text-xs font-bold ${item.active ? "bg-veg/10 text-veg" : "bg-muted text-muted-foreground"}`}
+              >
+                {item.active ? "Active" : "Inactive"}
+              </button>
+              <button
+                onClick={() => edit(item)}
+                className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground"
+              >
+                <Pencil className="h-3 w-3" /> Edit
+              </button>
+              <button
+                onClick={() => remove(item.id)}
+                className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-3 py-1 text-xs font-bold text-destructive"
+              >
+                <Trash2 className="h-3 w-3" /> Delete
+              </button>
             </div>
           </li>
         ))}
@@ -411,15 +707,45 @@ function BannerManager({ banners, refresh }: { banners: CustomerBanner[]; refres
   );
 }
 
-function ContentPanel({ title, items, kind, refresh }: { title: string; items: Array<CustomerAnnouncement | CustomerCoupon>; kind: "announcement" | "coupon"; refresh: () => void }) {
+function ContentPanel({
+  title,
+  items,
+  kind,
+  refresh,
+}: {
+  title: string;
+  items: Array<CustomerAnnouncement | CustomerCoupon>;
+  kind: "announcement" | "coupon";
+  refresh: () => void;
+}) {
   const qc = useQueryClient();
   const [form, setForm] = useState<Record<string, any>>({});
   const create = useMutation({
     mutationFn: async () => {
-      if (kind === "announcement") return createAdminAnnouncement({ message: form.message || "Free delivery today", icon: "flame", color: form.color || "#C62828", priority: Number(form.priority || 0), active: true });
-      return createAdminCoupon({ code: form.code || "WELCOME10", title: form.title || "Welcome offer", description: form.description || "", discountType: form.discountType || "percent", discountValue: Number(form.discountValue || 10), maxDiscount: Number(form.maxDiscount || 100), minOrder: Number(form.minOrder || 199), active: true });
+      if (kind === "announcement")
+        return createAdminAnnouncement({
+          message: form.message || "Free delivery today",
+          icon: "flame",
+          color: form.color || "#C62828",
+          priority: Number(form.priority || 0),
+          active: true,
+        });
+      return createAdminCoupon({
+        code: form.code || "WELCOME10",
+        title: form.title || "Welcome offer",
+        description: form.description || "",
+        discountType: form.discountType || "percent",
+        discountValue: Number(form.discountValue || 10),
+        maxDiscount: Number(form.maxDiscount || 100),
+        minOrder: Number(form.minOrder || 199),
+        active: true,
+      });
     },
-    onSuccess: () => { setForm({}); refresh(); toast.success(`${title} synced`); },
+    onSuccess: () => {
+      setForm({});
+      refresh();
+      toast.success(`${title} synced`);
+    },
   });
 
   async function toggle(item: any) {
@@ -436,30 +762,75 @@ function ContentPanel({ title, items, kind, refresh }: { title: string; items: A
 
   return (
     <div className="rounded-xl border border-border bg-surface p-5">
-      <h2 className="flex items-center gap-2 font-display text-xl tracking-widest">{kind === "announcement" ? <Megaphone className="h-5 w-5" /> : <Ticket className="h-5 w-5" />}{title}</h2>
+      <h2 className="flex items-center gap-2 font-display text-xl tracking-widest">
+        {kind === "announcement" ? (
+          <Megaphone className="h-5 w-5" />
+        ) : (
+          <Ticket className="h-5 w-5" />
+        )}
+        {title}
+      </h2>
       <div className="mt-4 space-y-3">
-        {kind === "announcement" && <MiniInput label="Message" value={form.message || ""} onChange={(message) => setForm({ ...form, message })} />}
+        {kind === "announcement" && (
+          <MiniInput
+            label="Message"
+            value={form.message || ""}
+            onChange={(message) => setForm({ ...form, message })}
+          />
+        )}
         {kind === "coupon" && (
           <>
-            <MiniInput label="Code" value={form.code || ""} onChange={(code) => setForm({ ...form, code: code.toUpperCase() })} />
-            <MiniInput label="Title" value={form.title || ""} onChange={(title) => setForm({ ...form, title })} />
-            <MiniInput label="Discount" value={form.discountValue || ""} onChange={(discountValue) => setForm({ ...form, discountValue })} />
-            <MiniInput label="Min order" value={form.minOrder || ""} onChange={(minOrder) => setForm({ ...form, minOrder })} />
+            <MiniInput
+              label="Code"
+              value={form.code || ""}
+              onChange={(code) => setForm({ ...form, code: code.toUpperCase() })}
+            />
+            <MiniInput
+              label="Title"
+              value={form.title || ""}
+              onChange={(title) => setForm({ ...form, title })}
+            />
+            <MiniInput
+              label="Discount"
+              value={form.discountValue || ""}
+              onChange={(discountValue) => setForm({ ...form, discountValue })}
+            />
+            <MiniInput
+              label="Min order"
+              value={form.minOrder || ""}
+              onChange={(minOrder) => setForm({ ...form, minOrder })}
+            />
           </>
         )}
-        <button onClick={() => create.mutate()} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 font-display text-xs tracking-widest text-primary-foreground"><Save className="h-4 w-4" /> ADD</button>
+        <button
+          onClick={() => create.mutate()}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 font-display text-xs tracking-widest text-primary-foreground"
+        >
+          <Save className="h-4 w-4" /> ADD
+        </button>
       </div>
       <ul className="mt-5 space-y-2">
         {items.map((item: any) => (
           <li key={item.id} className="rounded-lg border border-border bg-background p-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <div className="truncate font-display tracking-wide">{item.message || item.code}</div>
-                <div className="text-xs text-muted-foreground">{item.description || item.category}</div>
+                <div className="truncate font-display tracking-wide">
+                  {item.message || item.code}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {item.description || item.category}
+                </div>
               </div>
-              <button onClick={() => remove(item.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></button>
+              <button onClick={() => remove(item.id)} className="text-destructive">
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
-            <button onClick={() => toggle(item)} className={`mt-3 rounded-full px-3 py-1 text-xs font-bold ${item.active ? "bg-veg/10 text-veg" : "bg-muted text-muted-foreground"}`}>{item.active ? "Active" : "Inactive"}</button>
+            <button
+              onClick={() => toggle(item)}
+              className={`mt-3 rounded-full px-3 py-1 text-xs font-bold ${item.active ? "bg-veg/10 text-veg" : "bg-muted text-muted-foreground"}`}
+            >
+              {item.active ? "Active" : "Inactive"}
+            </button>
           </li>
         ))}
       </ul>
@@ -467,7 +838,9 @@ function ContentPanel({ title, items, kind, refresh }: { title: string; items: A
   );
 }
 
-function bannerPayload(form: Partial<CustomerBanner>): Partial<CustomerBanner> & { title: string; image: string } {
+function bannerPayload(
+  form: Partial<CustomerBanner>,
+): Partial<CustomerBanner> & { title: string; image: string } {
   return {
     title: form.title?.trim() || "New offer",
     subtitle: form.subtitle || "",
@@ -495,29 +868,66 @@ function bannerPayload(form: Partial<CustomerBanner>): Partial<CustomerBanner> &
 function normalizeBannerMedia(value?: string | null) {
   const clean = value?.trim();
   if (!clean) return "";
-  if (clean === "/assets/-biryani.jpg" || clean === "-biryani.jpg" || clean === "/-biryani.jpg") return "/assets/hero-biryani.jpg";
+  if (clean === "/assets/-biryani.jpg" || clean === "-biryani.jpg" || clean === "/-biryani.jpg")
+    return "/assets/hero-biryani.jpg";
   return clean;
 }
 
 function BannerPreview({ banner }: { banner: CustomerBanner }) {
   const darkText = banner.textColorMode === "dark";
-  const align = banner.textAlign === "center" ? "items-center text-center" : banner.textAlign === "right" ? "items-end text-right" : "items-start text-left";
-  const overlay = banner.overlayStrength === "light" ? "bg-black/20" : banner.overlayStrength === "medium" ? "bg-black/45" : "bg-black/70";
+  const align =
+    banner.textAlign === "center"
+      ? "items-center text-center"
+      : banner.textAlign === "right"
+        ? "items-end text-right"
+        : "items-start text-left";
+  const overlay =
+    banner.overlayStrength === "light"
+      ? "bg-black/20"
+      : banner.overlayStrength === "medium"
+        ? "bg-black/45"
+        : "bg-black/70";
   return (
-    <div className={`relative min-h-[230px] overflow-hidden rounded-2xl bg-zinc-950 p-4 ${darkText ? "text-zinc-950" : "text-white"}`}>
+    <div
+      className={`relative min-h-[230px] overflow-hidden rounded-2xl bg-zinc-950 p-4 ${darkText ? "text-zinc-950" : "text-white"}`}
+    >
       <MediaFill url={banner.mobileImage || banner.image} />
       <div className={`absolute inset-0 ${darkText ? "bg-white/70" : overlay}`} />
       <div className={`relative flex min-h-[200px] flex-col justify-end ${align}`}>
-        <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-black uppercase backdrop-blur">{banner.type || "hero"}</span>
+        <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-black uppercase backdrop-blur">
+          {banner.type || "hero"}
+        </span>
         <div className="mt-3 max-w-[240px] text-2xl font-black">{banner.title || "New offer"}</div>
-        <div className={`mt-2 max-w-[240px] text-sm ${darkText ? "text-zinc-700" : "text-white/75"}`}>{banner.subtitle || "Banner subtitle preview"}</div>
-        {banner.ctaEnabled !== false && <div className="mt-4 rounded-2xl bg-red-600 px-4 py-2 text-sm font-black text-white">{banner.ctaLabel || "Order Now"}</div>}
+        <div
+          className={`mt-2 max-w-[240px] text-sm ${darkText ? "text-zinc-700" : "text-white/75"}`}
+        >
+          {banner.subtitle || "Banner subtitle preview"}
+        </div>
+        {banner.ctaEnabled !== false && (
+          <div className="mt-4 rounded-2xl bg-red-600 px-4 py-2 text-sm font-black text-white">
+            {banner.ctaLabel || "Order Now"}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function MediaDropZone({ icon: Icon, title, description, value, busy, onFile }: { icon: React.ElementType; title: string; description: string; value?: string | null; busy: boolean; onFile: (file: File) => void }) {
+function MediaDropZone({
+  icon: Icon,
+  title,
+  description,
+  value,
+  busy,
+  onFile,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  value?: string | null;
+  busy: boolean;
+  onFile: (file: File) => void;
+}) {
   const media = value ? resolveMediaUrl(value) : "";
 
   function handleDrop(event: React.DragEvent<HTMLLabelElement>) {
@@ -534,7 +944,23 @@ function MediaDropZone({ icon: Icon, title, description, value, busy, onFile }: 
     >
       {media ? (
         <div className="absolute inset-0">
-          {isVideoUrl(media) ? <video src={media} muted autoPlay loop playsInline className="h-full w-full object-cover" /> : <img src={media} alt="" onError={imageFallback} className="h-full w-full object-cover" />}
+          {isVideoUrl(media) ? (
+            <video
+              src={media}
+              muted
+              autoPlay
+              loop
+              playsInline
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <img
+              src={media}
+              alt=""
+              onError={imageFallback}
+              className="h-full w-full object-cover"
+            />
+          )}
           <div className="absolute inset-0 bg-black/45" />
         </div>
       ) : null}
@@ -542,34 +968,78 @@ function MediaDropZone({ icon: Icon, title, description, value, busy, onFile }: 
         <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/90 text-primary shadow-sm">
           <Icon className="h-5 w-5" />
         </span>
-        {busy && <span className="rounded-full bg-primary px-3 py-1 text-xs font-black text-primary-foreground">Uploading</span>}
+        {busy && (
+          <span className="rounded-full bg-primary px-3 py-1 text-xs font-black text-primary-foreground">
+            Uploading
+          </span>
+        )}
       </div>
       <div className="relative">
-        <div className={`font-display text-lg tracking-wide ${media ? "text-white" : "text-foreground"}`}>{title}</div>
-        <div className={`mt-1 text-sm ${media ? "text-white/80" : "text-muted-foreground"}`}>{description}</div>
-        <div className={`mt-4 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-black ${media ? "bg-white text-zinc-950" : "bg-surface text-primary"}`}>
+        <div
+          className={`font-display text-lg tracking-wide ${media ? "text-white" : "text-foreground"}`}
+        >
+          {title}
+        </div>
+        <div className={`mt-1 text-sm ${media ? "text-white/80" : "text-muted-foreground"}`}>
+          {description}
+        </div>
+        <div
+          className={`mt-4 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-black ${media ? "bg-white text-zinc-950" : "bg-surface text-primary"}`}
+        >
           <ImagePlus className="h-4 w-4" /> {media ? "Replace media" : "Choose media"}
         </div>
       </div>
-      <input type="file" className="hidden" accept="image/*,video/*" onChange={(event) => {
-        const file = event.target.files?.[0];
-        if (file) onFile(file);
-        event.currentTarget.value = "";
-      }} />
+      <input
+        type="file"
+        className="hidden"
+        accept="image/*,video/*"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) onFile(file);
+          event.currentTarget.value = "";
+        }}
+      />
     </label>
   );
 }
 
 function MediaFill({ url }: { url?: string | null }) {
   const media = resolveMediaUrl(url || "/assets/hero-biryani.jpg");
-  if (isVideoUrl(media)) return <video src={media} muted autoPlay loop playsInline className="absolute inset-0 h-full w-full object-cover" />;
-  return <img src={media} alt="" onError={imageFallback} className="absolute inset-0 h-full w-full object-cover" />;
+  if (isVideoUrl(media))
+    return (
+      <video
+        src={media}
+        muted
+        autoPlay
+        loop
+        playsInline
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+    );
+  return (
+    <img
+      src={media}
+      alt=""
+      onError={imageFallback}
+      className="absolute inset-0 h-full w-full object-cover"
+    />
+  );
 }
 
 function MediaThumb({ url }: { url?: string | null }) {
   const media = resolveMediaUrl(url || "/assets/hero-biryani.jpg");
-  if (isVideoUrl(media)) return <video src={media} muted className="h-16 w-20 shrink-0 rounded-md bg-black object-cover" />;
-  return <img src={media} alt="" onError={imageFallback} className="h-16 w-20 shrink-0 rounded-md bg-muted object-cover" />;
+  if (isVideoUrl(media))
+    return (
+      <video src={media} muted className="h-16 w-20 shrink-0 rounded-md bg-black object-cover" />
+    );
+  return (
+    <img
+      src={media}
+      alt=""
+      onError={imageFallback}
+      className="h-16 w-20 shrink-0 rounded-md bg-muted object-cover"
+    />
+  );
 }
 
 function toInputDateTime(value?: string | null) {
@@ -592,25 +1062,118 @@ function fileToDataUrl(file: File) {
   });
 }
 
-function Field({ label, value, onChange, type = "text", className = "" }: { label: string; value: string; onChange: (value: string) => void; type?: string; className?: string }) {
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+  className = "",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  className?: string;
+}) {
   const [draft, setDraft] = useState(value || "");
-  return <label className={`block ${className}`}><span className="mb-1 block font-display text-xs tracking-widest text-muted-foreground">{label.toUpperCase()}</span><input type={type} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => draft !== value && onChange(draft)} className="w-full rounded-md border border-input bg-background px-3 py-2.5" /></label>;
+  return (
+    <label className={`block ${className}`}>
+      <span className="mb-1 block font-display text-xs tracking-widest text-muted-foreground">
+        {label.toUpperCase()}
+      </span>
+      <input
+        type={type}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => draft !== value && onChange(draft)}
+        className="w-full rounded-md border border-input bg-background px-3 py-2.5"
+      />
+    </label>
+  );
 }
 
-function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+function NumberField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
   return <Field label={label} value={String(value)} onChange={(v) => onChange(Number(v) || 0)} />;
 }
 
-function MiniInput({ label, value, onChange, type = "text", className = "" }: { label: string; value: string | number; onChange: (value: string) => void; type?: string; className?: string }) {
-  return <label className={`block ${className}`}><span className="mb-1 block text-xs text-muted-foreground">{label}</span><input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></label>;
+function MiniInput({
+  label,
+  value,
+  onChange,
+  type = "text",
+  className = "",
+}: {
+  label: string;
+  value: string | number;
+  onChange: (value: string) => void;
+  type?: string;
+  className?: string;
+}) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+      />
+    </label>
+  );
 }
 
-function SelectField({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return <label className="block"><span className="mb-1 block text-xs text-muted-foreground">{label}</span><select value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>;
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
-function ToggleField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
-  return <label className="flex items-center justify-between rounded-md border border-border bg-background p-3 text-sm"><span>{label}</span><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /></label>;
+function ToggleField({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center justify-between rounded-md border border-border bg-background p-3 text-sm">
+      <span>{label}</span>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    </label>
+  );
 }
 
 function ZoneSettings({
@@ -632,7 +1195,11 @@ function ZoneSettings({
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const circleRef = useRef<any>(null);
-  const [draft, setDraft] = useState({ lat: String(lat ?? ""), lng: String(lng ?? ""), radius: String(radiusKm ?? 8) });
+  const [draft, setDraft] = useState({
+    lat: String(lat ?? ""),
+    lng: String(lng ?? ""),
+    radius: String(radiusKm ?? 8),
+  });
   const [mapReady, setMapReady] = useState(false);
 
   const coords = useMemo(() => {
@@ -653,16 +1220,23 @@ function ZoneSettings({
     loadGoogleMaps()
       .then((google) => {
         if (cancelled || !mapEl.current) return;
-        const map = mapRef.current || new google.maps.Map(mapEl.current, {
-          center: coords,
-          zoom: 12,
-          disableDefaultUI: true,
-          zoomControl: true,
-          gestureHandling: "greedy",
-        });
+        const map =
+          mapRef.current ||
+          new google.maps.Map(mapEl.current, {
+            center: coords,
+            zoom: 12,
+            disableDefaultUI: true,
+            zoomControl: true,
+            gestureHandling: "greedy",
+          });
         mapRef.current = map;
         if (!markerRef.current) {
-          markerRef.current = new google.maps.Marker({ position: coords, map, draggable: true, title: "Restaurant location" });
+          markerRef.current = new google.maps.Marker({
+            position: coords,
+            map,
+            draggable: true,
+            title: "Restaurant location",
+          });
           markerRef.current.addListener("dragend", () => {
             const pos = markerRef.current?.getPosition();
             if (!pos) return;
@@ -694,11 +1268,16 @@ function ZoneSettings({
   }, [coords?.lat, coords?.lng, radius]);
 
   function useCurrentLocation() {
-    if (!navigator.geolocation) return toast.error("Location permission is not supported on this device");
+    if (!navigator.geolocation)
+      return toast.error("Location permission is not supported on this device");
     toast.info("Allow location permission to set the restaurant location");
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setDraft((current) => ({ ...current, lat: String(position.coords.latitude), lng: String(position.coords.longitude) }));
+        setDraft((current) => ({
+          ...current,
+          lat: String(position.coords.latitude),
+          lng: String(position.coords.longitude),
+        }));
         toast.success("Current location selected. Save to publish it.");
       },
       () => toast.error("Location permission was denied. Enter coordinates manually."),
@@ -720,28 +1299,98 @@ function ZoneSettings({
       <div>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="flex items-center gap-2 font-display text-2xl tracking-wide"><MapPin className="h-5 w-5 text-primary" /> Restaurant location & geofence</h2>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Set the exact restaurant pickup point and delivery zone. Checkout ETA, delivery rider navigation, and customer tracking use these coordinates.</p>
+            <h2 className="flex items-center gap-2 font-display text-2xl tracking-wide">
+              <MapPin className="h-5 w-5 text-primary" /> Restaurant location & geofence
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              Set the exact restaurant pickup point and delivery zone. Checkout ETA, delivery rider
+              navigation, and customer tracking use these coordinates.
+            </p>
           </div>
-          <a href={mapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-semibold"><Navigation className="h-4 w-4" /> Open Maps</a>
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-semibold"
+          >
+            <Navigation className="h-4 w-4" /> Open Maps
+          </a>
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-3">
-          <label className="block"><span className="mb-1 block font-display text-xs tracking-widest text-muted-foreground">LATITUDE</span><input value={draft.lat} onChange={(event) => setDraft((current) => ({ ...current, lat: event.target.value }))} className="h-11 w-full rounded-md border border-border bg-background px-3" placeholder="18.7283" /></label>
-          <label className="block"><span className="mb-1 block font-display text-xs tracking-widest text-muted-foreground">LONGITUDE</span><input value={draft.lng} onChange={(event) => setDraft((current) => ({ ...current, lng: event.target.value }))} className="h-11 w-full rounded-md border border-border bg-background px-3" placeholder="78.4477" /></label>
-          <label className="block"><span className="mb-1 block font-display text-xs tracking-widest text-muted-foreground">ZONE RADIUS KM</span><input value={draft.radius} onChange={(event) => setDraft((current) => ({ ...current, radius: event.target.value }))} className="h-11 w-full rounded-md border border-border bg-background px-3" placeholder="8" /></label>
+          <label className="block">
+            <span className="mb-1 block font-display text-xs tracking-widest text-muted-foreground">
+              LATITUDE
+            </span>
+            <input
+              value={draft.lat}
+              onChange={(event) => setDraft((current) => ({ ...current, lat: event.target.value }))}
+              className="h-11 w-full rounded-md border border-border bg-background px-3"
+              placeholder="18.7283"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block font-display text-xs tracking-widest text-muted-foreground">
+              LONGITUDE
+            </span>
+            <input
+              value={draft.lng}
+              onChange={(event) => setDraft((current) => ({ ...current, lng: event.target.value }))}
+              className="h-11 w-full rounded-md border border-border bg-background px-3"
+              placeholder="78.4477"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block font-display text-xs tracking-widest text-muted-foreground">
+              ZONE RADIUS KM
+            </span>
+            <input
+              value={draft.radius}
+              onChange={(event) =>
+                setDraft((current) => ({ ...current, radius: event.target.value }))
+              }
+              className="h-11 w-full rounded-md border border-border bg-background px-3"
+              placeholder="8"
+            />
+          </label>
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <button type="button" onClick={useCurrentLocation} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-primary px-4 font-display text-xs tracking-widest text-primary-foreground"><LocateFixed className="h-4 w-4" /> USE CURRENT</button>
-          <button type="button" onClick={save} disabled={saving} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-veg px-4 font-display text-xs tracking-widest text-black disabled:opacity-60"><Save className="h-4 w-4" /> SAVE ZONE</button>
-          <div className="rounded-md border border-border bg-background px-4 py-3"><div className="font-display text-[11px] tracking-widest text-muted-foreground">CURRENT GEOFENCE</div><div className="mt-1 font-display text-lg tracking-wide">{radius.toFixed(1)} KM</div></div>
+          <button
+            type="button"
+            onClick={useCurrentLocation}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-primary px-4 font-display text-xs tracking-widest text-primary-foreground"
+          >
+            <LocateFixed className="h-4 w-4" /> USE CURRENT
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-veg px-4 font-display text-xs tracking-widest text-black disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" /> SAVE ZONE
+          </button>
+          <div className="rounded-md border border-border bg-background px-4 py-3">
+            <div className="font-display text-[11px] tracking-widest text-muted-foreground">
+              CURRENT GEOFENCE
+            </div>
+            <div className="mt-1 font-display text-lg tracking-wide">{radius.toFixed(1)} KM</div>
+          </div>
         </div>
 
         <div className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-3">
-          <InfoPill icon={Crosshair} label="Restaurant pin" value={coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : "Not set"} />
+          <InfoPill
+            icon={Crosshair}
+            label="Restaurant pin"
+            value={coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : "Not set"}
+          />
           <InfoPill icon={MapPin} label="Address" value={address || "Address pending"} />
-          <InfoPill icon={Navigation} label="Customer delivery" value={`Allowed inside ${radius.toFixed(1)} km zone`} />
+          <InfoPill
+            icon={Navigation}
+            label="Customer delivery"
+            value={`Allowed inside ${radius.toFixed(1)} km zone`}
+          />
         </div>
       </div>
 
@@ -749,18 +1398,65 @@ function ZoneSettings({
         {hasGoogleMapsKey() && coords ? (
           <div ref={mapEl} className="h-[360px] w-full" />
         ) : (
-          <div className="grid h-[360px] place-items-center p-6 text-center"><div><MapPin className="mx-auto h-10 w-10 text-primary" /><h3 className="mt-3 font-display text-xl tracking-wide">Geofence preview</h3><p className="mt-2 text-sm text-muted-foreground">{coords ? "Google Maps key is required for live circle preview. Coordinates are still saved and used by delivery tracking." : "Enter latitude and longitude to create the restaurant delivery zone."}</p></div></div>
+          <div className="grid h-[360px] place-items-center p-6 text-center">
+            <div>
+              <MapPin className="mx-auto h-10 w-10 text-primary" />
+              <h3 className="mt-3 font-display text-xl tracking-wide">Geofence preview</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {coords
+                  ? "Google Maps key is required for live circle preview. Coordinates are still saved and used by delivery tracking."
+                  : "Enter latitude and longitude to create the restaurant delivery zone."}
+              </p>
+            </div>
+          </div>
         )}
-        <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground">{mapReady ? "Drag the marker to refine the pickup point, then save." : "Zone is used for ETA, delivery navigation and live order tracking."}</div>
+        <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground">
+          {mapReady
+            ? "Drag the marker to refine the pickup point, then save."
+            : "Zone is used for ETA, delivery navigation and live order tracking."}
+        </div>
       </div>
     </div>
   );
 }
 
-function InfoPill({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
-  return <div className="rounded-lg border border-border bg-background p-3"><div className="flex items-center gap-2 font-display text-[11px] tracking-widest text-muted-foreground"><Icon className="h-4 w-4 text-primary" /> {label.toUpperCase()}</div><div className="mt-1 line-clamp-2 font-semibold text-foreground">{value}</div></div>;
+function InfoPill({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background p-3">
+      <div className="flex items-center gap-2 font-display text-[11px] tracking-widest text-muted-foreground">
+        <Icon className="h-4 w-4 text-primary" /> {label.toUpperCase()}
+      </div>
+      <div className="mt-1 line-clamp-2 font-semibold text-foreground">{value}</div>
+    </div>
+  );
 }
 
-function StatusButton({ icon: Icon, label, active, onClick }: { icon: React.ElementType; label: string; active: boolean; onClick: () => void }) {
-  return <button onClick={onClick} className={`rounded-lg border p-4 text-left ${active ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"}`}><Icon className="h-5 w-5" /><div className="mt-2 font-display tracking-widest">{label}</div></button>;
+function StatusButton({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: React.ElementType;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-lg border p-4 text-left ${active ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"}`}
+    >
+      <Icon className="h-5 w-5" />
+      <div className="mt-2 font-display tracking-widest">{label}</div>
+    </button>
+  );
 }

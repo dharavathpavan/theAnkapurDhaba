@@ -11,7 +11,11 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { installChunkRecovery, isMissingChunkError, recoverFromMissingChunk } from "../lib/chunk-recovery";
+import {
+  installChunkRecovery,
+  isMissingChunkError,
+  recoverFromMissingChunk,
+} from "../lib/chunk-recovery";
 import { getFirebaseAnalytics } from "../lib/firebase";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CustomerShell } from "@/components/site/CustomerShell";
@@ -56,16 +60,24 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
       <div className="max-w-md text-center">
         <h1 className="font-display text-3xl tracking-widest text-primary">Something burnt</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {isChunkError ? "Updating the app. This page will reload automatically." : "We hit a snag plating this page. Try again or head home."}
+          {isChunkError
+            ? "Updating the app. This page will reload automatically."
+            : "We hit a snag plating this page. Try again or head home."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => { router.invalidate(); reset(); }}
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
             className="rounded-md bg-primary px-5 py-2.5 font-display text-sm tracking-widest text-primary-foreground hover:bg-primary-glow"
           >
             Try again
           </button>
-          <a href="/" className="rounded-md border border-border bg-surface px-5 py-2.5 font-display text-sm tracking-widest hover:border-primary/40">
+          <a
+            href="/"
+            className="rounded-md border border-border bg-surface px-5 py-2.5 font-display text-sm tracking-widest hover:border-primary/40"
+          >
             Go home
           </a>
         </div>
@@ -86,15 +98,41 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Order slow-cooked Ankapur chicken, Hyderabadi biryani and Telangana classics from Ankapur Dhaba. Delivery, pickup, dine-in.",
       },
-      { property: "og:title", content: "Ankapur Dhaba — Ankapur Chicken, Biryani & Telangana Classics" },
-      { property: "og:description", content: "A PWA for restaurants to manage online ordering, KOT, and delivery for customers and staff." },
+      {
+        property: "og:title",
+        content: "Ankapur Dhaba — Ankapur Chicken, Biryani & Telangana Classics",
+      },
+      {
+        property: "og:description",
+        content:
+          "A PWA for restaurants to manage online ordering, KOT, and delivery for customers and staff.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Ankapur Dhaba — Ankapur Chicken, Biryani & Telangana Classics" },
-      { name: "description", content: "A PWA for restaurants to manage online ordering, KOT, and delivery for customers and staff." },
-      { name: "twitter:description", content: "A PWA for restaurants to manage online ordering, KOT, and delivery for customers and staff." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fd0bce0e-92e2-437e-9c38-67d40982e514/id-preview-9ef9aefd--ec5a08b1-d817-4523-b6e0-4a65406ba29c.lovable.app-1782314593038.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fd0bce0e-92e2-437e-9c38-67d40982e514/id-preview-9ef9aefd--ec5a08b1-d817-4523-b6e0-4a65406ba29c.lovable.app-1782314593038.png" },
+      {
+        name: "twitter:title",
+        content: "Ankapur Dhaba — Ankapur Chicken, Biryani & Telangana Classics",
+      },
+      {
+        name: "description",
+        content:
+          "A PWA for restaurants to manage online ordering, KOT, and delivery for customers and staff.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "A PWA for restaurants to manage online ordering, KOT, and delivery for customers and staff.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fd0bce0e-92e2-437e-9c38-67d40982e514/id-preview-9ef9aefd--ec5a08b1-d817-4523-b6e0-4a65406ba29c.lovable.app-1782314593038.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fd0bce0e-92e2-437e-9c38-67d40982e514/id-preview-9ef9aefd--ec5a08b1-d817-4523-b6e0-4a65406ba29c.lovable.app-1782314593038.png",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -133,7 +171,11 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isStaff = pathname.startsWith("/admin") || pathname.startsWith("/kitchen") || pathname.startsWith("/delivery") || pathname.startsWith("/restaurant/delivery");
+  const isStaff =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/kitchen") ||
+    pathname.startsWith("/delivery") ||
+    pathname.startsWith("/restaurant/delivery");
   const isCustomerApp = isCustomerAppPath(pathname);
 
   useEffect(() => {
@@ -144,12 +186,18 @@ function RootComponent() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     const clearWorkers = () => {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        registrations.forEach((registration) => registration.unregister());
-      }).catch(() => undefined);
-      caches.keys().then((keys) => {
-        keys.filter((key) => key.startsWith("ankapur-")).forEach((key) => caches.delete(key));
-      }).catch(() => undefined);
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => {
+          registrations.forEach((registration) => registration.unregister());
+        })
+        .catch(() => undefined);
+      caches
+        .keys()
+        .then((keys) => {
+          keys.filter((key) => key.startsWith("ankapur-")).forEach((key) => caches.delete(key));
+        })
+        .catch(() => undefined);
     };
     if (import.meta.env.DEV || isStaff || pathname === "/login" || pathname === "/signup") {
       clearWorkers();
@@ -182,7 +230,17 @@ function RootComponent() {
 
 function isCustomerAppPath(pathname: string) {
   if (pathname === "/") return true;
-  return ["/menu", "/cart", "/checkout", "/orders", "/favorites", "/profile", "/wallet", "/support", "/account", "/track", "/t"].some((prefix) =>
-    pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
+  return [
+    "/menu",
+    "/cart",
+    "/checkout",
+    "/orders",
+    "/favorites",
+    "/profile",
+    "/wallet",
+    "/support",
+    "/account",
+    "/track",
+    "/t",
+  ].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }

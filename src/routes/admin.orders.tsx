@@ -1,11 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Bike, CheckCircle2, ChefHat, Clock3, CreditCard, Filter, MapPin, PackageCheck, Phone, ReceiptText, Search, Truck, UserRound, UtensilsCrossed, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  Bike,
+  CheckCircle2,
+  ChefHat,
+  Clock3,
+  CreditCard,
+  Filter,
+  MapPin,
+  PackageCheck,
+  Phone,
+  ReceiptText,
+  Search,
+  Truck,
+  UserRound,
+  UtensilsCrossed,
+  XCircle,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DeliveryMap } from "@/components/site/DeliveryMap";
 import { useOrderRealtime } from "@/hooks/use-order-realtime";
-import { listOrders, listStaff, updateOrderDelivery, updateOrderStatus, type Order, type OrderStatus, type StaffUser } from "@/services/api";
+import {
+  listOrders,
+  listStaff,
+  updateOrderDelivery,
+  updateOrderStatus,
+  type Order,
+  type OrderStatus,
+  type StaffUser,
+} from "@/services/api";
 import { StatusPill } from "./admin.index";
 
 export const Route = createFileRoute("/admin/orders")({
@@ -14,7 +39,13 @@ export const Route = createFileRoute("/admin/orders")({
 
 type OrderTab = "active" | OrderStatus | "completed";
 
-const ACTIVE_STATUSES: OrderStatus[] = ["received", "accepted", "preparing", "ready", "out_for_delivery"];
+const ACTIVE_STATUSES: OrderStatus[] = [
+  "received",
+  "accepted",
+  "preparing",
+  "ready",
+  "out_for_delivery",
+];
 const STATUS_STEPS: Array<{ key: OrderStatus; label: string; icon: React.ElementType }> = [
   { key: "received", label: "Received", icon: ReceiptText },
   { key: "accepted", label: "Accepted", icon: CheckCircle2 },
@@ -44,8 +75,16 @@ const NEXT: Partial<Record<OrderStatus, { next: OrderStatus; label: string }>> =
 function AdminOrders() {
   useOrderRealtime();
   const qc = useQueryClient();
-  const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: listOrders, refetchInterval: 4000 });
-  const { data: staff = [] } = useQuery({ queryKey: ["staff"], queryFn: listStaff, refetchInterval: 10000 });
+  const { data: orders = [] } = useQuery({
+    queryKey: ["orders"],
+    queryFn: listOrders,
+    refetchInterval: 4000,
+  });
+  const { data: staff = [] } = useQuery({
+    queryKey: ["staff"],
+    queryFn: listStaff,
+    refetchInterval: 10000,
+  });
   const [tab, setTab] = useState<OrderTab>("active");
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -64,7 +103,11 @@ function AdminOrders() {
       ready: orders.filter((order) => order.status === "ready").length,
       delivery: orders.filter((order) => order.status === "out_for_delivery").length,
       delayed: active.filter((order) => isDelayed(order)).length,
-      deliveredToday: orders.filter((order) => order.status === "delivered" && new Date(order.updatedAt || order.createdAt).toDateString() === today).length,
+      deliveredToday: orders.filter(
+        (order) =>
+          order.status === "delivered" &&
+          new Date(order.updatedAt || order.createdAt).toDateString() === today,
+      ).length,
     };
   }, [orders, today]);
 
@@ -77,8 +120,13 @@ function AdminOrders() {
         if (tab !== "active" && tab !== "completed" && order.status !== tab) return false;
         if (typeFilter && order.type !== typeFilter) return false;
         if (paymentFilter && order.paymentStatus !== paymentFilter) return false;
-        if (riderFilter && (order.delivery?.assignedRiderId || order.delivery?.partnerPhone || "") !== riderFilter) return false;
-        if (dateFilter && new Date(order.createdAt).toISOString().slice(0, 10) !== dateFilter) return false;
+        if (
+          riderFilter &&
+          (order.delivery?.assignedRiderId || order.delivery?.partnerPhone || "") !== riderFilter
+        )
+          return false;
+        if (dateFilter && new Date(order.createdAt).toISOString().slice(0, 10) !== dateFilter)
+          return false;
         if (!text) return true;
         const haystack = [
           order.id,
@@ -90,7 +138,10 @@ function AdminOrders() {
           order.delivery?.partnerName,
           order.delivery?.assignedRiderName,
           ...order.items.map((item) => item.name),
-        ].filter(Boolean).join(" ").toLowerCase();
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
         return haystack.includes(text);
       })
       .sort((a, b) => orderSortScore(a) - orderSortScore(b));
@@ -101,7 +152,8 @@ function AdminOrders() {
       setSelectedId("");
       return;
     }
-    if (!selectedId || !filtered.some((order) => order.id === selectedId)) setSelectedId(filtered[0].id);
+    if (!selectedId || !filtered.some((order) => order.id === selectedId))
+      setSelectedId(filtered[0].id);
   }, [filtered, selectedId]);
 
   const selected = filtered.find((order) => order.id === selectedId) || filtered[0];
@@ -125,7 +177,9 @@ function AdminOrders() {
             <ClipboardIcon /> Live order control
           </div>
           <h1 className="mt-3 text-3xl font-black md:text-5xl">Orders & Tracking</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Complete kitchen, billing and delivery visibility with realtime order status updates.</p>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Complete kitchen, billing and delivery visibility with realtime order status updates.
+          </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
           <SummaryTile label="Active" value={summary.active} />
@@ -133,7 +187,11 @@ function AdminOrders() {
           <SummaryTile label="Kitchen" value={summary.preparing} />
           <SummaryTile label="Ready" value={summary.ready} />
           <SummaryTile label="Delivery" value={summary.delivery} />
-          <SummaryTile label="Delayed" value={summary.delayed} tone={summary.delayed ? "red" : "green"} />
+          <SummaryTile
+            label="Delayed"
+            value={summary.delayed}
+            tone={summary.delayed ? "red" : "green"}
+          />
           <SummaryTile label="Done today" value={summary.deliveredToday} tone="green" />
         </div>
       </header>
@@ -154,14 +212,47 @@ function AdminOrders() {
         <div className="mt-4 grid gap-3 lg:grid-cols-[1.4fr_0.8fr_0.8fr_0.9fr_0.9fr]">
           <label className="flex min-h-12 items-center gap-3 rounded-2xl border border-border bg-background px-4">
             <Search className="h-4 w-4 text-muted-foreground" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search ID, customer, phone, item..." className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search ID, customer, phone, item..."
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+            />
           </label>
-          <FilterSelect value={typeFilter} onChange={setTypeFilter} options={[["", "All types"], ["delivery", "Delivery"], ["pickup", "Pickup"], ["dinein", "Dine in"]]} />
-          <FilterSelect value={paymentFilter} onChange={setPaymentFilter} options={[["", "All payments"], ["paid", "Paid"], ["pending", "Pending"], ["failed", "Failed"], ["refunded", "Refunded"]]} />
-          <FilterSelect value={riderFilter} onChange={setRiderFilter} options={[["", "All riders"], ...riderOptions(riders)]} />
+          <FilterSelect
+            value={typeFilter}
+            onChange={setTypeFilter}
+            options={[
+              ["", "All types"],
+              ["delivery", "Delivery"],
+              ["pickup", "Pickup"],
+              ["dinein", "Dine in"],
+            ]}
+          />
+          <FilterSelect
+            value={paymentFilter}
+            onChange={setPaymentFilter}
+            options={[
+              ["", "All payments"],
+              ["paid", "Paid"],
+              ["pending", "Pending"],
+              ["failed", "Failed"],
+              ["refunded", "Refunded"],
+            ]}
+          />
+          <FilterSelect
+            value={riderFilter}
+            onChange={setRiderFilter}
+            options={[["", "All riders"], ...riderOptions(riders)]}
+          />
           <label className="flex min-h-12 items-center gap-2 rounded-2xl border border-border bg-background px-3 text-sm text-muted-foreground">
             <Filter className="h-4 w-4" />
-            <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="min-w-0 flex-1 bg-transparent outline-none" />
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(event) => setDateFilter(event.target.value)}
+              className="min-w-0 flex-1 bg-transparent outline-none"
+            />
           </label>
         </div>
       </section>
@@ -176,7 +267,9 @@ function AdminOrders() {
           ) : (
             <div className="rounded-[26px] border border-dashed border-border bg-surface p-12 text-center">
               <p className="text-xl font-black text-muted-foreground">No orders match this view</p>
-              <p className="mt-2 text-sm text-muted-foreground">Change the tab or filters to see restaurant orders.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Change the tab or filters to see restaurant orders.
+              </p>
             </div>
           )}
         </div>
@@ -185,14 +278,34 @@ function AdminOrders() {
   );
 }
 
-function QueueBoard({ orders, selectedId, onSelect }: { orders: Order[]; selectedId?: string; onSelect: (id: string) => void }) {
-  if (!orders.length) return <div className="rounded-[26px] border border-dashed border-border bg-surface p-12 text-center text-muted-foreground">No orders in this queue.</div>;
+function QueueBoard({
+  orders,
+  selectedId,
+  onSelect,
+}: {
+  orders: Order[];
+  selectedId?: string;
+  onSelect: (id: string) => void;
+}) {
+  if (!orders.length)
+    return (
+      <div className="rounded-[26px] border border-dashed border-border bg-surface p-12 text-center text-muted-foreground">
+        No orders in this queue.
+      </div>
+    );
   const activeCount = orders.filter((order) => ACTIVE_STATUSES.includes(order.status)).length;
   const columnMode = activeCount >= 3 && orders.length <= 30;
   if (!columnMode) {
     return (
       <div className="grid gap-3">
-        {orders.map((order) => <OrderRow key={order.id} order={order} active={order.id === selectedId} onClick={() => onSelect(order.id)} />)}
+        {orders.map((order) => (
+          <OrderRow
+            key={order.id}
+            order={order}
+            active={order.id === selectedId}
+            onClick={() => onSelect(order.id)}
+          />
+        ))}
       </div>
     );
   }
@@ -204,21 +317,52 @@ function QueueBoard({ orders, selectedId, onSelect }: { orders: Order[]; selecte
         return (
           <section key={status} className="rounded-[24px] border border-border bg-surface p-3">
             <div className="mb-3 flex items-center justify-between px-1">
-              <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground">{status.replace(/_/g, " ")}</h2>
-              <span className="rounded-full bg-background px-2 py-1 text-xs font-black">{group.length}</span>
+              <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
+                {status.replace(/_/g, " ")}
+              </h2>
+              <span className="rounded-full bg-background px-2 py-1 text-xs font-black">
+                {group.length}
+              </span>
             </div>
             <div className="space-y-3">
-              {group.map((order) => <OrderRow key={order.id} order={order} active={order.id === selectedId} onClick={() => onSelect(order.id)} compact />)}
+              {group.map((order) => (
+                <OrderRow
+                  key={order.id}
+                  order={order}
+                  active={order.id === selectedId}
+                  onClick={() => onSelect(order.id)}
+                  compact
+                />
+              ))}
             </div>
           </section>
         );
       })}
-      {orders.filter((order) => !ACTIVE_STATUSES.includes(order.status)).map((order) => <OrderRow key={order.id} order={order} active={order.id === selectedId} onClick={() => onSelect(order.id)} />)}
+      {orders
+        .filter((order) => !ACTIVE_STATUSES.includes(order.status))
+        .map((order) => (
+          <OrderRow
+            key={order.id}
+            order={order}
+            active={order.id === selectedId}
+            onClick={() => onSelect(order.id)}
+          />
+        ))}
     </div>
   );
 }
 
-function OrderRow({ order, active, compact = false, onClick }: { order: Order; active: boolean; compact?: boolean; onClick: () => void }) {
+function OrderRow({
+  order,
+  active,
+  compact = false,
+  onClick,
+}: {
+  order: Order;
+  active: boolean;
+  compact?: boolean;
+  onClick: () => void;
+}) {
   const delayed = isDelayed(order);
   const paymentRisk = order.paymentStatus !== "paid" && order.paymentMethod !== "cod";
   return (
@@ -233,26 +377,48 @@ function OrderRow({ order, active, compact = false, onClick }: { order: Order; a
             <span className="text-xl font-black text-primary">#{order.id}</span>
             <StatusPill status={order.status} />
           </div>
-          <div className="mt-1 truncate text-sm font-semibold">{order.customer.name || "Customer"} · {order.type.toUpperCase()}</div>
-          <div className="mt-1 text-xs text-muted-foreground">{formatTime(order.createdAt)} · {minutesSince(order.createdAt)} min ago</div>
+          <div className="mt-1 truncate text-sm font-semibold">
+            {order.customer.name || "Customer"} · {order.type.toUpperCase()}
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {formatTime(order.createdAt)} · {minutesSince(order.createdAt)} min ago
+          </div>
         </div>
         <div className="text-right">
           <div className="text-xl font-black">{money(order.total)}</div>
           <PaymentBadge status={order.paymentStatus} method={order.paymentMethod} />
         </div>
       </div>
-      {!compact && <div className="mt-3 truncate text-sm text-muted-foreground">{order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}</div>}
+      {!compact && (
+        <div className="mt-3 truncate text-sm text-muted-foreground">
+          {order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap gap-2">
         {delayed && <WarningPill label="Delayed" tone="red" />}
         {paymentRisk && <WarningPill label="Payment check" tone="amber" />}
-        {order.delivery?.assignedRiderName && <WarningPill label={order.delivery.assignedRiderName} tone="green" />}
-        {order.delivery?.etaMinutes && <WarningPill label={`${order.delivery.etaMinutes} min ETA`} tone="blue" />}
+        {order.delivery?.assignedRiderName && (
+          <WarningPill label={order.delivery.assignedRiderName} tone="green" />
+        )}
+        {order.delivery?.etaMinutes && (
+          <WarningPill label={`${order.delivery.etaMinutes} min ETA`} tone="blue" />
+        )}
       </div>
     </button>
   );
 }
 
-function OrderDetail({ order, orders, staff, onAdvance }: { order: Order; orders: Order[]; staff: StaffUser[]; onAdvance: (id: string, status: OrderStatus) => void }) {
+function OrderDetail({
+  order,
+  orders,
+  staff,
+  onAdvance,
+}: {
+  order: Order;
+  orders: Order[];
+  staff: StaffUser[];
+  onAdvance: (id: string, status: OrderStatus) => void;
+}) {
   const action = NEXT[order.status];
   const isDelivery = order.type === "delivery";
   return (
@@ -265,7 +431,10 @@ function OrderDetail({ order, orders, staff, onAdvance }: { order: Order; orders
               <StatusPill status={order.status} />
               {isDelayed(order) && <WarningPill label="Delayed" tone="red" />}
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">{formatDate(order.createdAt)} · {minutesSince(order.createdAt)} minutes elapsed · {order.type.toUpperCase()}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {formatDate(order.createdAt)} · {minutesSince(order.createdAt)} minutes elapsed ·{" "}
+              {order.type.toUpperCase()}
+            </p>
           </div>
           <div className="text-left sm:text-right">
             <div className="text-3xl font-black">{money(order.total)}</div>
@@ -284,14 +453,33 @@ function OrderDetail({ order, orders, staff, onAdvance }: { order: Order; orders
           <Panel title="Items & Bill">
             <div className="space-y-3">
               {order.items.map((item, index) => (
-                <div key={`${item.id}-${index}`} className="rounded-2xl border border-border bg-background p-4">
+                <div
+                  key={`${item.id}-${index}`}
+                  className="rounded-2xl border border-border bg-background p-4"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="font-black"><span className="text-primary">{item.qty}x</span> {item.name}</div>
-                      {item.size && <div className="mt-1 text-xs text-muted-foreground">Size: {item.size}</div>}
-                      {item.addons?.length ? <div className="mt-1 text-xs text-muted-foreground">Add-ons: {item.addons.map((a) => a.name).join(", ")}</div> : null}
-                      {item.variants?.length ? <div className="mt-1 text-xs text-muted-foreground">Variants: {item.variants.map((v) => `${v.group}: ${v.option}`).join(", ")}</div> : null}
-                      {item.instructions && <div className="mt-2 rounded-xl bg-accent/10 px-3 py-2 text-xs text-accent">{item.instructions}</div>}
+                      <div className="font-black">
+                        <span className="text-primary">{item.qty}x</span> {item.name}
+                      </div>
+                      {item.size && (
+                        <div className="mt-1 text-xs text-muted-foreground">Size: {item.size}</div>
+                      )}
+                      {item.addons?.length ? (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Add-ons: {item.addons.map((a) => a.name).join(", ")}
+                        </div>
+                      ) : null}
+                      {item.variants?.length ? (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Variants: {item.variants.map((v) => `${v.group}: ${v.option}`).join(", ")}
+                        </div>
+                      ) : null}
+                      {item.instructions && (
+                        <div className="mt-2 rounded-xl bg-accent/10 px-3 py-2 text-xs text-accent">
+                          {item.instructions}
+                        </div>
+                      )}
                     </div>
                     <div className="shrink-0 font-black">{money(item.qty * item.price)}</div>
                   </div>
@@ -302,23 +490,49 @@ function OrderDetail({ order, orders, staff, onAdvance }: { order: Order; orders
               <BillRow label="Subtotal" value={order.subtotal} />
               <BillRow label="Tax" value={order.tax} />
               <BillRow label="Delivery" value={order.deliveryFee} />
-              <div className="flex justify-between border-t border-border pt-3 text-lg font-black"><span>Total</span><span>{money(order.total)}</span></div>
+              <div className="flex justify-between border-t border-border pt-3 text-lg font-black">
+                <span>Total</span>
+                <span>{money(order.total)}</span>
+              </div>
             </div>
           </Panel>
         </div>
 
         <div className="space-y-5">
           <Panel title="Customer & Payment">
-            <InfoGrid items={[
-              { icon: UserRound, label: "Customer", value: order.customer.name || "Customer" },
-              { icon: Phone, label: "Phone", value: order.customer.phone || "Not provided" },
-              { icon: CreditCard, label: "Payment", value: `${order.paymentMethod.toUpperCase()} · ${order.paymentStatus.toUpperCase()}` },
-              { icon: MapPin, label: "Address", value: order.customer.address || order.delivery?.destinationText || (order.type === "dinein" ? `Table ${order.tableNumber || "--"}` : "Not required") },
-            ]} />
+            <InfoGrid
+              items={[
+                { icon: UserRound, label: "Customer", value: order.customer.name || "Customer" },
+                { icon: Phone, label: "Phone", value: order.customer.phone || "Not provided" },
+                {
+                  icon: CreditCard,
+                  label: "Payment",
+                  value: `${order.paymentMethod.toUpperCase()} · ${order.paymentStatus.toUpperCase()}`,
+                },
+                {
+                  icon: MapPin,
+                  label: "Address",
+                  value:
+                    order.customer.address ||
+                    order.delivery?.destinationText ||
+                    (order.type === "dinein"
+                      ? `Table ${order.tableNumber || "--"}`
+                      : "Not required"),
+                },
+              ]}
+            />
             {(order.customer.landmark || order.customer.notes) && (
               <div className="mt-4 rounded-2xl bg-background p-4 text-sm text-muted-foreground">
-                {order.customer.landmark && <p><b className="text-foreground">Landmark:</b> {order.customer.landmark}</p>}
-                {order.customer.notes && <p className="mt-1"><b className="text-foreground">Notes:</b> {order.customer.notes}</p>}
+                {order.customer.landmark && (
+                  <p>
+                    <b className="text-foreground">Landmark:</b> {order.customer.landmark}
+                  </p>
+                )}
+                {order.customer.notes && (
+                  <p className="mt-1">
+                    <b className="text-foreground">Notes:</b> {order.customer.notes}
+                  </p>
+                )}
               </div>
             )}
           </Panel>
@@ -335,7 +549,9 @@ function OrderDetail({ order, orders, staff, onAdvance }: { order: Order; orders
                   </div>
                 )}
               </Panel>
-              {["ready", "out_for_delivery"].includes(order.status) && <DeliveryPartnerAssigner order={order} orders={orders} staff={staff} />}
+              {["ready", "out_for_delivery"].includes(order.status) && (
+                <DeliveryPartnerAssigner order={order} orders={orders} staff={staff} />
+              )}
             </>
           )}
         </div>
@@ -344,34 +560,54 @@ function OrderDetail({ order, orders, staff, onAdvance }: { order: Order; orders
   );
 }
 
-function ActionBar({ order, action, onAdvance }: { order: Order; action?: { next: OrderStatus; label: string }; onAdvance: (id: string, status: OrderStatus) => void }) {
+function ActionBar({
+  order,
+  action,
+  onAdvance,
+}: {
+  order: Order;
+  action?: { next: OrderStatus; label: string };
+  onAdvance: (id: string, status: OrderStatus) => void;
+}) {
   return (
     <div className="mt-5 flex flex-wrap gap-2">
       {order.status === "received" && (
-        <button onClick={() => onAdvance(order.id, "cancelled")} className="min-h-11 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 text-sm font-black text-destructive hover:bg-destructive/20">
+        <button
+          onClick={() => onAdvance(order.id, "cancelled")}
+          className="min-h-11 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 text-sm font-black text-destructive hover:bg-destructive/20"
+        >
           Cancel
         </button>
       )}
       {action ? (
-        <button onClick={() => onAdvance(order.id, action.next)} className="min-h-11 rounded-2xl bg-primary px-5 text-sm font-black text-primary-foreground hover:bg-primary-glow">
+        <button
+          onClick={() => onAdvance(order.id, action.next)}
+          className="min-h-11 rounded-2xl bg-primary px-5 text-sm font-black text-primary-foreground hover:bg-primary-glow"
+        >
           {action.label}
         </button>
       ) : (
-        <span className="inline-flex min-h-11 items-center rounded-2xl bg-veg/10 px-4 text-sm font-black text-veg">Completed</span>
+        <span className="inline-flex min-h-11 items-center rounded-2xl bg-veg/10 px-4 text-sm font-black text-veg">
+          Completed
+        </span>
       )}
     </div>
   );
 }
 
 function StatusTimeline({ order }: { order: Order }) {
-  const currentIndex = order.status === "cancelled" ? -1 : STATUS_STEPS.findIndex((step) => step.key === order.status);
+  const currentIndex =
+    order.status === "cancelled" ? -1 : STATUS_STEPS.findIndex((step) => step.key === order.status);
   return (
     <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
       {STATUS_STEPS.map((step, index) => {
         const done = order.status === "delivered" || (currentIndex >= index && currentIndex !== -1);
         const active = order.status === step.key;
         return (
-          <div key={step.key} className={`rounded-2xl border p-3 ${done ? "border-veg/30 bg-veg/10" : "border-border bg-background"} ${active ? "ring-2 ring-primary/40" : ""}`}>
+          <div
+            key={step.key}
+            className={`rounded-2xl border p-3 ${done ? "border-veg/30 bg-veg/10" : "border-border bg-background"} ${active ? "ring-2 ring-primary/40" : ""}`}
+          >
             <step.icon className={`h-5 w-5 ${done ? "text-veg" : "text-muted-foreground"}`} />
             <div className="mt-2 text-xs font-black uppercase tracking-widest">{step.label}</div>
           </div>
@@ -383,16 +619,33 @@ function StatusTimeline({ order }: { order: Order }) {
 
 function DeliveryTimeline({ order }: { order: Order }) {
   const stages = [
-    { key: "assigned", label: "Assigned", done: Boolean(order.delivery?.assignedRiderId || order.delivery?.partnerName) },
-    { key: "picked", label: "Picked up", done: Boolean(order.delivery?.pickedUpAt || order.delivery?.pickupVerifiedAt) },
+    {
+      key: "assigned",
+      label: "Assigned",
+      done: Boolean(order.delivery?.assignedRiderId || order.delivery?.partnerName),
+    },
+    {
+      key: "picked",
+      label: "Picked up",
+      done: Boolean(order.delivery?.pickedUpAt || order.delivery?.pickupVerifiedAt),
+    },
     { key: "out", label: "Out", done: ["out_for_delivery", "delivered"].includes(order.status) },
-    { key: "nearby", label: "Nearby", done: ["nearby", "almost_there", "outside", "delivered"].includes(order.delivery?.deliveryStage || "") },
+    {
+      key: "nearby",
+      label: "Nearby",
+      done: ["nearby", "almost_there", "outside", "delivered"].includes(
+        order.delivery?.deliveryStage || "",
+      ),
+    },
     { key: "delivered", label: "Delivered", done: order.status === "delivered" },
   ];
   return (
     <div className="grid gap-2 sm:grid-cols-5">
       {stages.map((stage) => (
-        <div key={stage.key} className={`rounded-2xl border p-3 ${stage.done ? "border-blue-400/30 bg-blue-400/10 text-blue-200" : "border-border bg-background text-muted-foreground"}`}>
+        <div
+          key={stage.key}
+          className={`rounded-2xl border p-3 ${stage.done ? "border-blue-400/30 bg-blue-400/10 text-blue-200" : "border-border bg-background text-muted-foreground"}`}
+        >
           <div className="text-xs font-black uppercase tracking-widest">{stage.label}</div>
         </div>
       ))}
@@ -408,8 +661,22 @@ function DeliveryStats({ order }: { order: Order }) {
       <SmallInfo label="Phone" value={d.partnerPhone || "Not available"} />
       <SmallInfo label="Stage" value={(d.deliveryStage || order.status).replace(/_/g, " ")} />
       <SmallInfo label="ETA" value={d.etaMinutes ? `${d.etaMinutes} min` : "Updating"} />
-      <SmallInfo label="Distance" value={d.distanceKm ? `${d.distanceKm} km` : `${Math.round(Number(d.routeProgress || 0) * 100)}% progress`} />
-      <SmallInfo label="GPS" value={d.lastLocationAt || d.currentLocation?.updatedAt ? `Updated ${new Date(d.lastLocationAt || d.currentLocation?.updatedAt || "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Waiting"} />
+      <SmallInfo
+        label="Distance"
+        value={
+          d.distanceKm
+            ? `${d.distanceKm} km`
+            : `${Math.round(Number(d.routeProgress || 0) * 100)}% progress`
+        }
+      />
+      <SmallInfo
+        label="GPS"
+        value={
+          d.lastLocationAt || d.currentLocation?.updatedAt
+            ? `Updated ${new Date(d.lastLocationAt || d.currentLocation?.updatedAt || "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+            : "Waiting"
+        }
+      />
       <SmallInfo label="Pickup PIN" value={d.pickupPin || "Not generated"} />
       <SmallInfo label="Delivery OTP" value={d.deliveryOtp || "Not generated"} />
     </div>
@@ -430,11 +697,17 @@ function ManualLocationEditor({ order }: { order: Order }) {
   async function save() {
     const nextLat = Number(lat);
     const nextLng = Number(lng);
-    if (!Number.isFinite(nextLat) || !Number.isFinite(nextLng)) return toast.error("Enter valid latitude and longitude");
+    if (!Number.isFinite(nextLat) || !Number.isFinite(nextLng))
+      return toast.error("Enter valid latitude and longitude");
     setSaving(true);
     try {
       await updateOrderDelivery(order.id, {
-        currentLocation: { lat: nextLat, lng: nextLng, label: "Admin location update", updatedAt: new Date().toISOString() },
+        currentLocation: {
+          lat: nextLat,
+          lng: nextLng,
+          label: "Admin location update",
+          updatedAt: new Date().toISOString(),
+        },
         lastLocationAt: new Date().toISOString(),
       });
       await qc.invalidateQueries({ queryKey: ["orders"] });
@@ -448,14 +721,40 @@ function ManualLocationEditor({ order }: { order: Order }) {
 
   return (
     <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-      <input value={lat} onChange={(event) => setLat(event.target.value)} placeholder="Latitude" inputMode="decimal" className="min-h-11 rounded-2xl border border-input bg-background px-3 text-sm outline-none focus:border-primary" />
-      <input value={lng} onChange={(event) => setLng(event.target.value)} placeholder="Longitude" inputMode="decimal" className="min-h-11 rounded-2xl border border-input bg-background px-3 text-sm outline-none focus:border-primary" />
-      <button disabled={saving} onClick={save} className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black text-muted-foreground hover:text-foreground disabled:opacity-50">Update GPS</button>
+      <input
+        value={lat}
+        onChange={(event) => setLat(event.target.value)}
+        placeholder="Latitude"
+        inputMode="decimal"
+        className="min-h-11 rounded-2xl border border-input bg-background px-3 text-sm outline-none focus:border-primary"
+      />
+      <input
+        value={lng}
+        onChange={(event) => setLng(event.target.value)}
+        placeholder="Longitude"
+        inputMode="decimal"
+        className="min-h-11 rounded-2xl border border-input bg-background px-3 text-sm outline-none focus:border-primary"
+      />
+      <button
+        disabled={saving}
+        onClick={save}
+        className="min-h-11 rounded-2xl border border-border px-4 text-sm font-black text-muted-foreground hover:text-foreground disabled:opacity-50"
+      >
+        Update GPS
+      </button>
     </div>
   );
 }
 
-function DeliveryPartnerAssigner({ order, orders, staff }: { order: Order; orders: Order[]; staff: StaffUser[] }) {
+function DeliveryPartnerAssigner({
+  order,
+  orders,
+  staff,
+}: {
+  order: Order;
+  orders: Order[];
+  staff: StaffUser[];
+}) {
   const qc = useQueryClient();
   const riders = staff.filter((member) => member.role === "DELIVERY");
   const assignedId = order.delivery?.assignedRiderId || "";
@@ -484,8 +783,13 @@ function DeliveryPartnerAssigner({ order, orders, staff }: { order: Order; order
         reservedAt: order.delivery?.reservedAt || now,
         reserveExpiresAt: null,
         pickedUpAt: alreadyPicked ? order.delivery?.pickedUpAt || now : order.delivery?.pickedUpAt,
-        pickupVerifiedAt: alreadyPicked ? order.delivery?.pickupVerifiedAt || now : order.delivery?.pickupVerifiedAt,
-        routeProgress: Math.max(Number(order.delivery?.routeProgress || 0), alreadyPicked ? 0.35 : 0.12),
+        pickupVerifiedAt: alreadyPicked
+          ? order.delivery?.pickupVerifiedAt || now
+          : order.delivery?.pickupVerifiedAt,
+        routeProgress: Math.max(
+          Number(order.delivery?.routeProgress || 0),
+          alreadyPicked ? 0.35 : 0.12,
+        ),
         trackingPaused: false,
       });
       await qc.invalidateQueries({ queryKey: ["orders"] });
@@ -500,14 +804,29 @@ function DeliveryPartnerAssigner({ order, orders, staff }: { order: Order; order
   return (
     <Panel title="Delivery Partner">
       <div className="grid gap-3">
-        <select value={riderId} onChange={(event) => setRiderId(event.target.value)} className="min-h-12 rounded-2xl border border-input bg-background px-3 text-sm outline-none focus:border-primary">
+        <select
+          value={riderId}
+          onChange={(event) => setRiderId(event.target.value)}
+          className="min-h-12 rounded-2xl border border-input bg-background px-3 text-sm outline-none focus:border-primary"
+        >
           <option value="">Select online / active rider</option>
-          {riders.slice().sort((a, b) => riderRank(a, orders) - riderRank(b, orders)).map((rider) => {
-            const status = riderStatus(rider, orders);
-            return <option key={rider.id} value={rider.id}>{rider.name} - {rider.phone} - {status.label}</option>;
-          })}
+          {riders
+            .slice()
+            .sort((a, b) => riderRank(a, orders) - riderRank(b, orders))
+            .map((rider) => {
+              const status = riderStatus(rider, orders);
+              return (
+                <option key={rider.id} value={rider.id}>
+                  {rider.name} - {rider.phone} - {status.label}
+                </option>
+              );
+            })}
         </select>
-        <button disabled={saving || !riderId} onClick={assign} className="min-h-12 rounded-2xl bg-primary px-4 text-sm font-black text-primary-foreground hover:bg-primary-glow disabled:opacity-50">
+        <button
+          disabled={saving || !riderId}
+          onClick={assign}
+          className="min-h-12 rounded-2xl bg-primary px-4 text-sm font-black text-primary-foreground hover:bg-primary-glow disabled:opacity-50"
+        >
           Assign delivery partner
         </button>
       </div>
@@ -515,7 +834,12 @@ function DeliveryPartnerAssigner({ order, orders, staff }: { order: Order; order
         {riders.slice(0, 8).map((rider) => {
           const status = riderStatus(rider, orders);
           return (
-            <button key={rider.id} type="button" onClick={() => setRiderId(rider.id)} className={`rounded-full border px-3 py-1.5 text-[11px] font-black uppercase ${status.className}`}>
+            <button
+              key={rider.id}
+              type="button"
+              onClick={() => setRiderId(rider.id)}
+              className={`rounded-full border px-3 py-1.5 text-[11px] font-black uppercase ${status.className}`}
+            >
               {rider.name}: {status.label}
             </button>
           );
@@ -534,25 +858,56 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function SummaryTile({ label, value, tone = "neutral" }: { label: string; value: number; tone?: "neutral" | "red" | "green" }) {
-  const toneClass = tone === "red" ? "text-red-300" : tone === "green" ? "text-veg" : "text-foreground";
+function SummaryTile({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  tone?: "neutral" | "red" | "green";
+}) {
+  const toneClass =
+    tone === "red" ? "text-red-300" : tone === "green" ? "text-veg" : "text-foreground";
   return (
     <div className="rounded-2xl border border-border bg-surface px-4 py-3">
       <div className={`text-2xl font-black ${toneClass}`}>{value}</div>
-      <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+        {label}
+      </div>
     </div>
   );
 }
 
-function FilterSelect({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: string[][] }) {
+function FilterSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: string[][];
+}) {
   return (
-    <select value={value} onChange={(event) => onChange(event.target.value)} className="min-h-12 rounded-2xl border border-border bg-background px-3 text-sm outline-none focus:border-primary">
-      {options.map(([optionValue, label]) => <option key={optionValue} value={optionValue}>{label}</option>)}
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="min-h-12 rounded-2xl border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+    >
+      {options.map(([optionValue, label]) => (
+        <option key={optionValue} value={optionValue}>
+          {label}
+        </option>
+      ))}
     </select>
   );
 }
 
-function InfoGrid({ items }: { items: Array<{ icon: React.ElementType; label: string; value: string }> }) {
+function InfoGrid({
+  items,
+}: {
+  items: Array<{ icon: React.ElementType; label: string; value: string }>;
+}) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {items.map((item) => (
@@ -562,7 +917,15 @@ function InfoGrid({ items }: { items: Array<{ icon: React.ElementType; label: st
   );
 }
 
-function SmallInfo({ icon: Icon, label, value }: { icon?: React.ElementType; label: string; value: string }) {
+function SmallInfo({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon?: React.ElementType;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-2xl bg-background p-4">
       <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
@@ -574,12 +937,23 @@ function SmallInfo({ icon: Icon, label, value }: { icon?: React.ElementType; lab
 }
 
 function BillRow({ label, value }: { label: string; value: number }) {
-  return <div className="flex justify-between text-muted-foreground"><span>{label}</span><span>{money(value)}</span></div>;
+  return (
+    <div className="flex justify-between text-muted-foreground">
+      <span>{label}</span>
+      <span>{money(value)}</span>
+    </div>
+  );
 }
 
 function PaymentBadge({ status, method }: { status: string; method: string }) {
   const good = status === "paid" || method === "cod";
-  return <span className={`mt-1 inline-flex rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-widest ${good ? "bg-veg/10 text-veg" : "bg-red-500/10 text-red-300"}`}>{method} · {status}</span>;
+  return (
+    <span
+      className={`mt-1 inline-flex rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-widest ${good ? "bg-veg/10 text-veg" : "bg-red-500/10 text-red-300"}`}
+    >
+      {method} · {status}
+    </span>
+  );
 }
 
 function WarningPill({ label, tone }: { label: string; tone: "red" | "amber" | "green" | "blue" }) {
@@ -589,7 +963,13 @@ function WarningPill({ label, tone }: { label: string; tone: "red" | "amber" | "
     green: "bg-veg/10 text-veg",
     blue: "bg-blue-400/10 text-blue-200",
   };
-  return <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${map[tone]}`}>{label}</span>;
+  return (
+    <span
+      className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${map[tone]}`}
+    >
+      {label}
+    </span>
+  );
 }
 
 function ClipboardIcon() {
@@ -605,16 +985,29 @@ function riderOptions(riders: StaffUser[]) {
 }
 
 function riderStatus(rider: StaffUser, orders: Order[]) {
-  const active = orders.find((order) => order.delivery?.assignedRiderId === rider.id && !["delivered", "cancelled"].includes(order.status));
-  if (active) return { label: `Online ${active.status.replace(/_/g, " ")}`, className: "border-veg/30 bg-veg/10 text-veg" };
+  const active = orders.find(
+    (order) =>
+      order.delivery?.assignedRiderId === rider.id &&
+      !["delivered", "cancelled"].includes(order.status),
+  );
+  if (active)
+    return {
+      label: `Online ${active.status.replace(/_/g, " ")}`,
+      className: "border-veg/30 bg-veg/10 text-veg",
+    };
   const lastTracked = orders
-    .filter((order) => order.delivery?.assignedRiderId === rider.id || order.delivery?.partnerPhone === rider.phone)
+    .filter(
+      (order) =>
+        order.delivery?.assignedRiderId === rider.id ||
+        order.delivery?.partnerPhone === rider.phone,
+    )
     .map((order) => order.delivery?.lastLocationAt || order.delivery?.currentLocation?.updatedAt)
     .filter(Boolean)
     .map((value) => new Date(String(value)).getTime())
     .filter(Number.isFinite)
     .sort((a, b) => b - a)[0];
-  if (lastTracked && Date.now() - lastTracked < 15 * 60 * 1000) return { label: "Recently online", className: "border-accent/30 bg-accent/10 text-accent" };
+  if (lastTracked && Date.now() - lastTracked < 15 * 60 * 1000)
+    return { label: "Recently online", className: "border-accent/30 bg-accent/10 text-accent" };
   return { label: "Available", className: "border-border bg-background text-muted-foreground" };
 }
 
@@ -626,7 +1019,15 @@ function riderRank(rider: StaffUser, orders: Order[]) {
 }
 
 function orderSortScore(order: Order) {
-  const statusWeight: Record<string, number> = { received: 0, accepted: 1, preparing: 2, ready: 3, out_for_delivery: 4, delivered: 5, cancelled: 6 };
+  const statusWeight: Record<string, number> = {
+    received: 0,
+    accepted: 1,
+    preparing: 2,
+    ready: 3,
+    out_for_delivery: 4,
+    delivered: 5,
+    cancelled: 6,
+  };
   return (statusWeight[order.status] ?? 9) * 10000000000000 - new Date(order.createdAt).getTime();
 }
 
@@ -639,11 +1040,18 @@ function minutesSince(date: string) {
 }
 
 function formatTime(date: string) {
-  return new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit" }).format(new Date(date));
+  return new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit" }).format(
+    new Date(date),
+  );
 }
 
 function formatDate(date: string) {
-  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(date));
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date));
 }
 
 function money(value: number) {

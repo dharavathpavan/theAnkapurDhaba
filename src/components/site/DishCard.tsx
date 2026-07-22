@@ -35,7 +35,9 @@ export function DishCard({ item, size = "md" }: Props) {
             ★ Bestseller
           </span>
         )}
-        <div className="absolute right-3 top-3"><VegDot isVeg={item.isVeg} /></div>
+        <div className="absolute right-3 top-3">
+          <VegDot isVeg={item.isVeg} />
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
@@ -45,9 +47,7 @@ export function DishCard({ item, size = "md" }: Props) {
         </div>
         <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
         <div className="mt-auto flex items-center justify-between pt-3">
-          <span className="font-display text-2xl text-foreground">
-            ₹{item.price}
-          </span>
+          <span className="font-display text-2xl text-foreground">₹{item.price}</span>
           {line ? (
             <div className="flex items-center gap-2 rounded-md border border-primary/40 bg-primary/10">
               <button

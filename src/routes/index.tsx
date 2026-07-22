@@ -1,7 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Clock3, MapPin, Search, Sparkles, Star, Ticket, Truck, UtensilsCrossed } from "lucide-react";
+import {
+  Clock3,
+  MapPin,
+  Search,
+  Sparkles,
+  Star,
+  Ticket,
+  Truck,
+  UtensilsCrossed,
+} from "lucide-react";
 import { getCustomerHome, type CustomerBanner } from "@/services/api";
 import { useCart } from "@/stores/cart";
 import type { MenuItem } from "@/data/menu";
@@ -11,7 +20,11 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Ankapur Dhaba - Order Food Online" },
-      { name: "description", content: "Order biryani, Ankapur chicken, Telangana meals, curries, breads and desserts from Ankapur Dhaba." },
+      {
+        name: "description",
+        content:
+          "Order biryani, Ankapur chicken, Telangana meals, curries, breads and desserts from Ankapur Dhaba.",
+      },
     ],
   }),
   component: Home,
@@ -29,11 +42,20 @@ const categoryIcons: Record<string, string> = {
 };
 
 function Home() {
-  const { data, isLoading } = useQuery({ queryKey: ["customer-home"], queryFn: getCustomerHome, staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true });
+  const { data, isLoading } = useQuery({
+    queryKey: ["customer-home"],
+    queryFn: getCustomerHome,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
   const [bannerIndex, setBannerIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const add = useCart((s) => s.add);
-  const heroBanners = useMemo(() => (data?.banners ?? []).filter((item) => !isAdBanner(item.type)), [data?.banners]);
+  const heroBanners = useMemo(
+    () => (data?.banners ?? []).filter((item) => !isAdBanner(item.type)),
+    [data?.banners],
+  );
   const visibleBanners = heroBanners;
   const banner = visibleBanners[bannerIndex % Math.max(visibleBanners.length, 1)];
   const heroHeight = banner ? heroHeightClasses(banner) : "";
@@ -52,9 +74,13 @@ function Home() {
 
   if (isLoading || !data) return <HomeSkeleton />;
 
-  const bestSellers = data.collections.find((item) => /best/i.test(item.title))?.items ?? data.recommended;
-  const chefSpecials = data.collections.find((item) => /chef/i.test(item.title))?.items ?? data.recommended;
-  const fastDelivery = data.recommended.filter((item) => (item.prepTimeMinutes || 30) <= 25).slice(0, 8);
+  const bestSellers =
+    data.collections.find((item) => /best/i.test(item.title))?.items ?? data.recommended;
+  const chefSpecials =
+    data.collections.find((item) => /chef/i.test(item.title))?.items ?? data.recommended;
+  const fastDelivery = data.recommended
+    .filter((item) => (item.prepTimeMinutes || 30) <= 25)
+    .slice(0, 8);
 
   return (
     <div className="bg-[#F8F9FB]">
@@ -66,16 +92,21 @@ function Home() {
                 <MapPin className="h-4 w-4" /> Ankapur Dhaba
               </div>
               <div className="mt-1 truncate text-sm font-semibold text-zinc-600 md:text-base">
-                {data.store.status === "online" ? "Delivering now" : data.store.statusMessage || "Store paused"} · Closes {data.store.closeTime}
+                {data.store.status === "online"
+                  ? "Delivering now"
+                  : data.store.statusMessage || "Store paused"}{" "}
+                · Closes {data.store.closeTime}
               </div>
             </div>
-            <Link to="/profile" className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-zinc-950 font-black text-white md:hidden">AD</Link>
+            <Link
+              to="/profile"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-zinc-950 font-black text-white md:hidden"
+            >
+              AD
+            </Link>
           </div>
 
-          <Link
-            to="/menu"
-            className="hidden"
-          >
+          <Link to="/menu" className="hidden">
             <Search className="h-5 w-5 text-red-500" />
             Search biryani, chicken, naan...
           </Link>
@@ -95,7 +126,12 @@ function Home() {
               <div className={`relative flex ${heroHeight} flex-col justify-end p-3 sm:p-4`}>
                 <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/35 px-2 py-1 backdrop-blur sm:bottom-4 sm:gap-2">
                   {visibleBanners.map((item, i) => (
-                    <button key={item.id} onClick={() => setBannerIndex(i)} className={`h-1.5 rounded-full transition-all sm:h-2 ${i === bannerIndex ? "w-7 bg-white sm:w-9" : "w-1.5 bg-white/55 sm:w-2"}`} aria-label={`Show banner ${i + 1}`} />
+                    <button
+                      key={item.id}
+                      onClick={() => setBannerIndex(i)}
+                      className={`h-1.5 rounded-full transition-all sm:h-2 ${i === bannerIndex ? "w-7 bg-white sm:w-9" : "w-1.5 bg-white/55 sm:w-2"}`}
+                      aria-label={`Show banner ${i + 1}`}
+                    />
                   ))}
                 </div>
               </div>
@@ -105,7 +141,10 @@ function Home() {
 
         <section className="mt-4 overflow-hidden rounded-[24px] border border-yellow-200/70 bg-yellow-100/85 px-4 py-3 text-sm font-black text-yellow-950 shadow-sm backdrop-blur-xl">
           <div className="animate-[marquee_20s_linear_infinite] whitespace-nowrap">
-            {(data.announcements.length ? data.announcements.map((a) => a.message) : [`Free delivery above Rs ${data.store.freeDeliveryAbove}`]).join("   |   ")}
+            {(data.announcements.length
+              ? data.announcements.map((a) => a.message)
+              : [`Free delivery above Rs ${data.store.freeDeliveryAbove}`]
+            ).join("   |   ")}
           </div>
         </section>
 
@@ -120,10 +159,20 @@ function Home() {
           <div className="-mx-3 mt-3 flex gap-3 overflow-x-auto px-3 pb-2 md:mx-0 md:px-0">
             {categories.map((category) => {
               const key = category.name.toLowerCase();
-              const icon = category.icon || Object.entries(categoryIcons).find(([k]) => key.includes(k))?.[1] || "AD";
+              const icon =
+                category.icon ||
+                Object.entries(categoryIcons).find(([k]) => key.includes(k))?.[1] ||
+                "AD";
               return (
-                <Link key={category.id} to="/menu" search={{ category: category.name } as never} className="min-w-[104px] rounded-[26px] border border-white/80 bg-white/88 p-3 text-center shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 hover:shadow-lg">
-                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-red-50 text-lg font-black text-red-600">{icon}</div>
+                <Link
+                  key={category.id}
+                  to="/menu"
+                  search={{ category: category.name } as never}
+                  className="min-w-[104px] rounded-[26px] border border-white/80 bg-white/88 p-3 text-center shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-red-50 text-lg font-black text-red-600">
+                    {icon}
+                  </div>
                   <div className="mt-2 line-clamp-1 text-sm font-black">{category.name}</div>
                 </Link>
               );
@@ -136,9 +185,14 @@ function Home() {
             <SectionTitle title="Offers near you" />
             <div className="mt-3 grid gap-3 md:grid-cols-3">
               {data.coupons.slice(0, 3).map((coupon) => (
-                <div key={coupon.id} className="overflow-hidden rounded-[26px] border border-red-100 bg-white shadow-sm">
+                <div
+                  key={coupon.id}
+                  className="overflow-hidden rounded-[26px] border border-red-100 bg-white shadow-sm"
+                >
                   <div className="bg-red-600 px-4 py-3 text-white">
-                    <div className="text-xs font-black uppercase tracking-[0.18em] text-white/75">{coupon.category || "Offer"}</div>
+                    <div className="text-xs font-black uppercase tracking-[0.18em] text-white/75">
+                      {coupon.category || "Offer"}
+                    </div>
                     <div className="mt-1 text-2xl font-black">{coupon.code}</div>
                   </div>
                   <div className="p-4">
@@ -151,22 +205,54 @@ function Home() {
           </section>
         )}
 
-        <FoodSection title="Top picks for you" subtitle="Recommended from today's menu" items={data.recommended} onAdd={add} />
-        <FoodSection title="Best sellers" subtitle="Most loved by Ankapur Dhaba customers" items={bestSellers} onAdd={add} />
-        <FoodSection title="Fast delivery" subtitle="Fresh plates that reach quickly" items={fastDelivery.length ? fastDelivery : data.recommended} onAdd={add} />
-        <FoodSection title="Chef specials" subtitle="Signature dhaba favourites" items={chefSpecials} onAdd={add} />
+        <FoodSection
+          title="Top picks for you"
+          subtitle="Recommended from today's menu"
+          items={data.recommended}
+          onAdd={add}
+        />
+        <FoodSection
+          title="Best sellers"
+          subtitle="Most loved by Ankapur Dhaba customers"
+          items={bestSellers}
+          onAdd={add}
+        />
+        <FoodSection
+          title="Fast delivery"
+          subtitle="Fresh plates that reach quickly"
+          items={fastDelivery.length ? fastDelivery : data.recommended}
+          onAdd={add}
+        />
+        <FoodSection
+          title="Chef specials"
+          subtitle="Signature dhaba favourites"
+          items={chefSpecials}
+          onAdd={add}
+        />
       </div>
     </div>
   );
 }
 
-function FoodSection({ title, subtitle, items, onAdd }: { title: string; subtitle: string; items: MenuItem[]; onAdd: (item: MenuItem) => void }) {
+function FoodSection({
+  title,
+  subtitle,
+  items,
+  onAdd,
+}: {
+  title: string;
+  subtitle: string;
+  items: MenuItem[];
+  onAdd: (item: MenuItem) => void;
+}) {
   if (!items.length) return null;
   return (
     <section className="mt-8">
       <SectionTitle title={title} subtitle={subtitle} action="See all" to="/menu" />
       <div className="-mx-3 mt-3 flex gap-4 overflow-x-auto px-3 pb-3 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 xl:grid-cols-5">
-        {items.slice(0, 10).map((item) => <FoodTile key={item.id} item={item} onAdd={() => onAdd(item)} />)}
+        {items.slice(0, 10).map((item) => (
+          <FoodTile key={item.id} item={item} onAdd={() => onAdd(item)} />
+        ))}
       </div>
     </section>
   );
@@ -177,9 +263,23 @@ function FoodTile({ item, onAdd }: { item: MenuItem; onAdd: () => void }) {
     <article className="min-w-[230px] overflow-hidden rounded-[28px] border border-white/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl md:min-w-0">
       <Link to="/menu" className="block">
         <div className="relative aspect-[4/3] bg-zinc-100">
-          <img src={resolveMediaUrl(item.image)} alt={item.name} loading="lazy" onError={imageFallback} className="h-full w-full object-cover" />
-          {item.discountPercent ? <span className="absolute left-3 top-3 rounded-full bg-yellow-400 px-2 py-1 text-xs font-black text-zinc-950">{item.discountPercent}% OFF</span> : null}
-          {item.bestseller ? <span className="absolute right-3 top-3 rounded-full bg-red-600 px-2 py-1 text-xs font-black text-white">BEST</span> : null}
+          <img
+            src={resolveMediaUrl(item.image)}
+            alt={item.name}
+            loading="lazy"
+            onError={imageFallback}
+            className="h-full w-full object-cover"
+          />
+          {item.discountPercent ? (
+            <span className="absolute left-3 top-3 rounded-full bg-yellow-400 px-2 py-1 text-xs font-black text-zinc-950">
+              {item.discountPercent}% OFF
+            </span>
+          ) : null}
+          {item.bestseller ? (
+            <span className="absolute right-3 top-3 rounded-full bg-red-600 px-2 py-1 text-xs font-black text-white">
+              BEST
+            </span>
+          ) : null}
         </div>
       </Link>
       <div className="p-4">
@@ -192,33 +292,70 @@ function FoodTile({ item, onAdd }: { item: MenuItem; onAdd: () => void }) {
         <div className="mt-3 flex items-center justify-between gap-2">
           <div>
             <div className="text-lg font-black">Rs {item.price}</div>
-            {item.basePrice && item.basePrice > item.price ? <div className="text-xs font-semibold text-zinc-400 line-through">Rs {item.basePrice}</div> : null}
+            {item.basePrice && item.basePrice > item.price ? (
+              <div className="text-xs font-semibold text-zinc-400 line-through">
+                Rs {item.basePrice}
+              </div>
+            ) : null}
           </div>
-          <button onClick={onAdd} disabled={!item.available} className="min-h-10 rounded-2xl bg-red-600 px-4 text-sm font-black text-white shadow-lg shadow-red-600/20 disabled:bg-zinc-300">ADD</button>
+          <button
+            onClick={onAdd}
+            disabled={!item.available}
+            className="min-h-10 rounded-2xl bg-red-600 px-4 text-sm font-black text-white shadow-lg shadow-red-600/20 disabled:bg-zinc-300"
+          >
+            ADD
+          </button>
         </div>
       </div>
     </article>
   );
 }
 
-function InfoCard({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+function InfoCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-[22px] border border-white/80 bg-white/88 p-3 shadow-sm backdrop-blur-xl sm:p-4">
       <Icon className="h-4 w-4 text-green-600 sm:h-5 sm:w-5" />
-      <div className="mt-1.5 text-[11px] font-semibold text-zinc-500 sm:mt-2 sm:text-xs">{label}</div>
+      <div className="mt-1.5 text-[11px] font-semibold text-zinc-500 sm:mt-2 sm:text-xs">
+        {label}
+      </div>
       <div className="text-sm font-black sm:text-base">{value}</div>
     </div>
   );
 }
 
-function SectionTitle({ title, subtitle, action, to }: { title: string; subtitle?: string; action?: string; to?: string }) {
+function SectionTitle({
+  title,
+  subtitle,
+  action,
+  to,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: string;
+  to?: string;
+}) {
   return (
     <div className="flex items-end justify-between gap-3">
       <div>
         <h2 className="text-xl font-black tracking-tight md:text-2xl">{title}</h2>
         {subtitle ? <p className="mt-0.5 text-sm font-semibold text-zinc-500">{subtitle}</p> : null}
       </div>
-      {action && to && <Link to={to} className="shrink-0 rounded-full bg-red-50 px-3 py-1.5 text-sm font-black text-red-600">{action}</Link>}
+      {action && to && (
+        <Link
+          to={to}
+          className="shrink-0 rounded-full bg-red-50 px-3 py-1.5 text-sm font-black text-red-600"
+        >
+          {action}
+        </Link>
+      )}
     </div>
   );
 }
@@ -242,12 +379,26 @@ function BannerMedia({ banner }: { banner: CustomerBanner }) {
   const mobileUrl = resolveMediaUrl(banner.mobileImage || banner.image);
   const url = desktopUrl;
   if (isVideoUrl(url)) {
-    return <video src={url} className="absolute inset-0 h-full w-full object-cover" muted autoPlay loop playsInline />;
+    return (
+      <video
+        src={url}
+        className="absolute inset-0 h-full w-full object-cover"
+        muted
+        autoPlay
+        loop
+        playsInline
+      />
+    );
   }
   return (
     <picture>
       <source media="(max-width: 640px)" srcSet={mobileUrl} />
-      <img src={desktopUrl} alt="" onError={imageFallback} className="absolute inset-0 h-full w-full object-cover" />
+      <img
+        src={desktopUrl}
+        alt=""
+        onError={imageFallback}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
     </picture>
   );
 }
@@ -257,7 +408,17 @@ function isAdBanner(type?: string) {
 }
 
 function heroHeightClasses(banner: CustomerBanner) {
-  const mobileHeight = banner.heightMobile === "tall" ? "min-h-[210px]" : banner.heightMobile === "standard" ? "min-h-[190px]" : "min-h-[170px]";
-  const desktopHeight = banner.heightDesktop === "tall" ? "md:min-h-[430px] lg:min-h-[470px]" : banner.heightDesktop === "compact" ? "md:min-h-[300px] lg:min-h-[340px]" : "md:min-h-[360px] lg:min-h-[410px]";
+  const mobileHeight =
+    banner.heightMobile === "tall"
+      ? "min-h-[210px]"
+      : banner.heightMobile === "standard"
+        ? "min-h-[190px]"
+        : "min-h-[170px]";
+  const desktopHeight =
+    banner.heightDesktop === "tall"
+      ? "md:min-h-[430px] lg:min-h-[470px]"
+      : banner.heightDesktop === "compact"
+        ? "md:min-h-[300px] lg:min-h-[340px]"
+        : "md:min-h-[360px] lg:min-h-[410px]";
   return `${mobileHeight} ${desktopHeight}`;
 }

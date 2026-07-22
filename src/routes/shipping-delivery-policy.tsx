@@ -2,7 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "@/components/site/LegalPage";
 
 export const Route = createFileRoute("/shipping-delivery-policy")({
-  head: () => ({ meta: [{ title: "Shipping and Delivery Policy | The Ankapure Dhaba" }, { name: "description", content: "Delivery policy and estimated delivery information for The Ankapure Dhaba." }] }),
+  head: () => ({
+    meta: [
+      { title: "Shipping and Delivery Policy | The Ankapure Dhaba" },
+      {
+        name: "description",
+        content: "Delivery policy and estimated delivery information for The Ankapure Dhaba.",
+      },
+    ],
+  }),
   component: ShippingDeliveryPolicy,
 });
 
