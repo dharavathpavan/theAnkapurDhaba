@@ -24,15 +24,24 @@ export const useAuth = create<AuthState>()(
     (set, get) => ({
       token: null,
       user: null,
-      login: (token, user) => set({ token, user }),
+      login: (token, user) => set({ token, user: { ...user, role: normalizeRole(user.role) } }),
       logout: () => set({ token: null, user: null }),
       isAuthenticated: () => !!get().token && !!get().user,
       hasRole: (...roles) => {
         const user = get().user;
         if (!user) return false;
-        return roles.includes(user.role);
+        return roles.includes(normalizeRole(user.role));
       },
     }),
     { name: "ankapur:auth" },
   ),
 );
+
+function normalizeRole(role: string): UserRole {
+  const normalized = role.trim().toUpperCase();
+  if (normalized === "ADMIN") return "ADMIN";
+  if (normalized === "KITCHEN") return "KITCHEN";
+  if (normalized === "DELIVERY") return "DELIVERY";
+  if (normalized === "WAITER") return "WAITER";
+  return "USER";
+}

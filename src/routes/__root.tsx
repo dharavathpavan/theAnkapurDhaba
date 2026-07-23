@@ -175,7 +175,9 @@ function RootComponent() {
     pathname.startsWith("/admin") ||
     pathname.startsWith("/kitchen") ||
     pathname.startsWith("/delivery") ||
-    pathname.startsWith("/restaurant/delivery");
+    pathname.startsWith("/waiter") ||
+    pathname.startsWith("/restaurant/delivery") ||
+    pathname.startsWith("/restaurant/waiter");
   const isCustomerApp = isCustomerAppPath(pathname);
 
   useEffect(() => {

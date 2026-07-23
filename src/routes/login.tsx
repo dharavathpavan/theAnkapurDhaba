@@ -149,8 +149,8 @@ function LoginPage() {
   );
 }
 
-function redirectFor(role: UserRole): string {
-  switch (role) {
+function redirectFor(role: UserRole | string): string {
+  switch (role.trim().toUpperCase()) {
     case "ADMIN":
       return "/admin";
     case "KITCHEN":
