@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Compass, Crosshair, Layers, LocateFixed, MapPin, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { LocateFixed, MapPin, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   geocodePlace,
@@ -22,8 +22,6 @@ type LocationPickerProps = {
 };
 
 const DEFAULT_CENTER = { lat: 17.562861, lng: 78.453472 };
-const PICKER_MIN_ZOOM = 18;
-const PICKER_MAX_ZOOM = 21;
 
 export function LocationPicker({
   value,
@@ -46,7 +44,6 @@ export function LocationPicker({
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const [pinAddress, setPinAddress] = useState(address);
-  const [mapType, setMapType] = useState<"roadmap" | "satellite">("roadmap");
   const [moving, setMoving] = useState(false);
 
   useEffect(() => setQuery(address), [address]);
@@ -65,18 +62,16 @@ export function LocationPicker({
         const center = value || restaurant || DEFAULT_CENTER;
         const map = new google.maps.Map(mapRef.current, {
           center,
-          zoom: value ? PICKER_MAX_ZOOM - 1 : PICKER_MIN_ZOOM,
-          minZoom: PICKER_MIN_ZOOM,
-          maxZoom: PICKER_MAX_ZOOM,
+          zoom: value ? 18 : 16,
           disableDefaultUI: false,
           streetViewControl: false,
           fullscreenControl: false,
           mapTypeControl: false,
-          zoomControl: true,
+          zoomControl: false,
           clickableIcons: false,
-          draggable: false,
-          keyboardShortcuts: false,
-          gestureHandling: "cooperative",
+          draggable: true,
+          keyboardShortcuts: true,
+          gestureHandling: "greedy",
           styles: [
             { featureType: "poi.business", stylers: [{ visibility: "off" }] },
             { featureType: "transit", stylers: [{ visibility: "off" }] },
@@ -91,6 +86,7 @@ export function LocationPicker({
             icon: restaurantPointerIcon(google),
           });
         }
+        map.addListener("dragstart", () => setMoving(true));
         map.addListener("zoom_changed", () => setMoving(true));
         map.addListener("center_changed", () => {
           const centerNow = map.getCenter();
@@ -124,7 +120,7 @@ export function LocationPicker({
     ignoreNextIdle.current = true;
     latestCenter.current = value;
     mapInstance.current.panTo(value);
-    mapInstance.current.setZoom(PICKER_MAX_ZOOM - 1);
+    mapInstance.current.setZoom(18);
   }, [value?.lat, value?.lng]);
 
   useEffect(() => {
@@ -164,7 +160,7 @@ export function LocationPicker({
     }
   }
 
-  function moveMapTo(coords: LatLngLiteral, zoom = PICKER_MAX_ZOOM - 1) {
+  function moveMapTo(coords: LatLngLiteral, zoom = 18) {
     latestCenter.current = coords;
     ignoreNextIdle.current = true;
     mapInstance.current?.panTo(coords);
@@ -246,12 +242,6 @@ export function LocationPicker({
     reverseGeocode(coords);
   }
 
-  function toggleMapType() {
-    const next = mapType === "roadmap" ? "satellite" : "roadmap";
-    setMapType(next);
-    mapInstance.current?.setMapTypeId(next);
-  }
-
   const selectedLabel =
     pinAddress || address || (value ? `${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}` : "");
 
@@ -322,24 +312,10 @@ export function LocationPicker({
         <div className="relative">
           <div
             ref={mapRef}
-            className={`${compact ? "h-[360px] md:h-[430px]" : "h-[70vh] min-h-[430px]"} w-full bg-zinc-200`}
+            className={`${compact ? "h-[58vh] min-h-[420px] md:h-[520px]" : "h-[72vh] min-h-[520px]"} w-full bg-zinc-200`}
           />
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <CenterPin moving={moving || loading} />
-          </div>
-          <div className="absolute right-3 top-3 grid gap-2">
-            <MapButton label="Use current location" onClick={useCurrentLocation} disabled={loading}>
-              <Crosshair className="h-4 w-4" />
-            </MapButton>
-            <MapButton label="Toggle map type" onClick={toggleMapType}>
-              <Layers className="h-4 w-4" />
-            </MapButton>
-          </div>
-          <div className="absolute left-3 top-3 rounded-2xl bg-white/92 px-3 py-2 text-xs font-black text-zinc-800 shadow-lg backdrop-blur">
-            <span className="inline-flex items-center gap-1">
-              <Compass className="h-3.5 w-3.5 text-red-600" />
-              Fixed pin - zoom 200 ft to 20 ft
-            </span>
           </div>
         </div>
       ) : (
@@ -395,30 +371,6 @@ export function LocationPicker({
         </div>
       )}
     </div>
-  );
-}
-
-function MapButton({
-  label,
-  disabled,
-  children,
-  onClick,
-}: {
-  label: string;
-  disabled?: boolean;
-  children: ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-zinc-900 shadow-xl ring-1 ring-zinc-200 disabled:opacity-60"
-    >
-      {children}
-    </button>
   );
 }
 
