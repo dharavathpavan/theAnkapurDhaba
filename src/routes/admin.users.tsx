@@ -517,7 +517,7 @@ function StaffSection({ staff, onChange }: { staff: StaffUser[]; onChange: () =>
     name: "",
     phone: "",
     password: "",
-    role: "DELIVERY" as "KITCHEN" | "DELIVERY",
+    role: "DELIVERY" as "KITCHEN" | "DELIVERY" | "WAITER",
   });
   const [saving, setSaving] = useState(false);
   async function createStaff() {
@@ -572,11 +572,12 @@ function StaffSection({ staff, onChange }: { staff: StaffUser[]; onChange: () =>
           <select
             value={form.role}
             onChange={(event) =>
-              setForm({ ...form, role: event.target.value as "KITCHEN" | "DELIVERY" })
+              setForm({ ...form, role: event.target.value as "KITCHEN" | "DELIVERY" | "WAITER" })
             }
             className="h-13 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-white"
           >
             <option value="DELIVERY">Delivery partner</option>
+            <option value="WAITER">Waiter staff</option>
             <option value="KITCHEN">Kitchen staff</option>
           </select>
         </label>

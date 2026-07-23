@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as WaiterRouteImport } from './routes/waiter'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as SupportRouteImport } from './routes/support'
@@ -34,6 +35,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 import { Route as TTableIdRouteImport } from './routes/t.$tableId'
 import { Route as SupportTicketIdRouteImport } from './routes/support.$ticketId'
+import { Route as RestaurantWaiterRouteImport } from './routes/restaurant.waiter'
 import { Route as RestaurantDeliveryRouteImport } from './routes/restaurant.delivery'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders.$orderId'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -49,6 +51,11 @@ import { Route as SupportChatTicketIdRouteImport } from './routes/support.chat.$
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WaiterRoute = WaiterRouteImport.update({
+  id: '/waiter',
+  path: '/waiter',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TrackRoute = TrackRouteImport.update({
@@ -172,6 +179,11 @@ const SupportTicketIdRoute = SupportTicketIdRouteImport.update({
   path: '/$ticketId',
   getParentRoute: () => SupportRoute,
 } as any)
+const RestaurantWaiterRoute = RestaurantWaiterRouteImport.update({
+  id: '/restaurant/waiter',
+  path: '/restaurant/waiter',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RestaurantDeliveryRoute = RestaurantDeliveryRouteImport.update({
   id: '/restaurant/delivery',
   path: '/restaurant/delivery',
@@ -249,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRouteWithChildren
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/track': typeof TrackRouteWithChildren
+  '/waiter': typeof WaiterRoute
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -260,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
+  '/restaurant/waiter': typeof RestaurantWaiterRoute
   '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
@@ -286,6 +300,7 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRouteWithChildren
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/track': typeof TrackRouteWithChildren
+  '/waiter': typeof WaiterRoute
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -297,6 +312,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
+  '/restaurant/waiter': typeof RestaurantWaiterRoute
   '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
@@ -325,6 +341,7 @@ export interface FileRoutesById {
   '/support': typeof SupportRouteWithChildren
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/track': typeof TrackRouteWithChildren
+  '/waiter': typeof WaiterRoute
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -336,6 +353,7 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
+  '/restaurant/waiter': typeof RestaurantWaiterRoute
   '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
@@ -365,6 +383,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/terms-and-conditions'
     | '/track'
+    | '/waiter'
     | '/wallet'
     | '/admin/billing'
     | '/admin/marketing'
@@ -376,6 +395,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/orders/$orderId'
     | '/restaurant/delivery'
+    | '/restaurant/waiter'
     | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
@@ -402,6 +422,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/terms-and-conditions'
     | '/track'
+    | '/waiter'
     | '/wallet'
     | '/admin/billing'
     | '/admin/marketing'
@@ -413,6 +434,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/orders/$orderId'
     | '/restaurant/delivery'
+    | '/restaurant/waiter'
     | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
@@ -440,6 +462,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/terms-and-conditions'
     | '/track'
+    | '/waiter'
     | '/wallet'
     | '/admin/billing'
     | '/admin/marketing'
@@ -451,6 +474,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/orders/$orderId'
     | '/restaurant/delivery'
+    | '/restaurant/waiter'
     | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
@@ -479,8 +503,10 @@ export interface RootRouteChildren {
   SupportRoute: typeof SupportRouteWithChildren
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
   TrackRoute: typeof TrackRouteWithChildren
+  WaiterRoute: typeof WaiterRoute
   WalletRoute: typeof WalletRoute
   RestaurantDeliveryRoute: typeof RestaurantDeliveryRoute
+  RestaurantWaiterRoute: typeof RestaurantWaiterRoute
   TTableIdRoute: typeof TTableIdRoute
 }
 
@@ -491,6 +517,13 @@ declare module '@tanstack/react-router' {
       path: '/wallet'
       fullPath: '/wallet'
       preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/waiter': {
+      id: '/waiter'
+      path: '/waiter'
+      fullPath: '/waiter'
+      preLoaderRoute: typeof WaiterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/track': {
@@ -661,6 +694,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportTicketIdRouteImport
       parentRoute: typeof SupportRoute
     }
+    '/restaurant/waiter': {
+      id: '/restaurant/waiter'
+      path: '/restaurant/waiter'
+      fullPath: '/restaurant/waiter'
+      preLoaderRoute: typeof RestaurantWaiterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/restaurant/delivery': {
       id: '/restaurant/delivery'
       path: '/restaurant/delivery'
@@ -822,8 +862,10 @@ const rootRouteChildren: RootRouteChildren = {
   SupportRoute: SupportRouteWithChildren,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
   TrackRoute: TrackRouteWithChildren,
+  WaiterRoute: WaiterRoute,
   WalletRoute: WalletRoute,
   RestaurantDeliveryRoute: RestaurantDeliveryRoute,
+  RestaurantWaiterRoute: RestaurantWaiterRoute,
   TTableIdRoute: TTableIdRoute,
 }
 export const routeTree = rootRouteImport

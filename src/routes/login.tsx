@@ -142,7 +142,7 @@ function LoginPage() {
 
         {/* Role hint */}
         <p className="mt-6 text-center text-xs text-muted-foreground/60">
-          Kitchen & Delivery accounts are created by the Admin.
+          Kitchen, Waiter & Delivery accounts are created by the Admin.
         </p>
       </div>
     </div>
@@ -157,6 +157,8 @@ function redirectFor(role: UserRole): string {
       return "/kitchen";
     case "DELIVERY":
       return "/restaurant/delivery";
+    case "WAITER":
+      return "/waiter";
     default:
       return "/";
   }

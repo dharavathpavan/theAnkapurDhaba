@@ -1527,6 +1527,25 @@ export async function bulkUpdateOrderKds(
   return res.json();
 }
 
+export async function closeTableOrders(input: {
+  tableNumber: string;
+  orderIds: string[];
+  paymentMethod: "cash" | "card" | "upi" | "phonepe" | "gpay" | "paytm" | "split" | "partial";
+  amountPaid?: number;
+  note?: string;
+}): Promise<{
+  updated: Order[];
+  invoice: { tableNumber: string; paymentMethod: string; paidAt: string; totalPaid: number };
+}> {
+  const res = await apiFetch(`${API_BASE}/orders/table/close`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to close table");
+  return json;
+}
+
 /* ---------------- Auth Staff API (Admin only) ---------------- */
 export interface StaffUser {
   id: string;
@@ -1546,7 +1565,7 @@ export async function registerStaff(data: {
   name: string;
   phone: string;
   password: string;
-  role: "KITCHEN" | "DELIVERY";
+  role: "KITCHEN" | "DELIVERY" | "WAITER";
 }): Promise<StaffUser> {
   const res = await apiFetch(`${API_BASE}/auth/register-staff`, {
     method: "POST",
