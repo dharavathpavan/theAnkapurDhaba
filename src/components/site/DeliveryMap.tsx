@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Bike, Clock3, Home, MapPin, Navigation } from "lucide-react";
+import { Clock3, Home, MapPin, Navigation } from "lucide-react";
 import type { Order } from "@/services/api";
 import {
   calculateDrivingRoute,
@@ -94,10 +94,12 @@ export function DeliveryMap({
               position: riderCoords,
               map,
               title: "Delivery partner",
-              icon: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
+              icon: deliveryBoyMarkerIcon(google),
+              optimized: false,
             });
           } else {
             riderMarker.current.setPosition(riderCoords);
+            riderMarker.current.setIcon(deliveryBoyMarkerIcon(google));
           }
         }
 
@@ -183,9 +185,17 @@ export function DeliveryMap({
               className="absolute z-20 -translate-x-1/2 -translate-y-1/2 transition-all duration-700"
               style={{ left: `${riderLeft}%`, top: `${riderTop}%` }}
             >
-              <div className="absolute inset-0 animate-ping rounded-full bg-green-500/40" />
-              <div className="relative grid h-12 w-12 place-items-center rounded-full bg-green-500 text-black shadow-xl shadow-green-500/30 md:h-13 md:w-13">
-                <Bike className="h-6 w-6" />
+              <div className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 animate-ping rounded-full bg-green-500/35" />
+              <div className="relative grid h-20 w-16 place-items-center">
+                <img
+                  src="/delivery-boy-location.png"
+                  alt="Live delivery partner location"
+                  className="h-20 w-16 object-contain drop-shadow-2xl"
+                  draggable={false}
+                />
+                <span className="absolute -bottom-1 rounded-full bg-green-500 px-2 py-0.5 text-[9px] font-black text-white shadow">
+                  LIVE
+                </span>
               </div>
             </div>
           </>
@@ -320,6 +330,14 @@ function MapPill({
       </div>
     </div>
   );
+}
+
+function deliveryBoyMarkerIcon(google: any) {
+  return {
+    url: "/delivery-boy-location.png",
+    scaledSize: new google.maps.Size(50, 74),
+    anchor: new google.maps.Point(25, 68),
+  };
 }
 
 function progressFromStatus(status: Order["status"]) {

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from "react";
-import { LocateFixed, MapPin, Search } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Compass, Crosshair, Layers, LocateFixed, MapPin, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   geocodePlace,
@@ -22,6 +22,8 @@ type LocationPickerProps = {
 };
 
 const DEFAULT_CENTER = { lat: 17.562861, lng: 78.453472 };
+const PICKER_MIN_ZOOM = 18;
+const PICKER_MAX_ZOOM = 21;
 
 export function LocationPicker({
   value,
@@ -32,7 +34,10 @@ export function LocationPicker({
 }: LocationPickerProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const restaurantMarkerRef = useRef<any>(null);
+  const idleTimer = useRef<number | null>(null);
+  const latestCenter = useRef<LatLngLiteral | null>(value || restaurant || DEFAULT_CENTER);
+  const ignoreNextIdle = useRef(false);
   const [query, setQuery] = useState(address);
   const [loading, setLoading] = useState(false);
   const [mapsReady, setMapsReady] = useState(false);
@@ -40,8 +45,12 @@ export function LocationPicker({
   const [manualLng, setManualLng] = useState(value?.lng ? String(value.lng) : "");
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
+  const [pinAddress, setPinAddress] = useState(address);
+  const [mapType, setMapType] = useState<"roadmap" | "satellite">("roadmap");
+  const [moving, setMoving] = useState(false);
 
   useEffect(() => setQuery(address), [address]);
+  useEffect(() => setPinAddress(address), [address]);
   useEffect(() => {
     setManualLat(value?.lat ? String(value.lat) : "");
     setManualLng(value?.lng ? String(value.lng) : "");
@@ -56,45 +65,66 @@ export function LocationPicker({
         const center = value || restaurant || DEFAULT_CENTER;
         const map = new google.maps.Map(mapRef.current, {
           center,
-          zoom: value ? 16 : 13,
-          disableDefaultUI: true,
+          zoom: value ? PICKER_MAX_ZOOM - 1 : PICKER_MIN_ZOOM,
+          minZoom: PICKER_MIN_ZOOM,
+          maxZoom: PICKER_MAX_ZOOM,
+          disableDefaultUI: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          mapTypeControl: false,
           zoomControl: true,
-          gestureHandling: "greedy",
+          clickableIcons: false,
+          draggable: false,
+          keyboardShortcuts: false,
+          gestureHandling: "cooperative",
+          styles: [
+            { featureType: "poi.business", stylers: [{ visibility: "off" }] },
+            { featureType: "transit", stylers: [{ visibility: "off" }] },
+          ],
         });
         mapInstance.current = map;
-        markerRef.current = new google.maps.Marker({
-          position: center,
-          map,
-          draggable: true,
-          title: "Delivery location",
-          icon: customerPointerIcon(google),
-        });
-        markerRef.current.addListener("dragend", () => {
-          const pos = markerRef.current?.getPosition();
-          if (!pos) return;
-          const coords = { lat: pos.lat(), lng: pos.lng() };
-          reverseGeocode(coords);
-        });
         if (restaurant) {
-          new google.maps.Marker({
+          restaurantMarkerRef.current = new google.maps.Marker({
             position: restaurant,
             map,
-            title: "Restaurant",
+            title: "The Ankapure Dhaba",
             icon: restaurantPointerIcon(google),
           });
         }
+        map.addListener("zoom_changed", () => setMoving(true));
+        map.addListener("center_changed", () => {
+          const centerNow = map.getCenter();
+          if (!centerNow) return;
+          latestCenter.current = { lat: centerNow.lat(), lng: centerNow.lng() };
+        });
+        map.addListener("idle", () => {
+          setMoving(false);
+          if (ignoreNextIdle.current) {
+            ignoreNextIdle.current = false;
+            return;
+          }
+          const centerNow = map.getCenter();
+          if (!centerNow) return;
+          const coords = { lat: centerNow.lat(), lng: centerNow.lng() };
+          latestCenter.current = coords;
+          if (idleTimer.current) window.clearTimeout(idleTimer.current);
+          idleTimer.current = window.setTimeout(() => reverseGeocode(coords, true), 450);
+        });
         setMapsReady(true);
       })
       .catch(() => setMapsReady(false));
     return () => {
       cancelled = true;
+      if (idleTimer.current) window.clearTimeout(idleTimer.current);
     };
   }, []);
 
   useEffect(() => {
-    if (!value || !mapInstance.current || !markerRef.current) return;
-    markerRef.current.setPosition(value);
+    if (!value || !mapInstance.current) return;
+    ignoreNextIdle.current = true;
+    latestCenter.current = value;
     mapInstance.current.panTo(value);
+    mapInstance.current.setZoom(PICKER_MAX_ZOOM - 1);
   }, [value?.lat, value?.lng]);
 
   useEffect(() => {
@@ -112,27 +142,37 @@ export function LocationPicker({
     return () => window.clearTimeout(id);
   }, [query]);
 
-  function updatePin(coords: LatLngLiteral, nextAddress?: string, parsed?: ParsedAddress) {
-    markerRef.current?.setPosition(coords);
-    mapInstance.current?.panTo(coords);
-    mapInstance.current?.setZoom(16);
+  function emitLocation(coords: LatLngLiteral, nextAddress?: string, parsed?: ParsedAddress) {
     setManualLat(String(coords.lat));
     setManualLng(String(coords.lng));
+    if (nextAddress) setPinAddress(nextAddress);
     onChange({ coords, address: nextAddress, parsed });
   }
 
-  async function reverseGeocode(coords: LatLngLiteral) {
+  async function reverseGeocode(coords: LatLngLiteral, quiet = false) {
     try {
+      if (!quiet) setLoading(true);
       const parsed = await reverseGeocodeAddress(coords);
-      if (parsed.formattedAddress) setQuery(parsed.formattedAddress);
-      updatePin(coords, parsed.formattedAddress, parsed);
+      const resolved =
+        parsed.formattedAddress || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+      setQuery(resolved);
+      emitLocation(coords, resolved, parsed);
     } catch {
-      updatePin(coords);
+      emitLocation(coords);
+    } finally {
+      if (!quiet) setLoading(false);
     }
   }
 
+  function moveMapTo(coords: LatLngLiteral, zoom = PICKER_MAX_ZOOM - 1) {
+    latestCenter.current = coords;
+    ignoreNextIdle.current = true;
+    mapInstance.current?.panTo(coords);
+    mapInstance.current?.setZoom(zoom);
+  }
+
   async function searchAddress() {
-    if (!query.trim()) return toast.error("Enter an address or landmark to search");
+    if (!query.trim()) return toast.error("Enter an area, street, apartment or landmark");
     if (!hasGoogleMapsKey())
       return toast.error(
         "Google Maps key is not configured. Enter latitude and longitude manually.",
@@ -142,12 +182,16 @@ export function LocationPicker({
       const google = await loadGoogleMaps();
       const geocoder = new google.maps.Geocoder();
       geocoder.geocode(
-        { address: `${query}, Telangana, India` },
-        (results: any[], status: string) => {
+        { address: `${query}, Hyderabad, Telangana, India` },
+        (results: any[] | null, status: string) => {
           setLoading(false);
           if (status !== "OK" || !results?.[0]) return toast.error("Could not find this location");
           const loc = results[0].geometry.location;
-          updatePin({ lat: loc.lat(), lng: loc.lng() }, results[0].formatted_address);
+          const coords = { lat: loc.lat(), lng: loc.lng() };
+          const parsed = parseFromGeocoderResult(results[0]);
+          moveMapTo(coords);
+          setSuggestions([]);
+          emitLocation(coords, parsed.formattedAddress, parsed);
         },
       );
     } catch {
@@ -162,7 +206,8 @@ export function LocationPicker({
       const result = await geocodePlace(place.placeId);
       setQuery(result.address.formattedAddress || place.title);
       setSuggestions([]);
-      updatePin(result.coords, result.address.formattedAddress, result.address);
+      moveMapTo(result.coords);
+      emitLocation(result.coords, result.address.formattedAddress, result.address);
     } catch {
       toast.error("Could not open this location");
     } finally {
@@ -174,11 +219,12 @@ export function LocationPicker({
     if (!navigator.geolocation)
       return toast.error("Location permission is not supported on this device");
     setLoading(true);
-    toast.info("Please allow location permission to select your delivery address");
+    toast.info("Please allow location permission to detect your delivery address");
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLoading(false);
-        reverseGeocode({ lat: position.coords.latitude, lng: position.coords.longitude });
+        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+        moveMapTo(coords);
+        reverseGeocode(coords);
       },
       () => {
         setLoading(false);
@@ -195,19 +241,37 @@ export function LocationPicker({
     const lng = Number(manualLng);
     if (!Number.isFinite(lat) || !Number.isFinite(lng))
       return toast.error("Enter valid latitude and longitude");
-    updatePin({ lat, lng });
+    const coords = { lat, lng };
+    moveMapTo(coords);
+    reverseGeocode(coords);
   }
 
+  function toggleMapType() {
+    const next = mapType === "roadmap" ? "satellite" : "roadmap";
+    setMapType(next);
+    mapInstance.current?.setMapTypeId(next);
+  }
+
+  const selectedLabel =
+    pinAddress || address || (value ? `${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}` : "");
+
   return (
-    <div className="overflow-hidden rounded-[26px] border border-zinc-100 bg-zinc-50">
+    <div className="overflow-hidden rounded-[30px] border border-zinc-100 bg-zinc-50 shadow-sm">
       <div className="grid gap-2 p-3 md:grid-cols-[1fr_auto_auto]">
-        <label className="relative flex min-h-12 items-center gap-2 rounded-2xl bg-white px-3 shadow-sm">
+        <label className="relative flex min-h-12 items-center gap-2 rounded-2xl bg-white px-3 shadow-sm ring-1 ring-zinc-100 focus-within:ring-2 focus-within:ring-red-500/25">
           <Search className="h-4 w-4 shrink-0 text-red-600" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search area, landmark, apartment..."
-            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                searchAddress();
+              }
+            }}
+            placeholder="Search for area, street or apartment"
+            className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-zinc-400"
+            aria-label="Search delivery location"
           />
           {searching && <span className="text-[11px] font-black text-zinc-400">Searching</span>}
         </label>
@@ -217,7 +281,7 @@ export function LocationPicker({
           disabled={loading}
           className="min-h-12 rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white disabled:bg-zinc-300"
         >
-          Search map
+          Search
         </button>
         <button
           type="button"
@@ -225,26 +289,28 @@ export function LocationPicker({
           disabled={loading}
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 text-sm font-black text-white disabled:bg-zinc-300"
         >
-          <LocateFixed className="h-4 w-4" /> Use current
+          <LocateFixed className="h-4 w-4" /> Current
         </button>
       </div>
 
       {suggestions.length > 0 && (
-        <div className="mx-3 mb-3 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100">
+        <div className="mx-3 mb-3 overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-zinc-100">
           {suggestions.map((place) => (
             <button
               key={place.placeId}
               type="button"
               onClick={() => selectSuggestion(place)}
-              className="flex w-full items-start gap-3 border-b border-zinc-100 px-3 py-3 text-left last:border-b-0 hover:bg-red-50"
+              className="flex w-full items-start gap-3 border-b border-zinc-100 px-4 py-3.5 text-left last:border-b-0 hover:bg-red-50"
             >
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-red-50 text-red-600">
+                <MapPin className="h-4 w-4" />
+              </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-black text-zinc-900">
+                <span className="block truncate text-sm font-black text-zinc-950">
                   {place.title}
                 </span>
                 <span className="block truncate text-xs font-semibold text-zinc-500">
-                  {place.subtitle || "Tap to select this location"}
+                  {place.subtitle || "Tap to open on map"}
                 </span>
               </span>
             </button>
@@ -253,12 +319,31 @@ export function LocationPicker({
       )}
 
       {hasGoogleMapsKey() ? (
-        <div
-          ref={mapRef}
-          className={`${compact ? "h-56 md:h-72" : "h-64 md:h-80"} w-full bg-zinc-200`}
-        />
+        <div className="relative">
+          <div
+            ref={mapRef}
+            className={`${compact ? "h-[360px] md:h-[430px]" : "h-[70vh] min-h-[430px]"} w-full bg-zinc-200`}
+          />
+          <div className="pointer-events-none absolute inset-0 grid place-items-center">
+            <CenterPin moving={moving || loading} />
+          </div>
+          <div className="absolute right-3 top-3 grid gap-2">
+            <MapButton label="Use current location" onClick={useCurrentLocation} disabled={loading}>
+              <Crosshair className="h-4 w-4" />
+            </MapButton>
+            <MapButton label="Toggle map type" onClick={toggleMapType}>
+              <Layers className="h-4 w-4" />
+            </MapButton>
+          </div>
+          <div className="absolute left-3 top-3 rounded-2xl bg-white/92 px-3 py-2 text-xs font-black text-zinc-800 shadow-lg backdrop-blur">
+            <span className="inline-flex items-center gap-1">
+              <Compass className="h-3.5 w-3.5 text-red-600" />
+              Fixed pin - zoom 200 ft to 20 ft
+            </span>
+          </div>
+        </div>
       ) : (
-        <div className="grid h-52 place-items-center bg-zinc-200 p-5 text-center">
+        <div className="grid h-64 place-items-center bg-zinc-200 p-5 text-center">
           <div>
             <MapPin className="mx-auto h-8 w-8 text-red-600" />
             <p className="mt-2 text-sm font-bold text-zinc-700">
@@ -269,68 +354,112 @@ export function LocationPicker({
         </div>
       )}
 
+      <div className="border-t border-zinc-100 bg-white px-4 py-3">
+        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-red-600">
+          Pinned location
+        </p>
+        <p className="mt-1 line-clamp-2 text-sm font-bold text-zinc-800">
+          {selectedLabel || "Select a map location for accurate ETA and delivery tracking."}
+        </p>
+        {value && (
+          <p className="mt-2 inline-flex rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-black text-zinc-500">
+            {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
+          </p>
+        )}
+      </div>
+
       <div className="grid gap-2 border-t border-zinc-100 p-3 md:grid-cols-[1fr_1fr_auto]">
         <input
           value={manualLat}
           onChange={(event) => setManualLat(event.target.value)}
           placeholder="Latitude"
-          className="h-11 rounded-2xl bg-white px-3 text-sm font-semibold outline-none"
+          className="h-11 rounded-2xl bg-white px-3 text-sm font-semibold outline-none ring-1 ring-zinc-100"
         />
         <input
           value={manualLng}
           onChange={(event) => setManualLng(event.target.value)}
           placeholder="Longitude"
-          className="h-11 rounded-2xl bg-white px-3 text-sm font-semibold outline-none"
+          className="h-11 rounded-2xl bg-white px-3 text-sm font-semibold outline-none ring-1 ring-zinc-100"
         />
         <button
           type="button"
           onClick={applyManualCoords}
-          className="min-h-11 rounded-2xl bg-white px-4 text-sm font-black text-zinc-800 shadow-sm"
+          className="min-h-11 rounded-2xl bg-white px-4 text-sm font-black text-zinc-800 shadow-sm ring-1 ring-zinc-100"
         >
           Set pin
         </button>
       </div>
-
-      <div className="border-t border-zinc-100 px-4 py-3 text-xs font-semibold text-zinc-500">
-        {value
-          ? `Selected: ${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}${mapsReady ? " - drag the pin to adjust" : ""}`
-          : "Select a map location for accurate ETA and delivery tracking."}
-      </div>
+      {!mapsReady && hasGoogleMapsKey() && (
+        <div className="border-t border-zinc-100 px-4 py-3 text-xs font-bold text-zinc-500">
+          Loading Google Maps...
+        </div>
+      )}
     </div>
   );
 }
 
-function customerPointerIcon(google: any) {
-  const svg = encodeURIComponent(`
-    <svg width="54" height="66" viewBox="0 0 54 66" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <filter id="s" x="0" y="0" width="54" height="66" filterUnits="userSpaceOnUse">
-        <feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="#111827" flood-opacity=".35"/>
-      </filter>
-      <g filter="url(#s)">
-        <path d="M27 4C15.4 4 6 13.1 6 24.3c0 15.2 21 35.7 21 35.7s21-20.5 21-35.7C48 13.1 38.6 4 27 4Z" fill="#E11D2E"/>
-        <path d="M27 8C17.7 8 10 15.4 10 24.4c0 11.6 13.3 26.7 17 30.6 3.7-3.9 17-19 17-30.6C44 15.4 36.3 8 27 8Z" fill="#FF6A00"/>
-        <circle cx="27" cy="25" r="12" fill="white"/>
-        <path d="M27 14c2.4 3.4-.8 5.4.8 7.7 1 1.5 3.5.8 4.1-.7 3.9 3.2 4 11.7-4.9 13.7-9-2-8.8-10.5-5-13.7.2 2.2 2.7 2.4 3.8 1 .9-1.2-.4-3.5 1.2-8Z" fill="#111111"/>
-        <circle cx="27" cy="25" r="2.6" fill="#E11D2E"/>
-      </g>
-    </svg>`);
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${svg}`,
-    scaledSize: new google.maps.Size(44, 54),
-    anchor: new google.maps.Point(22, 52),
-  };
+function MapButton({
+  label,
+  disabled,
+  children,
+  onClick,
+}: {
+  label: string;
+  disabled?: boolean;
+  children: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      disabled={disabled}
+      className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-zinc-900 shadow-xl ring-1 ring-zinc-200 disabled:opacity-60"
+    >
+      {children}
+    </button>
+  );
+}
+
+function CenterPin({ moving }: { moving: boolean }) {
+  return (
+    <div
+      className={`relative -mt-8 transition-transform duration-200 ${moving ? "-translate-y-2 scale-105" : ""}`}
+    >
+      <div className="absolute left-1/2 top-[47px] h-3 w-9 -translate-x-1/2 rounded-full bg-zinc-950/25 blur-sm" />
+      <img
+        src="/location-picker-pin.png"
+        alt=""
+        aria-hidden="true"
+        className="h-[62px] w-[62px] object-contain drop-shadow-2xl"
+        draggable={false}
+      />
+    </div>
+  );
 }
 
 function restaurantPointerIcon(google: any) {
-  const svg = encodeURIComponent(`
-    <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="21" cy="21" r="18" fill="#111827"/>
-      <circle cx="21" cy="21" r="13" fill="#E11D2E"/>
-      <path d="M15 14h3v14h-3V14Zm5 0h3v14h-3V14Zm7 0h3v14h-3V14Z" fill="white"/>
-    </svg>`);
   return {
-    url: `data:image/svg+xml;charset=UTF-8,${svg}`,
-    scaledSize: new google.maps.Size(34, 34),
-    anchor: new google.maps.Point(17, 17),
+    url: "/restaurant-location.png",
+    scaledSize: new google.maps.Size(44, 44),
+    anchor: new google.maps.Point(22, 42),
+  };
+}
+
+function parseFromGeocoderResult(result: any): ParsedAddress {
+  const find = (type: string) =>
+    result.address_components?.find((part: any) => part.types?.includes(type))?.long_name || "";
+  const route = find("route");
+  const streetNumber = find("street_number");
+  const sublocality = find("sublocality_level_1") || find("sublocality") || find("neighborhood");
+  return {
+    formattedAddress: result.formatted_address || "",
+    houseNumber: streetNumber,
+    landmark: route || sublocality,
+    city: find("locality") || find("administrative_area_level_3"),
+    state: find("administrative_area_level_1"),
+    country: find("country"),
+    postalCode: find("postal_code"),
   };
 }

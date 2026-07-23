@@ -2,14 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
   BriefcaseBusiness,
-  Check,
   ChevronDown,
+  Clock3,
   Home,
   LocateFixed,
   MapPin,
   Navigation,
   Pencil,
   Plus,
+  Search,
+  Star,
   Trash2,
   X,
 } from "lucide-react";
@@ -55,6 +57,24 @@ const emptyDraft: AddressDraft = {
   lng: null,
   isDefault: false,
 };
+
+const popularLocations = [
+  {
+    label: "Maisammaguda",
+    subtitle: "Hyderabad, Telangana",
+    coords: { lat: 17.562861, lng: 78.453472 },
+  },
+  {
+    label: "Dulapally",
+    subtitle: "Near Kompally",
+    coords: { lat: 17.547264, lng: 78.466253 },
+  },
+  {
+    label: "Kompally",
+    subtitle: "Hyderabad, Telangana",
+    coords: { lat: 17.537742, lng: 78.485449 },
+  },
+];
 
 export function AddressBottomSheet({
   open,
@@ -180,6 +200,13 @@ export function AddressBottomSheet({
     setMode("confirm");
   }
 
+  function startMapSelection() {
+    startNewAddress();
+    window.setTimeout(() => {
+      document.querySelector("[data-address-map]")?.scrollIntoView({ behavior: "smooth" });
+    }, 120);
+  }
+
   function editAddress(address: CustomerAddress) {
     setEditingId(address.id);
     setDraft({
@@ -228,6 +255,37 @@ export function AddressBottomSheet({
     }));
   }
 
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      toast.error("Location permission is not supported on this device");
+      return;
+    }
+    toast.info("Please allow location permission to detect your delivery address");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+        onPinChange({ coords, address: "Current location" });
+        setMode("confirm");
+      },
+      () => toast.error("Location permission was denied. Search or select on map instead."),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 },
+    );
+  }
+
+  function choosePopularLocation(location: (typeof popularLocations)[number]) {
+    onPinChange({
+      coords: location.coords,
+      address: `${location.label}, ${location.subtitle}`,
+      parsed: {
+        formattedAddress: `${location.label}, ${location.subtitle}`,
+        city: "Hyderabad",
+        state: "Telangana",
+        country: "India",
+      },
+    });
+    setMode("confirm");
+  }
+
   if (!open) return null;
 
   return (
@@ -242,22 +300,18 @@ export function AddressBottomSheet({
         role="dialog"
         aria-modal="true"
         aria-label="Choose delivery location"
-        className={`absolute inset-x-0 bottom-0 mx-auto max-w-3xl overflow-hidden rounded-t-[34px] bg-[#F8F9FB] shadow-2xl transition-all duration-300 md:bottom-6 md:rounded-[34px] ${
-          snap === "compact"
-            ? "h-[40vh]"
-            : snap === "full"
-              ? "h-[100vh] md:h-[92vh]"
-              : "h-[80vh] md:h-[82vh]"
+        className={`absolute inset-x-0 bottom-0 mx-auto max-w-4xl overflow-hidden rounded-t-[34px] bg-[#F8F9FB] shadow-2xl transition-all duration-300 md:bottom-5 md:rounded-[34px] ${
+          snap === "compact" ? "h-[40vh]" : snap === "full" ? "h-[100vh] md:h-[92vh]" : "h-[90vh]"
         }`}
       >
-        <div className="sticky top-0 z-10 border-b border-zinc-100 bg-white/92 px-4 py-3 backdrop-blur-xl">
+        <div className="sticky top-0 z-10 border-b border-zinc-100 bg-white/94 px-4 py-3 backdrop-blur-xl">
           <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-zinc-300" />
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">
-                Delivering to
-              </p>
               <h2 className="text-2xl font-black">Choose Delivery Location</h2>
+              <p className="mt-0.5 text-sm font-bold text-zinc-500">
+                Deliver delicious food to your doorstep
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <SnapButton snap={snap} setSnap={setSnap} />
@@ -273,24 +327,17 @@ export function AddressBottomSheet({
           </div>
         </div>
 
-        <div className="h-[calc(100%-82px)] overflow-y-auto px-4 pb-28 pt-4">
+        <div className="h-[calc(100%-92px)] overflow-y-auto px-4 pb-28 pt-4">
           {mode === "saved" ? (
             <div className="space-y-4">
-              <button
-                type="button"
-                onClick={startNewAddress}
-                className="flex min-h-16 w-full items-center justify-between rounded-[24px] bg-zinc-950 px-4 text-left font-black text-white shadow-lg shadow-zinc-950/15"
-              >
-                <span className="flex items-center gap-3">
-                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/12">
-                    <Plus className="h-5 w-5" />
-                  </span>
-                  Add current or searched location
-                </span>
-                <LocateFixed className="h-5 w-5" />
-              </button>
+              <QuickLocationActions
+                onSearch={startNewAddress}
+                onCurrent={useCurrentLocation}
+                onMap={startMapSelection}
+              />
 
               <div className="space-y-3">
+                <SectionTitle title="Saved Addresses" />
                 {isLoading ? (
                   <div className="h-28 animate-pulse rounded-[26px] bg-white" />
                 ) : addresses.length ? (
@@ -310,6 +357,56 @@ export function AddressBottomSheet({
                 ) : (
                   <EmptyAddressState onAdd={startNewAddress} />
                 )}
+              </div>
+
+              {addresses.length > 0 && (
+                <div className="space-y-3">
+                  <SectionTitle title="Recent Searches" />
+                  {addresses.slice(0, 3).map((address) => (
+                    <button
+                      key={`recent-${address.id}`}
+                      type="button"
+                      onClick={() => editAddress(address)}
+                      className="flex w-full items-center gap-3 rounded-[22px] bg-white p-3 text-left shadow-sm ring-1 ring-zinc-100"
+                    >
+                      <span className="grid h-10 w-10 place-items-center rounded-2xl bg-zinc-100 text-zinc-600">
+                        <Clock3 className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-black text-zinc-900">
+                          {address.label || shortAddress(address)}
+                        </span>
+                        <span className="block truncate text-xs font-semibold text-zinc-500">
+                          {address.address}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <SectionTitle title="Popular Locations" />
+                {popularLocations.map((location) => (
+                  <button
+                    key={location.label}
+                    type="button"
+                    onClick={() => choosePopularLocation(location)}
+                    className="flex w-full items-center gap-3 rounded-[22px] bg-white p-3 text-left shadow-sm ring-1 ring-zinc-100"
+                  >
+                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-red-50 text-red-600">
+                      <Star className="h-4 w-4" />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-black text-zinc-900">
+                        {location.label}
+                      </span>
+                      <span className="block text-xs font-semibold text-zinc-500">
+                        {location.subtitle}
+                      </span>
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           ) : (
@@ -406,6 +503,70 @@ function SavedAddressCard({
   );
 }
 
+function QuickLocationActions({
+  onSearch,
+  onCurrent,
+  onMap,
+}: {
+  onSearch: () => void;
+  onCurrent: () => void;
+  onMap: () => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={onSearch}
+        className="flex min-h-14 w-full items-center gap-3 rounded-[24px] bg-white px-4 text-left shadow-sm ring-1 ring-zinc-100"
+      >
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-zinc-950 text-white">
+          <Search className="h-4 w-4" />
+        </span>
+        <span>
+          <span className="block text-sm font-black text-zinc-950">
+            Search for area, street or apartment
+          </span>
+          <span className="text-xs font-semibold text-zinc-500">Google Places autocomplete</span>
+        </span>
+      </button>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={onCurrent}
+          className="flex min-h-20 items-center gap-3 rounded-[24px] bg-green-600 p-4 text-left text-white shadow-lg shadow-green-600/20"
+        >
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/15">
+            <LocateFixed className="h-5 w-5" />
+          </span>
+          <span>
+            <span className="block font-black">Use Current Location</span>
+            <span className="text-xs font-bold text-white/80">Detect GPS and reverse geocode</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={onMap}
+          className="flex min-h-20 items-center gap-3 rounded-[24px] bg-red-600 p-4 text-left text-white shadow-lg shadow-red-600/20"
+        >
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/15">
+            <MapPin className="h-5 w-5" />
+          </span>
+          <span>
+            <span className="block font-black">Select on Map</span>
+            <span className="text-xs font-bold text-white/80">Move map under fixed pointer</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SectionTitle({ title }: { title: string }) {
+  return (
+    <h3 className="text-[12px] font-black uppercase tracking-[0.18em] text-zinc-500">{title}</h3>
+  );
+}
+
 function ConfirmAddressForm({
   draft,
   setDraft,
@@ -442,7 +603,7 @@ function ConfirmAddressForm({
         <ChevronDown className="h-4 w-4 rotate-90" /> Saved addresses
       </button>
 
-      <div className="rounded-[28px] bg-white p-3 shadow-sm ring-1 ring-zinc-100">
+      <div data-address-map className="rounded-[30px] bg-white p-2 shadow-sm ring-1 ring-zinc-100">
         <LocationPicker
           compact
           value={coords}
@@ -452,7 +613,18 @@ function ConfirmAddressForm({
         />
       </div>
 
-      <div className="rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-zinc-100">
+      <div className="rounded-[30px] bg-white p-4 shadow-sm ring-1 ring-zinc-100">
+        <div className="mb-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-red-600">
+            Address Confirmation
+          </p>
+          <h3 className="text-xl font-black text-zinc-950">Pinned Location</h3>
+          <p className="mt-1 line-clamp-2 text-sm font-semibold text-zinc-500">
+            {draft.formattedAddress ||
+              draft.address ||
+              "Move the map or search to select a location"}
+          </p>
+        </div>
         <div className="flex flex-wrap gap-2">
           {(["Home", "Work", "Other"] as const).map((type) => (
             <button
@@ -478,6 +650,36 @@ function ConfirmAddressForm({
             label="Landmark"
             value={draft.landmark || ""}
             onChange={(landmark) => setDraft((current) => ({ ...current, landmark }))}
+          />
+          <SheetField
+            label="Apartment / building"
+            value={
+              draft.notes?.split(" | ")?.[0]?.startsWith("Apartment:")
+                ? draft.notes.split(" | ")[0].replace("Apartment:", "").trim()
+                : ""
+            }
+            onChange={(apartment) =>
+              setDraft((current) => ({
+                ...current,
+                notes: apartment ? `Apartment: ${apartment}` : current.notes || "",
+              }))
+            }
+          />
+          <SheetField
+            label="Floor"
+            value={
+              draft.notes?.includes("Floor:")
+                ? draft.notes.split("Floor:")[1]?.split(" | ")[0]?.trim() || ""
+                : ""
+            }
+            onChange={(floor) =>
+              setDraft((current) => ({
+                ...current,
+                notes: floor
+                  ? `${current.notes || ""}${current.notes ? " | " : ""}Floor: ${floor}`
+                  : current.notes || "",
+              }))
+            }
           />
           <SheetField
             label="Contact name"
