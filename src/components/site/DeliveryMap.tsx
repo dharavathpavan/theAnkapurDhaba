@@ -14,10 +14,12 @@ export function DeliveryMap({
   order,
   compact = false,
   premium = false,
+  bare = false,
 }: {
   order: Order;
   compact?: boolean;
   premium?: boolean;
+  bare?: boolean;
 }) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<any>(null);
@@ -124,9 +126,15 @@ export function DeliveryMap({
 
   return (
     <div
-      className={`min-w-0 overflow-hidden rounded-[24px] border sm:rounded-[28px] ${premium ? "border-zinc-200 bg-white shadow-sm" : "border-border bg-background"}`}
+      className={
+        bare
+          ? "h-full min-w-0 overflow-hidden"
+          : `min-w-0 overflow-hidden rounded-[24px] border sm:rounded-[28px] ${premium ? "border-zinc-200 bg-white shadow-sm" : "border-border bg-background"}`
+      }
     >
-      <div className={`relative ${compact ? "h-44" : "h-72 sm:h-[22rem] md:h-96"} overflow-hidden`}>
+      <div
+        className={`relative ${bare ? "h-full" : compact ? "h-44" : "h-72 sm:h-[22rem] md:h-96"} overflow-hidden`}
+      >
         {canUseGoogleMap ? (
           <div ref={mapRef} className="absolute inset-0 h-full w-full" />
         ) : (
@@ -187,71 +195,79 @@ export function DeliveryMap({
             <div className="absolute inset-0 animate-ping rounded-full bg-green-500/35" />
           </div>
         ) : null}
-        <div className="absolute left-3 right-3 top-3 grid grid-cols-2 gap-2 md:left-4 md:right-4">
-          <MapPill
-            icon={Clock3}
-            label="ETA"
-            value={
-              routeEta.etaMinutes
-                ? `${routeEta.etaMinutes} min`
-                : order.delivery?.etaMinutes
-                  ? `${order.delivery.etaMinutes} min`
-                  : "Updating"
-            }
-          />
-          <MapPill
-            icon={Navigation}
-            label="Distance"
-            value={
-              routeEta.distanceKm
-                ? `${routeEta.distanceKm} km`
-                : order.delivery?.distanceKm
-                  ? `${order.delivery.distanceKm} km`
-                  : `${Math.round(progress * 100)}%`
-            }
-          />
-        </div>
-        <div className="absolute bottom-3 left-3 right-3 rounded-3xl bg-white/92 p-3 shadow-lg backdrop-blur md:bottom-4 md:left-4 md:right-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
-                Live tracking
-              </div>
-              <div className="truncate font-black text-zinc-950">
-                {mapsLive
-                  ? "Google route live"
-                  : location
-                    ? "Rider location updating"
-                    : "Waiting for rider location"}
+        {!bare ? (
+          <>
+            <div className="absolute left-3 right-3 top-3 grid grid-cols-2 gap-2 md:left-4 md:right-4">
+              <MapPill
+                icon={Clock3}
+                label="ETA"
+                value={
+                  routeEta.etaMinutes
+                    ? `${routeEta.etaMinutes} min`
+                    : order.delivery?.etaMinutes
+                      ? `${order.delivery.etaMinutes} min`
+                      : "Updating"
+                }
+              />
+              <MapPill
+                icon={Navigation}
+                label="Distance"
+                value={
+                  routeEta.distanceKm
+                    ? `${routeEta.distanceKm} km`
+                    : order.delivery?.distanceKm
+                      ? `${order.delivery.distanceKm} km`
+                      : `${Math.round(progress * 100)}%`
+                }
+              />
+            </div>
+            <div className="absolute bottom-3 left-3 right-3 rounded-3xl bg-white/92 p-3 shadow-lg backdrop-blur md:bottom-4 md:left-4 md:right-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
+                    Live tracking
+                  </div>
+                  <div className="truncate font-black text-zinc-950">
+                    {mapsLive
+                      ? "Google route live"
+                      : location
+                        ? "Rider location updating"
+                        : "Waiting for rider location"}
+                  </div>
+                </div>
+                <span
+                  className={`shrink-0 rounded-2xl px-3 py-2 text-sm font-black ${location ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"}`}
+                >
+                  {location ? "LIVE" : "WAITING"}
+                </span>
               </div>
             </div>
-            <span
-              className={`shrink-0 rounded-2xl px-3 py-2 text-sm font-black ${location ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"}`}
-            >
-              {location ? "LIVE" : "WAITING"}
+          </>
+        ) : null}
+      </div>
+      {!bare ? (
+        <div
+          className={`grid min-w-0 gap-2 border-t px-4 py-3 text-xs md:grid-cols-2 ${premium ? "border-zinc-100 text-zinc-500" : "border-border text-muted-foreground"}`}
+        >
+          {location ? (
+            <span className="min-w-0 break-words">
+              Rider: {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
+              {order.delivery?.gpsAccuracy
+                ? ` - ${Math.round(order.delivery.gpsAccuracy)}m accuracy`
+                : ""}
             </span>
-          </div>
-        </div>
-      </div>
-      <div
-        className={`grid min-w-0 gap-2 border-t px-4 py-3 text-xs md:grid-cols-2 ${premium ? "border-zinc-100 text-zinc-500" : "border-border text-muted-foreground"}`}
-      >
-        {location ? (
-          <span className="min-w-0 break-words">
-            Rider: {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
-            {order.delivery?.gpsAccuracy
-              ? ` - ${Math.round(order.delivery.gpsAccuracy)}m accuracy`
-              : ""}
+          ) : (
+            <span className="min-w-0 break-words">
+              Map switches to live rider GPS after pickup.
+            </span>
+          )}
+          <span className="min-w-0 break-words md:text-right">
+            {location
+              ? `Updated ${new Date(order.delivery?.lastLocationAt || location.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              : `Destination: ${destination}`}
           </span>
-        ) : (
-          <span className="min-w-0 break-words">Map switches to live rider GPS after pickup.</span>
-        )}
-        <span className="min-w-0 break-words md:text-right">
-          {location
-            ? `Updated ${new Date(order.delivery?.lastLocationAt || location.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-            : `Destination: ${destination}`}
-        </span>
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

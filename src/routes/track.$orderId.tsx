@@ -1,31 +1,29 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowLeft,
   Bike,
+  Check,
   CheckCircle2,
   ChefHat,
-  Clock3,
-  Download,
-  Headphones,
+  Circle,
   Home,
-  MapPin,
-  PackageCheck,
+  MessageSquare,
+  MoreHorizontal,
   Phone,
-  ReceiptText,
+  Plus,
   RotateCcw,
-  ShieldCheck,
   Star,
-  Store,
-  Truck,
-  Wallet,
+  TimerReset,
+  Utensils,
   XCircle,
 } from "lucide-react";
 import {
   getCustomerHome,
   getOrder,
   type CustomerBanner,
-  type DeliveryDetails,
   type Order,
   type OrderStatus,
 } from "@/services/api";
@@ -39,13 +37,38 @@ export const Route = createFileRoute("/track/$orderId")({
   component: TrackRedirect,
 });
 
-const STEPS: Array<{ key: OrderStatus; label: string; desc: string; icon: React.ElementType }> = [
-  { key: "received", label: "Received", desc: "Order placed", icon: ReceiptText },
-  { key: "accepted", label: "Accepted", desc: "Kitchen accepted", icon: CheckCircle2 },
-  { key: "preparing", label: "Preparing", desc: "Cooking now", icon: ChefHat },
-  { key: "ready", label: "Ready", desc: "Packed and waiting", icon: PackageCheck },
-  { key: "out_for_delivery", label: "On the way", desc: "Rider picked up", icon: Bike },
-  { key: "delivered", label: "Delivered", desc: "Enjoy your meal", icon: Home },
+type ProgressStep = {
+  id: "placed" | "preparing" | "out_for_delivery" | "delivered";
+  title: string;
+  description: string;
+  icon: React.ElementType;
+};
+
+const PROGRESS_STEPS: ProgressStep[] = [
+  {
+    id: "placed",
+    title: "Order Placed",
+    description: "Restaurant has accepted your order",
+    icon: Check,
+  },
+  {
+    id: "preparing",
+    title: "Preparing Food",
+    description: "Chef is working on your order",
+    icon: Utensils,
+  },
+  {
+    id: "out_for_delivery",
+    title: "Out for Delivery",
+    description: "Your delivery partner will pick it up soon",
+    icon: Bike,
+  },
+  {
+    id: "delivered",
+    title: "Delivered",
+    description: "Drop off at your location",
+    icon: Home,
+  },
 ];
 
 function TrackRedirect() {
@@ -80,299 +103,329 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
   if (!mounted || isLoading) return <TrackingSkeleton />;
   if (!order) return <NotFound orderId={orderId} />;
 
-  const stage = currentStage(order);
-  const isDone = order.status === "delivered";
-  const isCancelled = order.status === "cancelled";
-
   return (
-    <div className="mx-auto w-full max-w-6xl overflow-x-hidden px-3 pb-28 pt-3 sm:px-4 md:px-6 md:py-8">
-      <section
-        className={`overflow-hidden rounded-[26px] p-4 text-white shadow-xl sm:rounded-[30px] sm:p-5 md:p-7 ${isDone ? "bg-gradient-to-br from-green-600 to-emerald-900" : isCancelled ? "bg-gradient-to-br from-zinc-700 to-zinc-950" : "bg-gradient-to-br from-red-600 via-red-700 to-zinc-950"}`}
+    <div className="min-h-screen overflow-x-hidden bg-[#f5f3f3] text-[#1b1c1c]">
+      <TopControls />
+      <main className="mx-auto w-full max-w-[640px] pb-28">
+        <TrackingHero order={order} />
+        <div className="-mt-7 space-y-4 px-4">
+          <LiveTrackingCard order={order} />
+          <DelayAlert order={order} />
+          <ProgressCard order={order} />
+          <ItemsOrderedCard order={order} />
+          <WhileYouWaitAd banners={homeContent?.banners ?? []} />
+          {order.status === "delivered" && <CompletionCard />}
+          {order.status === "cancelled" && <CancelledCard />}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function TopControls() {
+  return (
+    <div className="pointer-events-none fixed left-0 right-0 top-0 z-40 mx-auto flex h-16 max-w-[640px] items-center justify-between px-4">
+      <button
+        type="button"
+        onClick={() => window.history.back()}
+        className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full border border-black/5 bg-white/90 text-zinc-950 shadow-sm backdrop-blur"
+        aria-label="Go back"
       >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="text-[11px] font-black uppercase tracking-[0.22em] text-white/65">
-              Live order
-            </div>
-            <h1 className="mt-1 break-all text-2xl font-black sm:text-3xl md:text-5xl">
-              #{order.id}
-            </h1>
-            <p className="mt-1 text-sm text-white/80 md:text-base">
-              {stage.label} - {stage.desc}
-            </p>
-          </div>
-          <div className="w-fit shrink-0 rounded-[22px] bg-white/15 px-4 py-3 text-center backdrop-blur sm:rounded-[24px]">
-            <div className="text-[11px] font-bold text-white/65">ETA</div>
-            <div className="text-2xl font-black">{bestEta(order)}</div>
-          </div>
+        <ArrowLeft className="h-6 w-6" />
+      </button>
+      <button
+        type="button"
+        className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full border border-black/5 bg-white/90 text-zinc-950 shadow-sm backdrop-blur"
+        aria-label="More order actions"
+      >
+        <MoreHorizontal className="h-6 w-6" />
+      </button>
+    </div>
+  );
+}
+
+function TrackingHero({ order }: { order: Order }) {
+  return (
+    <section className="relative h-[390px] overflow-hidden bg-[#dbdad9] sm:h-[430px]">
+      {order.type === "delivery" ? (
+        <div className="absolute inset-0 opacity-95">
+          <DeliveryMap order={order} compact premium bare />
         </div>
+      ) : (
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,#ffffff_0,#dbdad9_45%,#cfcfce_100%)]" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-[#f5f3f3]" />
+    </section>
+  );
+}
 
-        <div className="mt-5 grid grid-cols-2 gap-2 md:gap-3">
-          <HeroStat
-            label="Type"
-            value={order.tableNumber ? `Table ${order.tableNumber}` : order.type}
-          />
-          <HeroStat label="Total" value={`₹${order.total}`} />
+function LiveTrackingCard({ order }: { order: Order }) {
+  const riderName =
+    order.delivery?.partnerName || order.delivery?.assignedRiderName || "Delivery partner";
+  const riderStatus = riderSubtext(order);
+  const canCall = Boolean(order.delivery?.partnerPhone);
+  return (
+    <section className="relative z-10 rounded-[24px] bg-white p-5 shadow-[0_10px_35px_rgba(0,0,0,0.08)] ring-1 ring-zinc-100">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-red-600">
+            <span className="h-2 w-2 rounded-full bg-red-400" />
+            Live tracking
+          </div>
+          <h1 className="mt-2 text-[22px] font-black leading-tight text-zinc-950">
+            {headlineFor(order)}
+          </h1>
+          <p className="mt-1 truncate text-sm font-medium text-zinc-500">{riderStatus}</p>
         </div>
-      </section>
-
-      {isDone && <CompletionCard />}
-      {isCancelled && <CancelledCard />}
-
-      <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]">
-        <main className="min-w-0 space-y-4">
-          {order.type === "delivery" ? (
-            <section className="overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-zinc-100">
-              <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <h2 className="text-xl font-black">Live delivery map</h2>
-                  <p className="text-sm text-zinc-500">
-                    {order.delivery?.lastLocationAt
-                      ? "Delivery partner location is live"
-                      : "Waiting for rider GPS after pickup"}
-                  </p>
-                </div>
-                <span
-                  className={`w-fit rounded-2xl px-3 py-2 text-xs font-black ${order.delivery?.lastLocationAt ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}
-                >
-                  {order.delivery?.lastLocationAt ? "LIVE" : "WAITING"}
-                </span>
-              </div>
-              <DeliveryMap order={order} premium />
-            </section>
-          ) : (
-            <PickupDineInCard order={order} />
-          )}
-
-          <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
-            <h2 className="text-xl font-black">Order journey</h2>
-            <Timeline order={order} />
-          </section>
-
-          <OrderDetails order={order} />
-        </main>
-
-        <aside className="min-w-0 space-y-4">
-          <PartnerCard order={order} />
-          <HelpCard order={order} />
-        </aside>
+        <div className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[18px] bg-zinc-950 text-center text-white shadow-lg">
+          <span className="block text-2xl font-black leading-none">{etaNumber(order)}</span>
+          <span className="mt-1 block text-[10px] font-black uppercase leading-none">min</span>
+        </div>
       </div>
 
-      <TrackingAdSpace banners={homeContent?.banners ?? []} />
-    </div>
-  );
-}
+      <div className="my-5 h-px bg-zinc-100" />
 
-function Timeline({ order }: { order: Order }) {
-  const idx =
-    order.status === "cancelled" ? -1 : STEPS.findIndex((step) => step.key === order.status);
-  const progress = idx <= 0 ? 0 : (idx / (STEPS.length - 1)) * 100;
-  return (
-    <div className="mt-5 overflow-x-auto overscroll-x-contain pb-2">
-      <ol className="relative grid min-w-[560px] grid-cols-6 gap-2 px-1 pt-2 sm:min-w-[680px]">
-        <div className="absolute left-[8%] right-[8%] top-8 h-2 rounded-full bg-zinc-100" />
-        <div
-          className="absolute left-[8%] top-8 h-2 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-green-500 transition-all duration-700 ease-out"
-          style={{ width: `calc(${progress}% * 0.84)` }}
-        />
-        {STEPS.map((step, i) => {
-          const done = i <= idx;
-          const active = i === idx;
-          const Icon = step.icon;
-          return (
-            <li key={step.key} className="relative z-10 flex flex-col items-center text-center">
-              <div
-                className={`grid h-14 w-14 place-items-center rounded-full shadow-sm transition duration-500 ${done ? "bg-red-600 text-white" : "bg-white text-zinc-400 ring-2 ring-zinc-100"} ${active ? "animate-pulse ring-4 ring-red-100" : ""}`}
-              >
-                <Icon className="h-6 w-6" />
-              </div>
-              <div
-                className={`mt-3 text-xs font-black sm:text-sm ${active ? "text-red-600" : done ? "text-zinc-950" : "text-zinc-400"}`}
-              >
-                {step.label}
-              </div>
-              <div className="mt-1 max-w-24 text-xs leading-snug text-zinc-500">{step.desc}</div>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-}
-
-function PartnerCard({ order }: { order: Order }) {
-  const d = order.delivery || {};
-  const assigned = Boolean(d.partnerName || d.partnerPhone || d.vehicleNumber);
-  return (
-    <section className="min-w-0 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-black">Delivery partner</h2>
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-black ${assigned ? "bg-green-50 text-green-700" : "bg-zinc-100 text-zinc-500"}`}
+      <div className="flex items-center gap-3">
+        <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-red-50">
+          <Bike className="h-7 w-7 text-red-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-black text-zinc-950">{riderName}</div>
+          <div className="mt-0.5 flex items-center gap-1 text-xs font-medium text-zinc-500">
+            <Star className="h-3.5 w-3.5 fill-[#FF8A00] text-[#FF8A00]" />
+            <span>4.9</span>
+            <span>•</span>
+            <span>{order.type === "delivery" ? "Delivery Partner" : order.type}</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-zinc-100 text-zinc-700"
+          aria-label="Message support"
         >
-          {assigned ? "Assigned" : "Pending"}
+          <MessageSquare className="h-5 w-5" />
+        </button>
+        {canCall ? (
+          <a
+            href={`tel:${order.delivery?.partnerPhone}`}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-600 text-white shadow-lg shadow-red-600/20"
+            aria-label="Call delivery partner"
+          >
+            <Phone className="h-5 w-5" />
+          </a>
+        ) : (
+          <a
+            href="tel:+919963218601"
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-600 text-white shadow-lg shadow-red-600/20"
+            aria-label="Call restaurant"
+          >
+            <Phone className="h-5 w-5" />
+          </a>
+        )}
+      </div>
+
+      <div className="my-5 h-px bg-zinc-100" />
+
+      <button
+        type="button"
+        className="flex w-full items-center gap-3 text-left"
+        aria-label="Add delivery instructions"
+      >
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
+          <Plus className="h-5 w-5" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-black text-zinc-950">Add Delivery Instructions</span>
+          <span className="block truncate text-xs font-medium text-zinc-500">
+            Ring bell, leave at door...
+          </span>
+        </span>
+      </button>
+    </section>
+  );
+}
+
+function DelayAlert({ order }: { order: Order }) {
+  const delayed =
+    Boolean(order.delivery?.delayReason) ||
+    Boolean(order.delivery?.delayExtraMinutes) ||
+    isOlderThan(order, 35);
+  if (!delayed) return null;
+  const minutes = order.delivery?.delayExtraMinutes || 5;
+  return (
+    <section className="flex items-center gap-4 rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-zinc-100">
+      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
+        <TimerReset className="h-6 w-6" />
+      </div>
+      <div className="min-w-0">
+        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">
+          Delayed by {minutes} mins
+        </div>
+        <p className="mt-1 text-sm font-semibold text-zinc-950">
+          {order.delivery?.delayReason || "Get Rs 25 coupon after order delivery"}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function ProgressCard({ order }: { order: Order }) {
+  const active = progressId(order.status);
+  const badge = order.status === "cancelled" ? "Cancelled" : labelForStatus(order.status);
+  return (
+    <section className="rounded-[22px] bg-white p-6 shadow-sm ring-1 ring-zinc-100">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-[22px] font-black text-zinc-950">Order Progress</h2>
+        <span
+          className={`rounded-full px-3 py-1 text-[10px] font-black uppercase ${order.status === "cancelled" ? "bg-zinc-100 text-zinc-500" : "bg-green-50 text-green-700"}`}
+        >
+          {badge}
         </span>
       </div>
-      <div className="mt-4 flex min-w-0 items-center gap-3">
-        <div className="grid h-14 w-14 place-items-center rounded-3xl bg-green-100 text-green-700">
-          <Bike className="h-7 w-7" />
-        </div>
-        <div className="min-w-0">
-          <div className="truncate font-black">
-            {order.type === "delivery" ? d.partnerName || "Assigning soon" : "Not required"}
-          </div>
-          <div className="text-sm text-zinc-500">
-            {d.vehicleNumber || "Vehicle updates after pickup"}
-          </div>
-          <div className="text-xs text-zinc-400">
-            {d.trackingPaused ? "GPS paused" : d.lastLocationAt ? "GPS active" : "GPS waiting"}
-          </div>
-        </div>
-      </div>
-      {d.partnerPhone && (
-        <a
-          href={`tel:${d.partnerPhone}`}
-          className="mt-4 flex min-h-12 items-center justify-center rounded-2xl bg-green-600 font-black text-white"
+      <ol className="mt-7 space-y-0">
+        {PROGRESS_STEPS.map((step, index) => (
+          <ProgressItem
+            key={step.id}
+            step={step}
+            order={order}
+            active={active === step.id}
+            done={isStepDone(step.id, order.status)}
+            isLast={index === PROGRESS_STEPS.length - 1}
+          />
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function ProgressItem({
+  step,
+  order,
+  active,
+  done,
+  isLast,
+}: {
+  step: ProgressStep;
+  order: Order;
+  active: boolean;
+  done: boolean;
+  isLast: boolean;
+}) {
+  const Icon = step.icon;
+  return (
+    <li className="grid grid-cols-[40px_1fr] gap-3">
+      <div className="flex flex-col items-center">
+        <div
+          className={`grid h-8 w-8 place-items-center rounded-full border-2 transition-all duration-500 ${
+            done
+              ? "border-green-500 bg-green-500 text-white"
+              : active
+                ? "animate-pulse border-red-600 bg-white text-red-600 ring-4 ring-red-50"
+                : "border-zinc-200 bg-zinc-100 text-zinc-400"
+          }`}
         >
-          <Phone className="mr-2 h-5 w-5" /> Call partner
-        </a>
-      )}
-    </section>
-  );
-}
-
-function EtaCard({ order }: { order: Order }) {
-  const d = order.delivery || {};
-  return (
-    <section className="min-w-0 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
-      <h2 className="text-xl font-black">ETA details</h2>
-      <div className="mt-4 grid gap-3">
-        <EtaRow icon={Clock3} label="Estimated arrival" value={bestEta(order)} />
-        <EtaRow icon={ChefHat} label="Kitchen prep" value={`${d.prepEtaMinutes || 15} min`} />
-        <EtaRow icon={Truck} label="Delivery ETA" value={`${d.etaMinutes || 30} min`} />
-        <EtaRow
-          icon={MapPin}
-          label="Last GPS"
-          value={
-            d.lastLocationAt
-              ? new Date(d.lastLocationAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "Not started"
-          }
-        />
+          {done ? (
+            <Check className="h-4 w-4" />
+          ) : active ? (
+            <Circle className="h-4 w-4" />
+          ) : (
+            <Icon className="h-4 w-4" />
+          )}
+        </div>
+        {!isLast && <div className="h-16 w-px bg-zinc-200" />}
       </div>
-    </section>
-  );
-}
-
-function PaymentCard({ order }: { order: Order }) {
-  return (
-    <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
-      <h2 className="text-xl font-black">Payment</h2>
-      <div className="mt-4 grid gap-3">
-        <EtaRow icon={Wallet} label="Method" value={order.paymentMethod.toUpperCase()} />
-        <EtaRow icon={ShieldCheck} label="Status" value={order.paymentStatus.replace(/_/g, " ")} />
-        <EtaRow icon={ReceiptText} label="Order total" value={`₹${order.total}`} />
-      </div>
-    </section>
-  );
-}
-
-function OrderDetails({ order }: { order: Order }) {
-  return (
-    <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
-      <h2 className="text-xl font-black">Order details</h2>
-      <div className="mt-4 rounded-3xl bg-zinc-50 p-4">
-        <div className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Customer</div>
-        <div className="mt-1 font-black">{order.customer.name}</div>
-        <div className="text-sm text-zinc-500">{order.customer.phone}</div>
-        {order.customer.address && (
-          <div className="mt-2 text-sm text-zinc-600">{order.customer.address}</div>
-        )}
-        {order.customer.notes && (
-          <div className="mt-2 rounded-2xl bg-white p-3 text-sm text-zinc-600">
-            Note: {order.customer.notes}
+      <div className={`${isLast ? "pb-0" : "pb-5"}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className={`font-black ${active ? "text-red-600" : "text-zinc-950"}`}>
+              {step.title}
+            </h3>
+            <p className="mt-1 text-sm text-zinc-500">{stepDescription(step, order)}</p>
           </div>
-        )}
+          <span className="shrink-0 text-xs font-bold text-zinc-500">
+            {active ? "In Progress" : done && step.id === "placed" ? placedTime(order) : ""}
+          </span>
+        </div>
+        {active && step.id === "preparing" ? (
+          <div className="mt-4 flex gap-3 rounded-2xl bg-zinc-100 p-4 text-sm font-medium text-zinc-600">
+            <Utensils className="h-5 w-5 shrink-0 text-red-600" />
+            <span>Ingredients are being sourced and prepped.</span>
+          </div>
+        ) : null}
       </div>
-      <ul className="mt-4 divide-y divide-zinc-100">
+    </li>
+  );
+}
+
+function ItemsOrderedCard({ order }: { order: Order }) {
+  return (
+    <section className="rounded-[22px] bg-white p-6 shadow-sm ring-1 ring-zinc-100">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-[22px] font-black text-zinc-950">Items Ordered</h2>
+        <span className="max-w-[130px] truncate rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-zinc-500">
+          #{order.id}
+        </span>
+      </div>
+      <ul className="mt-6 space-y-4">
         {order.items.map((item) => (
-          <li key={item.id} className="flex items-start justify-between gap-3 py-3">
-            <span className="min-w-0 break-words text-zinc-600">
-              <span className="font-black text-zinc-950">{item.qty}x</span> {item.name}
+          <li key={item.id} className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-red-600" />
+              <div className="min-w-0">
+                <p className="break-words text-base font-semibold text-zinc-950">
+                  {item.qty} x {item.name}
+                </p>
+                {item.instructions ? (
+                  <p className="mt-1 text-xs text-zinc-500">{item.instructions}</p>
+                ) : null}
+              </div>
+            </div>
+            <span className="shrink-0 font-black text-zinc-950">
+              {money(item.price * item.qty)}
             </span>
-            <span className="shrink-0 font-black">₹{item.price * item.qty}</span>
           </li>
         ))}
       </ul>
-      <div className="mt-4 space-y-2 border-t border-zinc-100 pt-4 text-sm">
-        <PriceRow label="Subtotal" value={order.subtotal} />
-        <PriceRow label="GST" value={order.tax} />
-        <PriceRow label="Delivery" value={order.deliveryFee} />
-        <div className="flex justify-between gap-3 pt-2 text-lg font-black">
-          <span>Grand total</span>
-          <span className="shrink-0 text-red-600">₹{order.total}</span>
+      <div className="my-6 h-px bg-zinc-100" />
+      <div className="flex items-center justify-between gap-4 text-lg font-black">
+        <span>Total Bill</span>
+        <span className="text-red-600">{money(order.total)}</span>
+      </div>
+    </section>
+  );
+}
+
+function WhileYouWaitAd({ banners }: { banners: CustomerBanner[] }) {
+  const ad = banners.find((banner) => /ad|sponsor|brand/i.test(banner.type || ""));
+  if (ad) {
+    return (
+      <Link
+        to={(ad.ctaLink || "/menu") as never}
+        className="group block overflow-hidden rounded-[18px] bg-zinc-950 text-white shadow-sm"
+      >
+        <div className="relative min-h-[160px]">
+          <AdMedia src={ad.image} />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/35 to-transparent" />
+          <div className="absolute inset-0 flex flex-col justify-end p-6">
+            <div className="text-xs font-black uppercase tracking-[0.2em] text-white/60">
+              While you wait
+            </div>
+            <div className="mt-2 line-clamp-2 text-2xl font-black">{ad.title}</div>
+          </div>
         </div>
-      </div>
-    </section>
-  );
-}
-
-function PickupDineInCard({ order }: { order: Order }) {
-  const m = order.delivery || {};
+      </Link>
+    );
+  }
   return (
-    <section className="min-w-0 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
-      <h2 className="text-xl font-black">
-        {order.type === "pickup" ? "Pickup details" : "Dine-in status"}
+    <section className="rounded-[18px] bg-gradient-to-r from-zinc-950 via-zinc-600 to-zinc-100 p-6 text-white shadow-sm">
+      <div className="text-xs font-black uppercase tracking-[0.2em] text-white/70">
+        While you wait
+      </div>
+      <h2 className="mt-3 max-w-xs text-2xl font-black leading-tight">
+        Get 20% OFF your next feast!
       </h2>
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <EtaRow
-          icon={Store}
-          label={order.type === "pickup" ? "Token" : "Table"}
-          value={m.pickupToken || order.tableNumber || "Updating"}
-        />
-        <EtaRow
-          icon={Clock3}
-          label="Ready in"
-          value={`${m.prepEtaMinutes || m.etaMinutes || 20} min`}
-        />
-        <EtaRow icon={ChefHat} label="Kitchen" value={order.status.replace(/_/g, " ")} />
-      </div>
-    </section>
-  );
-}
-
-function HelpCard({ order }: { order: Order }) {
-  return (
-    <section className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-zinc-100">
-      <h2 className="text-xl font-black">Need help?</h2>
-      <div className="mt-4 grid gap-2">
-        <a
-          href="tel:+919963218601"
-          className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"
-        >
-          <Phone className="h-5 w-5 shrink-0 text-red-600" />{" "}
-          <span className="truncate">Call restaurant</span>
-        </a>
-        {order.delivery?.partnerPhone && (
-          <a
-            href={`tel:${order.delivery.partnerPhone}`}
-            className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black"
-          >
-            <Bike className="h-5 w-5 shrink-0 text-green-600" />{" "}
-            <span className="truncate">Call rider</span>
-          </a>
-        )}
-        <button className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black">
-          <Headphones className="h-5 w-5 shrink-0 text-red-600" />{" "}
-          <span className="truncate">Support</span>
-        </button>
-        <button className="flex min-h-12 min-w-0 items-center gap-3 rounded-2xl bg-zinc-100 px-4 font-black">
-          <Download className="h-5 w-5 shrink-0 text-red-600" />{" "}
-          <span className="truncate">Invoice</span>
-        </button>
+      <div className="mt-5 inline-flex rounded-lg bg-red-600 px-4 py-3 text-sm font-black uppercase tracking-wide">
+        Code: DHABA20
       </div>
     </section>
   );
@@ -380,7 +433,7 @@ function HelpCard({ order }: { order: Order }) {
 
 function CompletionCard() {
   return (
-    <section className="mt-4 rounded-[28px] bg-green-50 p-5 text-center">
+    <section className="rounded-[22px] bg-green-50 p-6 text-center">
       <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
       <h2 className="mt-3 text-2xl font-black">Delivered successfully</h2>
       <p className="mt-1 text-zinc-600">Rate your food and reorder your favorites anytime.</p>
@@ -398,7 +451,7 @@ function CompletionCard() {
 
 function CancelledCard() {
   return (
-    <section className="mt-4 rounded-[28px] bg-zinc-100 p-5 text-center">
+    <section className="rounded-[22px] bg-zinc-100 p-6 text-center">
       <XCircle className="mx-auto h-12 w-12 text-zinc-600" />
       <h2 className="mt-3 text-2xl font-black">Order cancelled</h2>
       <p className="mt-1 text-zinc-600">Please contact the restaurant if you need help.</p>
@@ -406,144 +459,19 @@ function CancelledCard() {
   );
 }
 
-function TrackingAdSpace({ banners }: { banners: CustomerBanner[] }) {
-  const ads = banners.filter((banner) => /ad|sponsor|brand/i.test(banner.type || ""));
-  if (!ads.length) return null;
+function TrackingSkeleton() {
   return (
-    <section className="mt-4 rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-zinc-100">
-      <div className="mb-3 flex items-center justify-between px-1">
-        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-500">Sponsored</h2>
-        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-zinc-500">
-          Ad
-        </span>
-      </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        {ads.slice(0, 2).map((ad) => (
-          <Link
-            key={ad.id}
-            to={(ad.ctaLink || "/menu") as never}
-            className="group overflow-hidden rounded-[24px] bg-zinc-950 text-white"
-          >
-            <div className="relative aspect-[16/7] overflow-hidden">
-              <AdMedia src={ad.image} />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/20 to-transparent" />
-              <div className="absolute inset-0 flex flex-col justify-end p-4">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-white/60">
-                  {ad.ctaLabel || "View offer"}
-                </div>
-                <div className="mt-1 line-clamp-1 text-xl font-black">{ad.title}</div>
-                {ad.subtitle && (
-                  <div className="line-clamp-1 text-sm text-white/75">{ad.subtitle}</div>
-                )}
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function HeroStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-3xl bg-white/15 p-3">
-      <div className="text-[11px] text-white/60">{label}</div>
-      <div className="truncate text-sm font-black capitalize md:text-base">{value}</div>
-    </div>
-  );
-}
-
-function EtaRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl bg-zinc-50 p-3">
-      <Icon className="h-5 w-5 shrink-0 text-red-600" />
-      <div className="min-w-0">
-        <div className="text-xs text-zinc-500">{label}</div>
-        <div className="truncate font-black capitalize">{value}</div>
-      </div>
-    </div>
-  );
-}
-
-function LocationRow({
-  icon: Icon,
-  label,
-  title,
-  text,
-  sub,
-}: {
-  icon: React.ElementType;
-  label: string;
-  title: string;
-  text: string;
-  sub?: string;
-}) {
-  return (
-    <div className="rounded-3xl bg-zinc-50 p-4">
-      <div className="flex items-start gap-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-red-600 shadow-sm">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">
-            {label}
-          </div>
-          <div className="mt-1 truncate font-black">{title}</div>
-          <div className="mt-1 text-sm text-zinc-600">{text}</div>
-          {sub && <div className="mt-1 text-xs text-zinc-400">{sub}</div>}
+    <div className="min-h-screen bg-[#f5f3f3]">
+      <div className="mx-auto max-w-[640px] pb-28">
+        <div className="h-[390px] animate-pulse bg-zinc-200" />
+        <div className="-mt-7 space-y-4 px-4">
+          <div className="h-64 animate-pulse rounded-[24px] bg-white" />
+          <div className="h-72 animate-pulse rounded-[22px] bg-white" />
+          <div className="h-56 animate-pulse rounded-[22px] bg-white" />
         </div>
       </div>
     </div>
   );
-}
-
-function PriceRow({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex justify-between gap-3">
-      <span className="text-zinc-500">{label}</span>
-      <span className="shrink-0 font-bold">₹{value}</span>
-    </div>
-  );
-}
-
-function bestEta(order: Order) {
-  if (order.status === "delivered") return "Done";
-  if (order.status === "cancelled") return "--";
-  const mins = order.delivery?.etaMinutes || order.delivery?.prepEtaMinutes || 20;
-  return `${mins} min`;
-}
-
-function currentStage(order: Order) {
-  return STEPS.find((step) => step.key === order.status) || STEPS[0];
-}
-
-function coords(lat?: number, lng?: number) {
-  if (typeof lat !== "number" || typeof lng !== "number") return "";
-  return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-}
-
-function lastUpdated(delivery: DeliveryDetails) {
-  const at = delivery.lastLocationAt || delivery.currentLocation?.updatedAt;
-  return at
-    ? `Updated ${new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-    : "Waiting for live GPS";
-}
-
-function progressFromStatus(status: Order["status"]) {
-  if (status === "delivered") return 1;
-  if (status === "out_for_delivery") return 0.55;
-  if (status === "ready") return 0.3;
-  if (status === "preparing") return 0.2;
-  if (status === "accepted") return 0.12;
-  return 0.05;
 }
 
 function NotFound({ orderId }: { orderId: string }) {
@@ -561,37 +489,94 @@ function NotFound({ orderId }: { orderId: string }) {
   );
 }
 
-function TrackingSkeleton() {
-  return (
-    <div className="mx-auto max-w-6xl space-y-4 px-3 py-3 sm:px-4 md:px-6 md:py-8">
-      <div className="h-44 animate-pulse rounded-[30px] bg-zinc-200" />
-      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-        <div className="h-96 animate-pulse rounded-[28px] bg-white" />
-        <div className="h-80 animate-pulse rounded-[28px] bg-white" />
-      </div>
-    </div>
-  );
-}
-
 function AdMedia({ src }: { src: string }) {
   const url = resolveMediaUrl(src);
-  if (isVideoUrl(url))
+  if (isVideoUrl(url)) {
     return (
       <video
         src={url}
-        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
         muted
         autoPlay
         loop
         playsInline
       />
     );
+  }
   return (
     <img
       src={url}
       alt=""
       onError={imageFallback}
-      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+      className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
     />
   );
+}
+
+function headlineFor(order: Order) {
+  if (order.status === "delivered") return "Delivered";
+  if (order.status === "cancelled") return "Order cancelled";
+  if (order.status === "out_for_delivery") return `Arriving in ${etaNumber(order)} mins`;
+  if (order.status === "ready") return "Ready for pickup";
+  if (order.status === "preparing") return `Arriving in ${etaNumber(order)} mins`;
+  return "Order received";
+}
+
+function riderSubtext(order: Order) {
+  const name = order.delivery?.partnerName || order.delivery?.assignedRiderName;
+  if (order.status === "out_for_delivery" && name) return `${name} is on the way`;
+  if (order.status === "ready" && name) return `${name} will pick it up soon`;
+  if (order.status === "preparing") return "Chef is preparing your food";
+  if (order.status === "delivered") return "Thanks for ordering from The Ankapur Dhaba";
+  if (order.status === "cancelled") return "Please contact support for help";
+  return name ? `${name} is at the restaurant` : "Restaurant has received your order";
+}
+
+function stepDescription(step: ProgressStep, order: Order) {
+  if (step.id === "preparing" && order.items[0]?.name) {
+    return `Chef is working on your ${order.items[0].name}`;
+  }
+  if (step.id === "out_for_delivery" && order.delivery?.partnerName) {
+    return `${order.delivery.partnerName} will pick it up soon`;
+  }
+  return step.description;
+}
+
+function progressId(status: OrderStatus): ProgressStep["id"] {
+  if (status === "delivered") return "delivered";
+  if (status === "out_for_delivery") return "out_for_delivery";
+  return "preparing";
+}
+
+function isStepDone(step: ProgressStep["id"], status: OrderStatus) {
+  if (status === "cancelled") return false;
+  if (step === "placed") return true;
+  if (step === "preparing") return ["ready", "out_for_delivery", "delivered"].includes(status);
+  if (step === "out_for_delivery") return status === "delivered";
+  if (step === "delivered") return status === "delivered";
+  return false;
+}
+
+function labelForStatus(status: OrderStatus) {
+  if (status === "out_for_delivery") return "On way";
+  return status.replace(/_/g, " ");
+}
+
+function etaNumber(order: Order) {
+  if (order.status === "delivered") return 0;
+  if (order.status === "cancelled") return 0;
+  return order.delivery?.etaMinutes || order.delivery?.prepEtaMinutes || 23;
+}
+
+function placedTime(order: Order) {
+  return new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function isOlderThan(order: Order, minutes: number) {
+  if (["delivered", "cancelled"].includes(order.status)) return false;
+  return Date.now() - new Date(order.createdAt).getTime() > minutes * 60 * 1000;
+}
+
+function money(value: number) {
+  return `Rs ${Math.round(value)}`;
 }
