@@ -9,6 +9,21 @@ declare global {
 }
 
 export type LatLngLiteral = { lat: number; lng: number };
+export type PlaceSuggestion = {
+  placeId: string;
+  title: string;
+  subtitle: string;
+};
+
+export type ParsedAddress = {
+  formattedAddress: string;
+  houseNumber?: string;
+  landmark?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+};
 
 export function hasGoogleMapsKey() {
   return Boolean(GOOGLE_MAPS_KEY);
@@ -91,6 +106,85 @@ export async function calculateDrivingRoute(origin: LatLngLiteral, destination: 
       );
     },
   );
+}
+
+export async function getPlaceSuggestions(query: string) {
+  const search = query.trim();
+  if (!search) return [];
+  const google = await loadGoogleMaps();
+  return new Promise<PlaceSuggestion[]>((resolve, reject) => {
+    const service = new google.maps.places.AutocompleteService();
+    service.getPlacePredictions(
+      {
+        input: search,
+        componentRestrictions: { country: "in" },
+        fields: ["place_id", "description", "structured_formatting"],
+      },
+      (predictions: any[] | null, status: string) => {
+        if (status !== "OK" && status !== "ZERO_RESULTS") {
+          reject(new Error("Unable to search locations"));
+          return;
+        }
+        resolve(
+          (predictions || []).slice(0, 8).map((place) => ({
+            placeId: place.place_id,
+            title: place.structured_formatting?.main_text || place.description,
+            subtitle: place.structured_formatting?.secondary_text || "",
+          })),
+        );
+      },
+    );
+  });
+}
+
+export async function geocodePlace(placeId: string) {
+  const google = await loadGoogleMaps();
+  return new Promise<{ coords: LatLngLiteral; address: ParsedAddress }>((resolve, reject) => {
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ placeId }, (results: any[] | null, status: string) => {
+      if (status !== "OK" || !results?.[0]) {
+        reject(new Error("Could not find this address"));
+        return;
+      }
+      const result = results[0];
+      const loc = result.geometry.location;
+      resolve({
+        coords: { lat: loc.lat(), lng: loc.lng() },
+        address: parseAddressComponents(result),
+      });
+    });
+  });
+}
+
+export async function reverseGeocodeAddress(coords: LatLngLiteral) {
+  const google = await loadGoogleMaps();
+  return new Promise<ParsedAddress>((resolve, reject) => {
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ location: coords }, (results: any[] | null, status: string) => {
+      if (status !== "OK" || !results?.[0]) {
+        reject(new Error("Could not read this location"));
+        return;
+      }
+      resolve(parseAddressComponents(results[0]));
+    });
+  });
+}
+
+function parseAddressComponents(result: any): ParsedAddress {
+  const find = (type: string) =>
+    result.address_components?.find((part: any) => part.types?.includes(type))?.long_name || "";
+  const route = find("route");
+  const streetNumber = find("street_number");
+  const sublocality = find("sublocality_level_1") || find("sublocality") || find("neighborhood");
+  return {
+    formattedAddress: result.formatted_address || "",
+    houseNumber: streetNumber,
+    landmark: route || sublocality,
+    city: find("locality") || find("administrative_area_level_3"),
+    state: find("administrative_area_level_1"),
+    country: find("country"),
+    postalCode: find("postal_code"),
+  };
 }
 
 export function googleMapsDirectionsUrl(input: {

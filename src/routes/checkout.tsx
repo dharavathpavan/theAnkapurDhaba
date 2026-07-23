@@ -24,6 +24,14 @@ import type { CreateOrderInput } from "@/services/api";
 import { buildOrderItemName } from "@/lib/order-items";
 import { LocationPicker } from "@/components/site/LocationPicker";
 import type { LatLngLiteral } from "@/lib/google-maps";
+import { AddressBottomSheet } from "@/components/site/AddressBottomSheet";
+import { useSelectedLocation } from "@/stores/location";
+import {
+  addressCoords,
+  calculateDeliveryEta,
+  zoneFallback,
+  type DeliveryEta,
+} from "@/lib/delivery-location";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout - Ankapur Dhaba" }] }),
@@ -45,8 +53,12 @@ function CheckoutPage() {
   const [savingAddress, setSavingAddress] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [selectedCoords, setSelectedCoords] = useState<LatLngLiteral | null>(null);
+  const [addressSheetOpen, setAddressSheetOpen] = useState(false);
+  const [deliveryEta, setDeliveryEta] = useState<DeliveryEta | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const selectedLocationId = useSelectedLocation((s) => s.selectedAddressId);
+  const selectedLocation = useSelectedLocation((s) => s.selectedAddress);
 
   const { data: home } = useQuery({
     queryKey: ["customer-home"],
@@ -83,21 +95,27 @@ function CheckoutPage() {
   const tax = Math.round(subtotal * 0.05);
   const total = Math.max(0, subtotal + tax + deliveryFee + packing - discount);
   const address =
-    addresses.find((a) => a.id === selectedAddress) || addresses.find((a) => a.isDefault);
+    addresses.find((a) => a.id === selectedAddress) ||
+    addresses.find((a) => a.id === selectedLocationId) ||
+    addresses.find((a) => a.isDefault) ||
+    selectedLocation;
   const minimumOrder = home?.store.minimumOrder ?? 0;
   const needsLogin = !isAuthenticated();
   const deliveryCodDisabled = type === "delivery" && home?.store.allowDeliveryCod !== true;
   const deliveryAddressReady =
     type !== "delivery" || Boolean(address) || deliveryAddress.trim().length >= 5;
+  const deliveryOutOfZone = type === "delivery" && deliveryEta?.inZone === false;
   const checkoutBlockedReason = !lines.length
     ? "Add items to your cart first."
     : home?.store.status === "offline"
       ? home.store.statusMessage || "Store is closed right now."
       : type === "delivery" && subtotal < minimumOrder
         ? `Minimum delivery order is Rs ${minimumOrder}.`
-        : paymentMethod === "wallet" && (wallet?.balance ?? 0) < total
-          ? "Main Wallet balance is insufficient."
-          : "";
+        : deliveryOutOfZone
+          ? "This address is outside our delivery zone. Pickup is available."
+          : paymentMethod === "wallet" && (wallet?.balance ?? 0) < total
+            ? "Main Wallet balance is insufficient."
+            : "";
   const checkoutHintReason =
     checkoutBlockedReason ||
     (needsLogin
@@ -119,6 +137,7 @@ function CheckoutPage() {
 
   useEffect(() => {
     if (!address) return;
+    setSelectedAddress(address.id);
     setDeliveryAddress(address.address);
     setSelectedCoords(
       typeof address.lat === "number" && typeof address.lng === "number"
@@ -130,6 +149,29 @@ function CheckoutPage() {
   useEffect(() => {
     if (deliveryCodDisabled && paymentMethod === "cod") setPaymentMethod("cashfree");
   }, [deliveryCodDisabled, paymentMethod]);
+
+  useEffect(() => {
+    if (type !== "delivery" || !home?.store) {
+      setDeliveryEta(null);
+      return;
+    }
+    let cancelled = false;
+    const destination = addressCoords(address) || selectedCoords;
+    calculateDeliveryEta(home.store, destination).then((eta) => {
+      if (!cancelled) setDeliveryEta(eta || zoneFallback(home.store, destination));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    type,
+    home?.store,
+    address?.id,
+    address?.lat,
+    address?.lng,
+    selectedCoords?.lat,
+    selectedCoords?.lng,
+  ]);
 
   const items = useMemo(
     () =>
@@ -174,6 +216,8 @@ function CheckoutPage() {
       return toast.error("Delivery address is required");
     if (type === "delivery" && subtotal < minimumOrder)
       return toast.error(`Minimum delivery order is Rs ${minimumOrder}`);
+    if (deliveryOutOfZone)
+      return toast.error("Delivery is not available for this location. Please choose pickup.");
     if (deliveryCodDisabled && paymentMethod === "cod")
       return toast.error("Delivery COD is disabled. Please pay online or use wallet.");
     if (paymentMethod === "wallet" && (wallet?.balance ?? 0) < total)
@@ -183,7 +227,6 @@ function CheckoutPage() {
     try {
       if (savingAddress && isAuthenticated() && type === "delivery" && enteredAddress) {
         await createCustomerAddress({
-          id: "",
           label: "Home",
           name,
           phone,
@@ -293,6 +336,31 @@ function CheckoutPage() {
 
           {type === "delivery" && (
             <Panel title="Delivery address">
+              <button
+                type="button"
+                onClick={() => setAddressSheetOpen(true)}
+                className={`mb-4 flex min-h-16 w-full items-center justify-between rounded-[24px] px-4 text-left shadow-sm ring-1 ${
+                  deliveryEta?.inZone === false
+                    ? "bg-yellow-50 text-yellow-900 ring-yellow-200"
+                    : "bg-red-50 text-red-950 ring-red-100"
+                }`}
+              >
+                <span>
+                  <span className="block text-sm font-black">
+                    {address
+                      ? `${address.label || "Address"} - ${address.address}`
+                      : "Choose delivery location"}
+                  </span>
+                  <span className="mt-1 block text-xs font-bold text-zinc-500">
+                    {deliveryEta
+                      ? `${deliveryEta.distanceKm.toFixed(1)} km - ${
+                          deliveryEta.inZone ? `ETA ${deliveryEta.etaLabel}` : "Pickup available"
+                        }`
+                      : "Use GPS or search your address for live ETA"}
+                  </span>
+                </span>
+                <MapPin className="h-5 w-5 shrink-0 text-red-600" />
+              </button>
               {addresses.length > 0 && (
                 <div className="mb-3 grid gap-2">
                   {addresses.map((item) => (
@@ -324,6 +392,13 @@ function CheckoutPage() {
                     className="h-13 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 outline-none focus:border-red-400"
                   />
                 </label>
+                <button
+                  type="button"
+                  onClick={() => setAddressSheetOpen(true)}
+                  className="min-h-12 rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white"
+                >
+                  Open address picker
+                </button>
                 <LocationPicker
                   value={selectedCoords}
                   address={address?.address || deliveryAddress}
@@ -509,6 +584,7 @@ function CheckoutPage() {
           </div>
         </div>
       )}
+      <AddressBottomSheet open={addressSheetOpen} onOpenChange={setAddressSheetOpen} />
     </div>
   );
 }

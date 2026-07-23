@@ -348,15 +348,24 @@ export interface CustomerHome {
 
 export interface CustomerAddress {
   id: string;
+  type?: "Home" | "Work" | "Other" | string;
   label: string;
   name: string;
   phone: string;
   address: string;
+  formattedAddress?: string | null;
+  houseNumber?: string | null;
   landmark?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postalCode?: string | null;
   notes?: string | null;
   lat?: number | null;
   lng?: number | null;
   isDefault: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CustomerNotification {
@@ -394,8 +403,8 @@ function defaultCustomerStore(): CustomerStore {
     name: "Ankapur Dhaba",
     phone: "+91 9963218601",
     address: "The Ankapure Dhaba, Maisamguda, Telangana 500043",
-    lat: 17.5628346,
-    lng: 78.4534861,
+    lat: 17.562861,
+    lng: 78.453472,
     zoneRadiusKm: 8,
     status: "online",
     statusMessage: "",

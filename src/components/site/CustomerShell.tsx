@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
@@ -21,7 +22,20 @@ import { useAuth } from "@/stores/auth";
 import { useCart, selectCartCount, selectCartSubtotal } from "@/stores/cart";
 import { useCustomerRealtime } from "@/hooks/use-customer-realtime";
 import { useActiveOrderTracking } from "@/stores/active-order";
-import { subscribeToCustomerContent, subscribeToOrderEvents } from "@/services/api";
+import {
+  getCustomerHome,
+  listCustomerAddresses,
+  subscribeToCustomerContent,
+  subscribeToOrderEvents,
+} from "@/services/api";
+import { useSelectedLocation } from "@/stores/location";
+import { AddressBottomSheet } from "@/components/site/AddressBottomSheet";
+import {
+  addressCoords,
+  calculateDeliveryEta,
+  shortAddress,
+  zoneFallback,
+} from "@/lib/delivery-location";
 
 const NAV = [
   { to: "/", label: "Home", icon: Home },
@@ -72,6 +86,13 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   const subtotal = useCart(selectCartSubtotal);
   const { order } = useActiveOrderTracking();
   const { user, isAuthenticated } = useAuth();
+  const selectedAddressId = useSelectedLocation((state) => state.selectedAddressId);
+  const selectedAddress = useSelectedLocation((state) => state.selectedAddress);
+  const etaLabel = useSelectedLocation((state) => state.etaLabel);
+  const inZone = useSelectedLocation((state) => state.inZone);
+  const setSelectedAddress = useSelectedLocation((state) => state.setSelectedAddress);
+  const setEta = useSelectedLocation((state) => state.setEta);
+  const [addressSheetOpen, setAddressSheetOpen] = useState(false);
   const isCheckoutSurface = pathname === "/cart" || pathname === "/checkout";
   const isOrderDetail = /^\/orders\/[^/]+/.test(pathname);
   const allowLiveOrderTray = pathname === "/" || pathname === "/orders";
@@ -79,6 +100,51 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
     order && allowLiveOrderTray && !isOrderDetail && !isCheckoutSurface,
   );
   const showCartTray = count > 0 && !isCheckoutSurface;
+  const isPlainCustomer = user?.role === "USER";
+  const { data: home } = useQuery({
+    queryKey: ["customer-home"],
+    queryFn: getCustomerHome,
+    staleTime: 30_000,
+  });
+  const { data: addresses = [], isFetched: addressesFetched } = useQuery({
+    queryKey: ["customer-addresses"],
+    queryFn: listCustomerAddresses,
+    enabled: isAuthenticated() && isPlainCustomer,
+  });
+  const activeAddress =
+    addresses.find((item) => item.id === selectedAddressId) ||
+    addresses.find((item) => item.isDefault) ||
+    selectedAddress;
+  const locality = shortAddress(activeAddress);
+  const navEta = etaLabel || `${home?.store.averageDeliveryMin ?? 30} mins`;
+
+  useEffect(() => {
+    if (!isAuthenticated() || !isPlainCustomer || !addressesFetched) return;
+    if (addresses.length === 0 && !addressSheetOpen) setAddressSheetOpen(true);
+  }, [addresses.length, addressesFetched, addressSheetOpen, isAuthenticated, isPlainCustomer]);
+
+  useEffect(() => {
+    if (!activeAddress) return;
+    if (selectedAddressId !== activeAddress.id) setSelectedAddress(activeAddress);
+  }, [activeAddress?.id, selectedAddressId, setSelectedAddress]);
+
+  useEffect(() => {
+    if (!home?.store || !activeAddress) return;
+    let cancelled = false;
+    const destination = addressCoords(activeAddress);
+    calculateDeliveryEta(home.store, destination).then((eta) => {
+      if (cancelled) return;
+      const next = eta || zoneFallback(home.store, destination);
+      setEta({
+        etaLabel: next?.etaLabel ?? null,
+        distanceKm: next?.distanceKm ?? null,
+        inZone: next?.inZone ?? true,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeAddress?.id, activeAddress?.lat, activeAddress?.lng, home?.store, setEta]);
 
   return (
     <div className="min-h-screen bg-[#F8F9FB] text-zinc-950">
@@ -86,18 +152,24 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto hidden max-w-7xl items-center gap-3 px-6 py-3 md:flex">
           <BrandMark />
 
-          <div className="flex min-w-[160px] items-center gap-2 rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setAddressSheetOpen(true)}
+            className="flex min-w-[190px] max-w-[260px] items-center gap-2 rounded-2xl border border-white/70 bg-white/75 px-3 py-2 text-left shadow-sm"
+          >
             <MapPin className="h-4 w-4 shrink-0 text-red-600" />
             <span className="min-w-0">
               <span className="block truncate text-xs font-black text-zinc-950">
-                Deliver to Ankapur
+                {activeAddress?.label || "Select location"}
               </span>
-              <span className="block truncate text-[11px] font-semibold text-green-600">
-                Open now - 30 min
+              <span
+                className={`block truncate text-[11px] font-semibold ${inZone ? "text-green-600" : "text-yellow-700"}`}
+              >
+                {locality} - {inZone ? navEta : "Pickup available"}
               </span>
             </span>
             <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
-          </div>
+          </button>
 
           <nav className="ml-auto flex items-center gap-1 rounded-2xl border border-white/70 bg-white/70 p-1 shadow-sm backdrop-blur-xl">
             {NAV.map((item) => (
@@ -132,18 +204,30 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between gap-3">
             <BrandMark compact />
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 rounded-2xl bg-green-50 px-2.5 py-2 text-xs font-black text-green-700">
+              <button
+                type="button"
+                onClick={() => setAddressSheetOpen(true)}
+                className={`flex items-center gap-1 rounded-2xl px-2.5 py-2 text-xs font-black ${inZone ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}
+              >
                 <Clock3 className="h-3.5 w-3.5" />
-                30 min
-              </div>
+                {inZone ? navEta : "Pickup"}
+              </button>
               <NotificationBell {...notifications} compact />
             </div>
           </div>
           <div className="mt-2">
-            <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-2xl border border-white/70 bg-white/80 px-3 py-2 text-[11px] font-black text-zinc-600 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setAddressSheetOpen(true)}
+              className="inline-flex w-fit max-w-full items-center gap-2 rounded-2xl border border-white/70 bg-white/80 px-3 py-2 text-left text-[11px] font-black text-zinc-600 shadow-sm"
+            >
               <MapPin className="h-3.5 w-3.5 shrink-0 text-red-600" />
-              <span className="truncate">Ankapur - Open now</span>
-            </div>
+              <span className="truncate">
+                {activeAddress?.label
+                  ? `${activeAddress.label} - ${locality}`
+                  : "Choose delivery location"}
+              </span>
+            </button>
           </div>
         </div>
       </header>
@@ -223,6 +307,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+      <AddressBottomSheet open={addressSheetOpen} onOpenChange={setAddressSheetOpen} />
     </div>
   );
 }

@@ -2,17 +2,26 @@
 import { useEffect, useRef, useState } from "react";
 import { LocateFixed, MapPin, Search } from "lucide-react";
 import { toast } from "sonner";
-import { hasGoogleMapsKey, loadGoogleMaps, type LatLngLiteral } from "@/lib/google-maps";
+import {
+  geocodePlace,
+  getPlaceSuggestions,
+  hasGoogleMapsKey,
+  loadGoogleMaps,
+  reverseGeocodeAddress,
+  type LatLngLiteral,
+  type ParsedAddress,
+  type PlaceSuggestion,
+} from "@/lib/google-maps";
 
 type LocationPickerProps = {
   value: LatLngLiteral | null;
   address: string;
   restaurant?: LatLngLiteral;
   compact?: boolean;
-  onChange: (next: { coords: LatLngLiteral; address?: string }) => void;
+  onChange: (next: { coords: LatLngLiteral; address?: string; parsed?: ParsedAddress }) => void;
 };
 
-const DEFAULT_CENTER = { lat: 18.7283, lng: 78.4477 };
+const DEFAULT_CENTER = { lat: 17.562861, lng: 78.453472 };
 
 export function LocationPicker({
   value,
@@ -29,6 +38,8 @@ export function LocationPicker({
   const [mapsReady, setMapsReady] = useState(false);
   const [manualLat, setManualLat] = useState(value?.lat ? String(value.lat) : "");
   const [manualLng, setManualLng] = useState(value?.lng ? String(value.lng) : "");
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => setQuery(address), [address]);
   useEffect(() => {
@@ -86,27 +97,35 @@ export function LocationPicker({
     mapInstance.current.panTo(value);
   }, [value?.lat, value?.lng]);
 
-  function updatePin(coords: LatLngLiteral, nextAddress?: string) {
+  useEffect(() => {
+    if (!hasGoogleMapsKey() || query.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    const id = window.setTimeout(() => {
+      setSearching(true);
+      getPlaceSuggestions(query)
+        .then(setSuggestions)
+        .catch(() => setSuggestions([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => window.clearTimeout(id);
+  }, [query]);
+
+  function updatePin(coords: LatLngLiteral, nextAddress?: string, parsed?: ParsedAddress) {
     markerRef.current?.setPosition(coords);
     mapInstance.current?.panTo(coords);
     mapInstance.current?.setZoom(16);
     setManualLat(String(coords.lat));
     setManualLng(String(coords.lng));
-    onChange({ coords, address: nextAddress });
+    onChange({ coords, address: nextAddress, parsed });
   }
 
   async function reverseGeocode(coords: LatLngLiteral) {
     try {
-      const google = await loadGoogleMaps();
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ location: coords }, (results: any[], status: string) => {
-        const nextAddress =
-          status === "OK" && results?.[0]?.formatted_address
-            ? results[0].formatted_address
-            : undefined;
-        if (nextAddress) setQuery(nextAddress);
-        updatePin(coords, nextAddress);
-      });
+      const parsed = await reverseGeocodeAddress(coords);
+      if (parsed.formattedAddress) setQuery(parsed.formattedAddress);
+      updatePin(coords, parsed.formattedAddress, parsed);
     } catch {
       updatePin(coords);
     }
@@ -134,6 +153,20 @@ export function LocationPicker({
     } catch {
       setLoading(false);
       toast.error("Google Maps is not available right now");
+    }
+  }
+
+  async function selectSuggestion(place: PlaceSuggestion) {
+    setLoading(true);
+    try {
+      const result = await geocodePlace(place.placeId);
+      setQuery(result.address.formattedAddress || place.title);
+      setSuggestions([]);
+      updatePin(result.coords, result.address.formattedAddress, result.address);
+    } catch {
+      toast.error("Could not open this location");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -168,7 +201,7 @@ export function LocationPicker({
   return (
     <div className="overflow-hidden rounded-[26px] border border-zinc-100 bg-zinc-50">
       <div className="grid gap-2 p-3 md:grid-cols-[1fr_auto_auto]">
-        <label className="flex min-h-12 items-center gap-2 rounded-2xl bg-white px-3 shadow-sm">
+        <label className="relative flex min-h-12 items-center gap-2 rounded-2xl bg-white px-3 shadow-sm">
           <Search className="h-4 w-4 shrink-0 text-red-600" />
           <input
             value={query}
@@ -176,6 +209,7 @@ export function LocationPicker({
             placeholder="Search area, landmark, apartment..."
             className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
           />
+          {searching && <span className="text-[11px] font-black text-zinc-400">Searching</span>}
         </label>
         <button
           type="button"
@@ -194,6 +228,29 @@ export function LocationPicker({
           <LocateFixed className="h-4 w-4" /> Use current
         </button>
       </div>
+
+      {suggestions.length > 0 && (
+        <div className="mx-3 mb-3 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100">
+          {suggestions.map((place) => (
+            <button
+              key={place.placeId}
+              type="button"
+              onClick={() => selectSuggestion(place)}
+              className="flex w-full items-start gap-3 border-b border-zinc-100 px-3 py-3 text-left last:border-b-0 hover:bg-red-50"
+            >
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-black text-zinc-900">
+                  {place.title}
+                </span>
+                <span className="block truncate text-xs font-semibold text-zinc-500">
+                  {place.subtitle || "Tap to select this location"}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {hasGoogleMapsKey() ? (
         <div
