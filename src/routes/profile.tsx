@@ -316,13 +316,13 @@ function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-3 pb-40 pt-3 sm:px-4 md:px-6 md:py-8">
-      <section className="overflow-hidden rounded-[22px] bg-zinc-950 text-white shadow-2xl shadow-zinc-950/20 md:rounded-[34px]">
-        <div className="relative p-3.5 sm:p-4 md:p-7">
-          <div className="absolute right-0 top-0 h-28 w-28 rounded-full bg-red-600/25 blur-3xl md:h-44 md:w-44" />
+    <div className="mx-auto max-w-7xl overflow-x-hidden px-3 pb-36 pt-2 sm:px-4 md:px-6 md:py-8">
+      <section className="overflow-hidden rounded-[20px] bg-zinc-950 text-white shadow-xl shadow-zinc-950/15 md:rounded-[34px] md:shadow-2xl">
+        <div className="relative p-3 sm:p-4 md:p-7">
+          <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-red-600/25 blur-3xl md:h-44 md:w-44" />
           <div className="relative flex flex-col gap-3 md:gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 items-center gap-3 md:gap-4">
-              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[18px] bg-white/10 text-lg font-black ring-1 ring-white/15 sm:h-14 sm:w-14 md:h-20 md:w-20 md:rounded-[28px] md:text-3xl">
+            <div className="flex min-w-0 items-center gap-2.5 md:gap-4">
+              <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-[16px] bg-white/10 text-base font-black ring-1 ring-white/15 sm:h-14 sm:w-14 md:h-20 md:w-20 md:rounded-[28px] md:text-3xl">
                 {photoUrl ? (
                   <img
                     src={photoUrl}
@@ -334,16 +334,16 @@ function ProfilePage() {
                 )}
               </div>
               <div className="min-w-0">
-                <div className="text-[9px] font-black uppercase tracking-[0.14em] text-red-200 md:text-xs md:tracking-[0.22em]">
+                <div className="text-[8px] font-black uppercase tracking-[0.12em] text-red-200 md:text-xs md:tracking-[0.22em]">
                   My Account
                 </div>
-                <h1 className="mt-0.5 max-w-[210px] truncate text-lg font-black leading-tight sm:max-w-none sm:text-xl md:mt-1 md:text-5xl">
+                <h1 className="mt-0.5 max-w-[190px] truncate text-base font-black leading-tight min-[390px]:max-w-[230px] sm:max-w-none sm:text-xl md:mt-1 md:text-5xl">
                   {profileUser?.name}
                 </h1>
-                <p className="mt-0.5 text-xs font-semibold text-white/65 md:mt-1 md:text-sm">
+                <p className="mt-0.5 truncate text-[11px] font-semibold text-white/65 md:mt-1 md:text-sm">
                   {profileUser?.phone}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-1.5 md:mt-3 md:gap-2">
+                <div className="mt-1.5 flex flex-wrap gap-1.5 md:mt-3 md:gap-2">
                   <Badge>{loyalty?.tier || "Bronze"} member</Badge>
                   <Badge>{defaultAddress ? defaultAddress.label : "No address saved"}</Badge>
                 </div>
@@ -357,7 +357,7 @@ function ProfilePage() {
             </button>
           </div>
 
-          <div className="relative mt-4 grid grid-cols-3 gap-2 md:mt-6 md:gap-3">
+          <div className="relative mt-3 grid grid-cols-3 gap-2 md:mt-6 md:gap-3">
             {summary.map((item) => (
               <HeroStat key={item.label} {...item} />
             ))}
@@ -365,7 +365,7 @@ function ProfilePage() {
         </div>
       </section>
 
-      <section className="mt-3 grid grid-cols-4 gap-2 md:mt-4 md:grid-cols-8 md:gap-3">
+      <section className="mt-3 grid grid-cols-2 gap-2 min-[420px]:grid-cols-4 md:mt-4 md:grid-cols-8 md:gap-3">
         <QuickAction to="/orders" icon={Package} label="Orders" tone="red" />
         <QuickAction to="/wallet" icon={Wallet} label="Wallet" tone="green" />
         <QuickAction
@@ -386,7 +386,7 @@ function ProfilePage() {
         <QuickAction to="/privacy-policy" icon={ShieldCheck} label="Legal" tone="slate" />
       </section>
 
-      <div className="mt-4 grid gap-4 md:mt-5 md:gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="mt-4 grid min-w-0 gap-4 md:mt-5 md:gap-5 lg:grid-cols-[1.1fr_0.9fr]">
         <main className="space-y-4 md:space-y-5">
           {activeOrder && (
             <Link
@@ -824,24 +824,24 @@ function ProfilePage() {
             </div>
           }
         >
-          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <section className="space-y-3">
-              <div className="rounded-[26px] bg-zinc-950 p-4 text-white">
+          <div className="grid min-w-0 gap-3 lg:grid-cols-[1.05fr_0.95fr] lg:gap-4">
+            <section className="min-w-0 space-y-3">
+              <div className="rounded-[22px] bg-zinc-950 p-3.5 text-white md:rounded-[26px] md:p-4">
                 <div className="flex items-start gap-3">
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-red-600">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-red-600 md:h-11 md:w-11">
                     <MapPin className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <div className="text-sm font-black uppercase tracking-[0.18em] text-red-100">
+                    <div className="text-xs font-black uppercase tracking-[0.16em] text-red-100 md:text-sm md:tracking-[0.18em]">
                       Delivery pin
                     </div>
-                    <p className="mt-1 text-sm font-semibold text-white/70">
+                    <p className="mt-1 text-xs font-semibold leading-5 text-white/70 md:text-sm">
                       Search, use current location, or drag the branded pointer to the exact
                       doorstep.
                     </p>
                   </div>
                 </div>
-                <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-xs font-black text-white/80 ring-1 ring-white/10">
+                <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-[11px] font-black text-white/80 ring-1 ring-white/10 md:text-xs">
                   <span
                     className={`h-2.5 w-2.5 rounded-full ${selectedAddressCoords ? "bg-emerald-400" : "bg-yellow-300"}`}
                   />
@@ -873,10 +873,10 @@ function ProfilePage() {
                 event.preventDefault();
                 saveAddress.mutate();
               }}
-              className="space-y-3"
+              className="min-w-0 space-y-3"
             >
-              <div className="rounded-[26px] bg-red-50 p-4">
-                <h3 className="text-lg font-black text-zinc-950">Address details</h3>
+              <div className="rounded-[22px] bg-red-50 p-3.5 md:rounded-[26px] md:p-4">
+                <h3 className="text-base font-black text-zinc-950 md:text-lg">Address details</h3>
                 <p className="mt-1 text-sm font-semibold text-zinc-500">
                   These details help the delivery partner find you quickly.
                 </p>
@@ -905,7 +905,7 @@ function ProfilePage() {
                   onChange={(event) =>
                     setAddressDraft((current) => ({ ...current, address: event.target.value }))
                   }
-                  rows={4}
+                  rows={3}
                   className="mt-2 w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-4 font-semibold outline-none focus:border-red-500"
                   required
                 />
@@ -967,7 +967,7 @@ function SignedOutProfile() {
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-white/12 px-2 py-0.5 text-[9px] font-black capitalize text-white/80 ring-1 ring-white/10 md:px-3 md:py-1 md:text-xs">
+    <span className="max-w-full truncate rounded-full bg-white/12 px-2 py-0.5 text-[8px] font-black capitalize text-white/80 ring-1 ring-white/10 md:px-3 md:py-1 md:text-xs">
       {children}
     </span>
   );
@@ -983,12 +983,12 @@ function HeroStat({
   icon: React.ElementType;
 }) {
   return (
-    <div className="min-w-0 rounded-2xl bg-white/10 p-2.5 ring-1 ring-white/10 md:rounded-3xl md:p-4">
+    <div className="min-w-0 rounded-2xl bg-white/10 p-2 ring-1 ring-white/10 md:rounded-3xl md:p-4">
       <Icon className="h-4 w-4 text-red-200 md:h-5 md:w-5" />
-      <div className="mt-1.5 truncate text-[10px] font-bold text-white/55 md:mt-3 md:text-xs">
+      <div className="mt-1 truncate text-[9px] font-bold text-white/55 md:mt-3 md:text-xs">
         {label}
       </div>
-      <div className="truncate text-sm font-black md:text-xl">{value}</div>
+      <div className="truncate text-xs font-black min-[390px]:text-sm md:text-xl">{value}</div>
     </div>
   );
 }
@@ -1007,14 +1007,14 @@ function QuickAction({
   tone: string;
 }) {
   const className =
-    "flex min-h-[70px] flex-col items-center justify-center gap-1.5 rounded-[20px] bg-white p-2 text-center text-[10px] font-black text-zinc-800 shadow-sm ring-1 ring-zinc-100 transition hover:-translate-y-0.5 hover:shadow-md md:min-h-[86px] md:gap-2 md:rounded-[24px] md:p-3 md:text-xs";
-  const iconClass = `grid h-9 w-9 place-items-center rounded-[16px] md:h-11 md:w-11 md:rounded-2xl ${toneClass(tone)}`;
+    "flex min-h-[64px] flex-col items-center justify-center gap-1.5 rounded-[18px] bg-white p-2 text-center text-[10px] font-black text-zinc-800 shadow-sm ring-1 ring-zinc-100 transition hover:-translate-y-0.5 hover:shadow-md md:min-h-[86px] md:gap-2 md:rounded-[24px] md:p-3 md:text-xs";
+  const iconClass = `grid h-8 w-8 place-items-center rounded-[14px] md:h-11 md:w-11 md:rounded-2xl ${toneClass(tone)}`;
   const content = (
     <>
       <span className={iconClass}>
         <Icon className="h-4 w-4 md:h-5 md:w-5" />
       </span>
-      <span className="leading-tight">{label}</span>
+      <span className="max-w-full truncate leading-tight">{label}</span>
     </>
   );
   if (to)
@@ -1056,9 +1056,9 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-zinc-100 md:rounded-[30px] md:p-5">
+    <section className="min-w-0 rounded-[22px] bg-white p-3.5 shadow-sm ring-1 ring-zinc-100 md:rounded-[30px] md:p-5">
       <div className="mb-3 flex items-center justify-between gap-3 md:mb-4">
-        <h2 className="text-lg font-black md:text-xl">{title}</h2>
+        <h2 className="min-w-0 truncate text-base font-black md:text-xl">{title}</h2>
         {action}
       </div>
       {loading ? <div className="h-28 animate-pulse rounded-3xl bg-zinc-100" /> : children}

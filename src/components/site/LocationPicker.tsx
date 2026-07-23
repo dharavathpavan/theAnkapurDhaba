@@ -312,7 +312,7 @@ export function LocationPicker({
         <div className="relative">
           <div
             ref={mapRef}
-            className={`${compact ? "h-[58vh] min-h-[420px] md:h-[520px]" : "h-[72vh] min-h-[520px]"} w-full bg-zinc-200`}
+            className={`${compact ? "h-[42vh] min-h-[300px] md:h-[520px] md:min-h-[420px]" : "h-[72vh] min-h-[520px]"} w-full bg-zinc-200`}
           />
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <CenterPin moving={moving || loading} />
