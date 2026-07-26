@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
-import { MapPin, Search } from "lucide-react";
+import { LocateFixed, MapPin, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   geocodePlace,
@@ -33,19 +33,24 @@ export function LocationPicker({
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<any>(null);
   const restaurantMarkerRef = useRef<any>(null);
+  const userLocationMarkerRef = useRef<any>(null);
+  const userAccuracyCircleRef = useRef<any>(null);
   const idleTimer = useRef<number | null>(null);
   const latestCenter = useRef<LatLngLiteral | null>(value || restaurant || DEFAULT_CENTER);
   const ignoreNextIdle = useRef(false);
   const [query, setQuery] = useState(address);
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [mapsReady, setMapsReady] = useState(false);
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const [pinAddress, setPinAddress] = useState(address);
   const [moving, setMoving] = useState(false);
+  const [userLocation, setUserLocation] = useState<LatLngLiteral | null>(null);
 
   useEffect(() => setQuery(address), [address]);
   useEffect(() => setPinAddress(address), [address]);
+
   useEffect(() => {
     if (!hasGoogleMapsKey() || !mapRef.current) return;
     let cancelled = false;
@@ -128,12 +133,43 @@ export function LocationPicker({
     const id = window.setTimeout(() => {
       setSearching(true);
       getPlaceSuggestions(query)
-        .then(setSuggestions)
+        .then((places) => setSuggestions(places.slice(0, 5)))
         .catch(() => setSuggestions([]))
         .finally(() => setSearching(false));
     }, 300);
     return () => window.clearTimeout(id);
   }, [query]);
+
+  useEffect(() => {
+    if (!userLocation || !mapInstance.current || !window.google?.maps) return;
+    const google = window.google;
+    if (!userLocationMarkerRef.current) {
+      userLocationMarkerRef.current = new google.maps.Marker({
+        map: mapInstance.current,
+        position: userLocation,
+        title: "Your current location",
+        icon: userLocationIcon(google),
+        zIndex: 20,
+      });
+    } else {
+      userLocationMarkerRef.current.setPosition(userLocation);
+    }
+    if (!userAccuracyCircleRef.current) {
+      userAccuracyCircleRef.current = new google.maps.Circle({
+        map: mapInstance.current,
+        center: userLocation,
+        radius: 28,
+        strokeColor: "#2563eb",
+        strokeOpacity: 0.45,
+        strokeWeight: 2,
+        fillColor: "#3b82f6",
+        fillOpacity: 0.16,
+        clickable: false,
+      });
+    } else {
+      userAccuracyCircleRef.current.setCenter(userLocation);
+    }
+  }, [userLocation]);
 
   function emitLocation(coords: LatLngLiteral, nextAddress?: string, parsed?: ParsedAddress) {
     if (nextAddress) setPinAddress(nextAddress);
@@ -206,64 +242,100 @@ export function LocationPicker({
     }
   }
 
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      toast.error("Location permission is not supported on this device");
+      return;
+    }
+    if (!hasGoogleMapsKey()) {
+      toast.error("Google Maps key is not configured. Please try again after Maps is available.");
+      return;
+    }
+    setLocating(true);
+    toast.info("Allow location permission to show your blue current-location dot");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setUserLocation(coords);
+        moveMapTo(coords, 20);
+        reverseGeocode(coords).finally(() => setLocating(false));
+      },
+      () => {
+        setLocating(false);
+        toast.error("Location permission was denied. Search or move the map instead.");
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+    );
+  }
 
   const selectedLabel =
     pinAddress || address || (value ? `${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}` : "");
 
   return (
     <div className="overflow-hidden rounded-[30px] border border-zinc-100 bg-zinc-50 shadow-sm">
-      <div className="grid gap-2 p-3 md:grid-cols-[1fr_auto]">
-        <label className="relative flex min-h-12 items-center gap-2 rounded-2xl bg-white px-3 shadow-sm ring-1 ring-zinc-100 focus-within:ring-2 focus-within:ring-red-500/25">
-          <Search className="h-4 w-4 shrink-0 text-red-600" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                searchAddress();
-              }
-            }}
-            placeholder="Search area, street, apartment"
-            className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-zinc-400"
-            aria-label="Search delivery location"
-          />
-          {searching && <span className="text-[11px] font-black text-zinc-400">Searching</span>}
-        </label>
-        <button
-          type="button"
-          onClick={searchAddress}
-          disabled={loading}
-          className="min-h-12 rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white disabled:bg-zinc-300"
-        >
-          Search
-        </button>
-      </div>
-
-      {suggestions.length > 0 && (
-        <div className="mx-3 mb-3 overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-zinc-100">
-          {suggestions.map((place) => (
-            <button
-              key={place.placeId}
-              type="button"
-              onClick={() => selectSuggestion(place)}
-              className="flex w-full items-start gap-3 border-b border-zinc-100 px-4 py-3.5 text-left last:border-b-0 hover:bg-red-50"
-            >
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-red-50 text-red-600">
-                <MapPin className="h-4 w-4" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-black text-zinc-950">
-                  {place.title}
-                </span>
-                <span className="block truncate text-xs font-semibold text-zinc-500">
-                  {place.subtitle || "Tap to open on map"}
-                </span>
-              </span>
-            </button>
-          ))}
+      <div className="space-y-2 p-3">
+        <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
+          <label className="relative flex min-h-12 items-center gap-2 rounded-2xl bg-white px-3 shadow-sm ring-1 ring-zinc-100 focus-within:ring-2 focus-within:ring-red-500/25">
+            <Search className="h-4 w-4 shrink-0 text-red-600" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  searchAddress();
+                }
+              }}
+              placeholder="Search area, street, apartment"
+              className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-zinc-400"
+              aria-label="Search delivery location"
+            />
+            {searching && <span className="text-[11px] font-black text-zinc-400">Searching</span>}
+          </label>
+          <button
+            type="button"
+            onClick={searchAddress}
+            disabled={loading}
+            className="min-h-12 rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white disabled:bg-zinc-300"
+          >
+            Search
+          </button>
+          <button
+            type="button"
+            onClick={useCurrentLocation}
+            disabled={locating || loading}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-sm font-black text-white shadow-sm disabled:bg-zinc-300"
+          >
+            <LocateFixed className="h-4 w-4" />
+            {locating ? "Locating" : "Current"}
+          </button>
         </div>
-      )}
+
+        {suggestions.length > 0 && (
+          <div className="max-h-56 overflow-y-auto rounded-3xl bg-white shadow-lg ring-1 ring-zinc-100">
+            {suggestions.map((place) => (
+              <button
+                key={place.placeId}
+                type="button"
+                onClick={() => selectSuggestion(place)}
+                className="flex w-full items-start gap-3 border-b border-zinc-100 px-4 py-3 text-left last:border-b-0 hover:bg-red-50"
+              >
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-red-50 text-red-600">
+                  <MapPin className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-zinc-950">
+                    {place.title}
+                  </span>
+                  <span className="block truncate text-xs font-semibold text-zinc-500">
+                    {place.subtitle || "Tap to open on map"}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {hasGoogleMapsKey() ? (
         <div className="relative">
@@ -271,6 +343,11 @@ export function LocationPicker({
             ref={mapRef}
             className={`${compact ? "h-[56vh] min-h-[430px] md:h-[620px] md:min-h-[520px]" : "h-[76vh] min-h-[560px]"} w-full bg-zinc-200`}
           />
+          {userLocation && (
+            <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-white/95 px-3 py-2 text-xs font-black text-blue-700 shadow-lg ring-1 ring-blue-100">
+              Blue dot: your current location
+            </div>
+          )}
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <CenterPin moving={moving || loading} />
           </div>
@@ -325,6 +402,18 @@ function CenterPin({ moving }: { moving: boolean }) {
       />
     </div>
   );
+}
+
+function userLocationIcon(google: any) {
+  return {
+    path: google.maps.SymbolPath.CIRCLE,
+    fillColor: "#2563eb",
+    fillOpacity: 1,
+    strokeColor: "#ffffff",
+    strokeOpacity: 1,
+    strokeWeight: 3,
+    scale: 9,
+  };
 }
 
 function restaurantPointerIcon(google: any) {
