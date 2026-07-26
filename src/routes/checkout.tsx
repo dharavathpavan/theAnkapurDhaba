@@ -1,12 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, CreditCard, Home, MapPin, Plus, Ticket, Wallet } from "lucide-react";
+import { CheckCircle2, CreditCard, Home, MapPin, Ticket, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import {
   createCashfreePaymentSession,
   createOrder,
-  createCustomerAddress,
   getCustomerHome,
   getCustomerLoyalty,
   getCustomerWallet,
@@ -22,8 +21,6 @@ import { useCart } from "@/stores/cart";
 import { saveActiveOrder } from "@/stores/active-order";
 import type { CreateOrderInput } from "@/services/api";
 import { buildOrderItemName } from "@/lib/order-items";
-import { LocationPicker } from "@/components/site/LocationPicker";
-import type { LatLngLiteral } from "@/lib/google-maps";
 import { AddressBottomSheet } from "@/components/site/AddressBottomSheet";
 import { useSelectedLocation } from "@/stores/location";
 import {
@@ -50,9 +47,6 @@ function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState(0);
   const [selectedAddress, setSelectedAddress] = useState("");
-  const [savingAddress, setSavingAddress] = useState(false);
-  const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [selectedCoords, setSelectedCoords] = useState<LatLngLiteral | null>(null);
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
   const [deliveryEta, setDeliveryEta] = useState<DeliveryEta | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -102,8 +96,7 @@ function CheckoutPage() {
   const minimumOrder = home?.store.minimumOrder ?? 0;
   const needsLogin = !isAuthenticated();
   const deliveryCodDisabled = type === "delivery" && home?.store.allowDeliveryCod !== true;
-  const deliveryAddressReady =
-    type !== "delivery" || Boolean(address) || deliveryAddress.trim().length >= 5;
+  const deliveryAddressReady = type !== "delivery" || Boolean(address);
   const deliveryOutOfZone = type === "delivery" && deliveryEta?.inZone === false;
   const checkoutBlockedReason = !lines.length
     ? "Add items to your cart first."
@@ -138,13 +131,7 @@ function CheckoutPage() {
   useEffect(() => {
     if (!address) return;
     setSelectedAddress(address.id);
-    setDeliveryAddress(address.address);
-    setSelectedCoords(
-      typeof address.lat === "number" && typeof address.lng === "number"
-        ? { lat: address.lat, lng: address.lng }
-        : null,
-    );
-  }, [address?.id, address?.lat, address?.lng]);
+  }, [address?.id]);
 
   useEffect(() => {
     if (deliveryCodDisabled && paymentMethod === "cod") setPaymentMethod("cashfree");
@@ -156,7 +143,7 @@ function CheckoutPage() {
       return;
     }
     let cancelled = false;
-    const destination = addressCoords(address) || selectedCoords;
+    const destination = addressCoords(address);
     calculateDeliveryEta(home.store, destination).then((eta) => {
       if (!cancelled) setDeliveryEta(eta || zoneFallback(home.store, destination));
     });
@@ -169,8 +156,6 @@ function CheckoutPage() {
     address?.id,
     address?.lat,
     address?.lng,
-    selectedCoords?.lat,
-    selectedCoords?.lng,
   ]);
 
   const items = useMemo(
@@ -210,10 +195,9 @@ function CheckoutPage() {
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get("name") || user?.name || "").trim();
     const phone = String(fd.get("phone") || user?.phone || "").trim();
-    const enteredAddress = String(fd.get("address") || deliveryAddress || "").trim();
     if (!name || !/^[6-9]\d{9}$/.test(phone)) return toast.error("Enter valid customer details");
-    if (type === "delivery" && !address && enteredAddress.length < 5)
-      return toast.error("Delivery address is required");
+    if (type === "delivery" && !address)
+      return toast.error("Please add or choose a delivery address before checkout.");
     if (type === "delivery" && subtotal < minimumOrder)
       return toast.error(`Minimum delivery order is Rs ${minimumOrder}`);
     if (deliveryOutOfZone)
@@ -225,19 +209,6 @@ function CheckoutPage() {
 
     setSubmitting(true);
     try {
-      if (savingAddress && isAuthenticated() && type === "delivery" && enteredAddress) {
-        await createCustomerAddress({
-          label: "Home",
-          name,
-          phone,
-          address: enteredAddress,
-          landmark: String(fd.get("landmark") || ""),
-          notes: String(fd.get("notes") || ""),
-          lat: selectedCoords?.lat ?? null,
-          lng: selectedCoords?.lng ?? null,
-          isDefault: addresses.length === 0,
-        });
-      }
       const orderInput: CreateOrderInput = {
         items,
         subtotal,
@@ -247,11 +218,10 @@ function CheckoutPage() {
         customer: {
           name,
           phone,
-          address: type === "delivery" ? address?.address || enteredAddress : undefined,
-          lat: type === "delivery" ? (address?.lat ?? selectedCoords?.lat) : undefined,
-          lng: type === "delivery" ? (address?.lng ?? selectedCoords?.lng) : undefined,
-          landmark:
-            type === "delivery" ? address?.landmark || String(fd.get("landmark") || "") : undefined,
+          address: type === "delivery" ? address?.address : undefined,
+          lat: type === "delivery" ? address?.lat : undefined,
+          lng: type === "delivery" ? address?.lng : undefined,
+          landmark: type === "delivery" ? address?.landmark : undefined,
           notes: String(fd.get("notes") || ""),
         },
         type,
@@ -336,91 +306,74 @@ function CheckoutPage() {
 
           {type === "delivery" && (
             <Panel title="Delivery address">
-              <button
-                type="button"
-                onClick={() => setAddressSheetOpen(true)}
-                className={`mb-4 flex min-h-16 w-full items-center justify-between rounded-[24px] px-4 text-left shadow-sm ring-1 ${
-                  deliveryEta?.inZone === false
-                    ? "bg-yellow-50 text-yellow-900 ring-yellow-200"
-                    : "bg-red-50 text-red-950 ring-red-100"
-                }`}
-              >
-                <span>
-                  <span className="block text-sm font-black">
-                    {address
-                      ? `${address.label || "Address"} - ${address.address}`
-                      : "Choose delivery location"}
-                  </span>
-                  <span className="mt-1 block text-xs font-bold text-zinc-500">
-                    {deliveryEta
-                      ? `${deliveryEta.distanceKm.toFixed(1)} km - ${
-                          deliveryEta.inZone ? `ETA ${deliveryEta.etaLabel}` : "Pickup available"
-                        }`
-                      : "Use GPS or search your address for live ETA"}
-                  </span>
-                </span>
-                <MapPin className="h-5 w-5 shrink-0 text-red-600" />
-              </button>
-              {addresses.length > 0 && (
-                <div className="mb-3 grid gap-2">
-                  {addresses.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setSelectedAddress(item.id)}
-                      className={`rounded-2xl p-4 text-left ${selectedAddress === item.id || (!selectedAddress && item.isDefault) ? "bg-red-50 ring-2 ring-red-500" : "bg-zinc-100"}`}
-                    >
-                      <div className="flex items-center gap-2 font-black">
-                        <Home className="h-4 w-4" /> {item.label}
+              {address ? (
+                <div
+                  className={`rounded-[26px] p-4 ring-1 ${
+                    deliveryEta?.inZone === false
+                      ? "bg-yellow-50 text-yellow-950 ring-yellow-200"
+                      : "bg-red-50 text-red-950 ring-red-100"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white shadow-sm">
+                      <Home className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-wide text-red-700">
+                          {address.label || "Saved address"}
+                        </span>
+                        {address.isDefault ? (
+                          <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-700">
+                            Default
+                          </span>
+                        ) : null}
                       </div>
-                      <div className="mt-1 text-sm text-zinc-500">{item.address}</div>
-                    </button>
-                  ))}
+                      <p className="mt-3 break-words text-sm font-black leading-relaxed text-zinc-950">
+                        {address.address}
+                      </p>
+                      {address.landmark ? (
+                        <p className="mt-1 text-xs font-semibold text-zinc-500">Landmark: {address.landmark}</p>
+                      ) : null}
+                      <p className="mt-3 text-xs font-bold text-zinc-500">
+                        {deliveryEta
+                          ? `${deliveryEta.distanceKm.toFixed(1)} km - ${
+                              deliveryEta.inZone ? `ETA ${deliveryEta.etaLabel}` : "Pickup available"
+                            }`
+                          : "ETA will update from your saved address"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAddressSheetOpen(true)}
+                    className="mt-4 min-h-12 w-full rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white"
+                  >
+                    Change saved address
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-[26px] bg-yellow-50 p-4 text-yellow-950 ring-1 ring-yellow-200">
+                  <div className="flex items-start gap-3">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white shadow-sm">
+                      <MapPin className="h-5 w-5 text-yellow-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-black">Add your delivery address first</h3>
+                      <p className="mt-1 text-sm font-semibold text-yellow-800">
+                        Delivery address is selected after login and reused here. Add or choose a saved address to continue checkout.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAddressSheetOpen(true)}
+                    className="mt-4 min-h-12 w-full rounded-2xl bg-red-600 px-4 text-sm font-black text-white"
+                  >
+                    Add delivery address
+                  </button>
                 </div>
               )}
-              <div className="grid gap-3">
-                <label className="block">
-                  <span className="mb-1 block text-sm font-black">New address</span>
-                  <input
-                    name="address"
-                    value={deliveryAddress}
-                    onChange={(event) => {
-                      setDeliveryAddress(event.target.value);
-                      if (selectedAddress) setSelectedAddress("");
-                    }}
-                    placeholder="House no, street, area, pincode"
-                    className="h-13 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 outline-none focus:border-red-400"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setAddressSheetOpen(true)}
-                  className="min-h-12 rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white"
-                >
-                  Open address picker
-                </button>
-                <LocationPicker
-                  value={selectedCoords}
-                  address={address?.address || deliveryAddress}
-                  restaurant={
-                    home?.store ? { lat: home.store.lat, lng: home.store.lng } : undefined
-                  }
-                  onChange={({ coords, address: nextAddress }) => {
-                    setSelectedAddress("");
-                    setSelectedCoords(coords);
-                    if (nextAddress) setDeliveryAddress(nextAddress);
-                  }}
-                />
-                <Field name="landmark" label="Landmark" placeholder="Near temple, beside ATM" />
-                <label className="flex items-center gap-2 rounded-2xl bg-zinc-100 p-4 font-bold">
-                  <input
-                    type="checkbox"
-                    checked={savingAddress}
-                    onChange={(e) => setSavingAddress(e.target.checked)}
-                  />{" "}
-                  Save this address
-                </label>
-              </div>
             </Panel>
           )}
 
