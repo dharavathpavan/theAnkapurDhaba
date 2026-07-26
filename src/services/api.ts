@@ -166,6 +166,13 @@ export interface DeliveryDetails {
   kdsNote?: string;
   tip?: number;
   bonus?: number;
+  proofOfDelivery?: string;
+  recipientName?: string;
+  codCollectedAmount?: number;
+  sosAlert?: boolean;
+  supportMessage?: string;
+  batteryLevel?: number;
+  pickupChecklist?: Record<string, boolean>;
 }
 
 export interface DeliveryProfile {

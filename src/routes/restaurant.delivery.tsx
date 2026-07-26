@@ -1,23 +1,32 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type React from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AlertTriangle,
+  BadgeIndianRupee,
+  BellRing,
   Bike,
   CheckCircle2,
+  ChevronRight,
+  CircleDot,
   Clock3,
+  Headphones,
+  History,
+  Home,
   IndianRupee,
+  LocateFixed,
   LogOut,
   MapPin,
   Navigation,
+  PackageCheck,
   Phone,
+  ShieldAlert,
   ShieldCheck,
   Star,
   Timer,
   UserRound,
   WalletCards,
+  WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/stores/auth";
@@ -40,28 +49,29 @@ import {
   updateDeliveryPortalStatus,
   verifyDeliveryPickup,
   type DeliveryLocation,
+  type DeliveryProfile,
   type Order,
 } from "@/services/api";
 
 export const Route = createFileRoute("/restaurant/delivery")({
   head: () => ({
     meta: [
-      { title: "Delivery Partner Portal | Ankapur Dhaba" },
+      { title: "Delivery Partner Portal | The Ankapure Dhaba" },
       { name: "robots", content: "noindex" },
     ],
   }),
   component: EnterpriseDeliveryPortal,
 });
 
-const tabs = [
-  "Available Orders",
-  "My Deliveries",
-  "Completed",
-  "History",
-  "Earnings",
-  "Profile",
+const mobileTabs = [
+  { id: "dashboard", label: "Dashboard", icon: Home },
+  { id: "orders", label: "Orders", icon: BellRing },
+  { id: "trip", label: "Trip", icon: Navigation },
+  { id: "wallet", label: "Wallet", icon: WalletCards },
+  { id: "profile", label: "Profile", icon: UserRound },
 ] as const;
-type Tab = (typeof tabs)[number];
+
+type TabId = (typeof mobileTabs)[number]["id"];
 
 function EnterpriseDeliveryPortal() {
   const { user, hasRole, isAuthenticated, logout } = useAuth();
@@ -71,11 +81,14 @@ function EnterpriseDeliveryPortal() {
   const [online, setOnline] = useState(
     () => localStorage.getItem("ankapur:delivery-online") === "true",
   );
-  const [tab, setTab] = useState<Tab>("Available Orders");
+  const [tab, setTab] = useState<TabId>("dashboard");
   const [gpsState, setGpsState] = useState<"idle" | "active" | "blocked">("idle");
   const [lastPosition, setLastPosition] = useState<DeliveryLocation | null>(null);
+  const [incomingOrderId, setIncomingOrderId] = useState<string | null>(null);
+  const [dismissedIncoming, setDismissedIncoming] = useState<Record<string, boolean>>({});
   const watchRef = useRef<number | null>(null);
   const lastGpsPushRef = useRef(0);
+  const notifiedOrderRef = useRef<string | null>(null);
   const stageRef = useRef<Record<string, string>>({});
 
   useEffect(() => setMounted(true), []);
@@ -87,33 +100,34 @@ function EnterpriseDeliveryPortal() {
 
   useOrderRealtime();
 
+  const queryEnabled = mounted && isAuthenticated() && hasRole("ADMIN", "DELIVERY");
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ["delivery-orders"],
     queryFn: listDeliveryOrders,
     refetchInterval: 2500,
-    enabled: mounted && isAuthenticated() && hasRole("ADMIN", "DELIVERY"),
+    enabled: queryEnabled,
   });
   const { data: history = [] } = useQuery({
     queryKey: ["delivery-history"],
     queryFn: listDeliveryHistory,
     refetchInterval: 5000,
-    enabled: mounted && isAuthenticated() && hasRole("ADMIN", "DELIVERY"),
+    enabled: queryEnabled,
   });
   const { data: profile } = useQuery({
     queryKey: ["delivery-profile"],
     queryFn: getDeliveryProfile,
     refetchInterval: 5000,
-    enabled: mounted && isAuthenticated() && hasRole("ADMIN", "DELIVERY"),
+    enabled: queryEnabled,
   });
 
-  const invalidate = async () => {
+  const invalidate = useCallback(async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["delivery-orders"] }),
       queryClient.invalidateQueries({ queryKey: ["delivery-history"] }),
       queryClient.invalidateQueries({ queryKey: ["delivery-profile"] }),
       queryClient.invalidateQueries({ queryKey: ["orders"] }),
     ]);
-  };
+  }, [queryClient]);
 
   const myOrders = useMemo(
     () => orders.filter((order) => isMine(order, user?.id, user?.phone)),
@@ -124,7 +138,7 @@ function EnterpriseDeliveryPortal() {
       orders.filter((order) => {
         const delivery = order.delivery || {};
         return (
-          (order.status === "ready" || order.status === "out_for_delivery") &&
+          order.status === "ready" &&
           !delivery.assignedRiderId &&
           (!delivery.reservedBy || reservationExpired(order))
         );
@@ -132,6 +146,20 @@ function EnterpriseDeliveryPortal() {
     [orders],
   );
   const activeOrder = myOrders.find((order) => !["delivered", "cancelled"].includes(order.status));
+  const visibleIncoming = online
+    ? available.find((order) => !dismissedIncoming[order.id]) || null
+    : null;
+
+  useEffect(() => {
+    if (!visibleIncoming) {
+      setIncomingOrderId(null);
+      return;
+    }
+    setIncomingOrderId(visibleIncoming.id);
+    if (notifiedOrderRef.current === visibleIncoming.id) return;
+    notifiedOrderRef.current = visibleIncoming.id;
+    notifyNewOrder(visibleIncoming);
+  }, [visibleIncoming]);
 
   useEffect(() => {
     if (!online || !activeOrder || activeOrder.status === "delivered") {
@@ -158,16 +186,16 @@ function EnterpriseDeliveryPortal() {
         setLastPosition(currentLocation);
         if (now - lastGpsPushRef.current < 3000) return;
         lastGpsPushRef.current = now;
-        const routeProgress = nextProgress(activeOrder, currentLocation);
         const routePatch = await liveRoutePatch(activeOrder, currentLocation);
         updateDeliveryLocation(activeOrder.id, {
           currentLocation,
           gpsAccuracy: position.coords.accuracy,
           speed: position.coords.speed || undefined,
           heading: position.coords.heading || undefined,
-          routeProgress,
+          routeProgress: nextProgress(activeOrder, currentLocation),
           distanceKm: routePatch.distanceKm ?? estimateDistanceKm(activeOrder, currentLocation),
           etaMinutes: routePatch.etaMinutes,
+          batteryLevel: undefined,
         })
           .then((updated) => {
             maybeUpdateGeofence(updated, currentLocation, stageRef.current).then(invalidate);
@@ -181,242 +209,287 @@ function EnterpriseDeliveryPortal() {
       if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
       watchRef.current = null;
     };
-  }, [online, activeOrder?.id, activeOrder?.status]);
+  }, [online, activeOrder, invalidate]);
 
-  if (!mounted || !isAuthenticated()) {
-    return <DeliveryGate title="Loading delivery portal" />;
-  }
-
+  if (!mounted || !isAuthenticated()) return <DeliveryGate title="Loading delivery portal" />;
   if (!hasRole("ADMIN", "DELIVERY")) {
     return (
       <DeliveryGate title="403 Forbidden" subtitle="This portal is only for delivery partners." />
     );
   }
 
+  const incomingOrder = incomingOrderId ? available.find((order) => order.id === incomingOrderId) : null;
+
   return (
     <div className="min-h-screen bg-[#0F172A] text-white">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.18),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(34,197,94,0.14),transparent_34%)]" />
-      <main className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:py-6">
-        <header className="rounded-[28px] border border-white/10 bg-white/[0.06] p-4 shadow-2xl backdrop-blur md:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-500/25">
-                <Bike className="h-7 w-7" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-300">{greeting()}</p>
-                <h1 className="text-2xl font-black tracking-tight md:text-4xl">
-                  {profile?.user.name || user?.name || "Delivery Partner"}
-                </h1>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-200">
-                  {profile?.branch || "Main Branch"} - Delivery Partner
-                </p>
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
-              <OnlineToggle online={online} onChange={setOnline} />
-              <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  Today Earnings
-                </div>
-                <div className="mt-1 flex items-center gap-1 text-2xl font-black text-emerald-300">
-                  <IndianRupee className="h-5 w-5" />
-                  {profile?.todayEarnings ?? 0}
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  logout();
-                  navigate({ to: "/login" });
-                }}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-slate-100"
-              >
-                <LogOut className="h-4 w-4" /> Logout
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-          <Metric icon={Bike} label="Deliveries" value={profile?.todayDeliveries ?? 0} />
-          <Metric
-            icon={WalletCards}
-            label="Earnings"
-            value={`₹${profile?.todayEarnings ?? 0}`}
-            tone="green"
-          />
-          <Metric icon={Timer} label="Active" value={profile?.activeOrders ?? myOrders.length} />
-          <Metric
-            icon={CheckCircle2}
-            label="Completed"
-            value={profile?.completedOrders ?? history.length}
-            tone="green"
-          />
-          <Metric icon={Clock3} label="Avg Time" value={`${profile?.averageDeliveryTime ?? 0}m`} />
-          <Metric icon={Star} label="Rating" value={profile?.rating ?? 4.8} tone="yellow" />
-          <Metric
-            icon={ShieldCheck}
-            label="Complete"
-            value={`${profile?.completionRate ?? 100}%`}
-            tone="green"
-          />
-          <Metric
-            icon={Navigation}
-            label="Distance"
-            value={`${profile?.distanceTravelled ?? 0}km`}
-          />
-        </section>
-
-        <section className="flex gap-2 overflow-x-auto rounded-[24px] border border-white/10 bg-slate-950/45 p-2">
-          {tabs.map((item) => (
-            <button
-              key={item}
-              onClick={() => setTab(item)}
-              className={`shrink-0 rounded-2xl px-4 py-3 text-sm font-black transition ${tab === item ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20" : "text-slate-300 hover:bg-white/10"}`}
-            >
-              {item}
-            </button>
-          ))}
-        </section>
-
-        {activeOrder && (
-          <ActiveTrip
-            order={activeOrder}
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.22),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(34,197,94,0.14),transparent_36%)]" />
+      <main className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-3 pb-28 pt-3 sm:px-5 lg:grid lg:grid-cols-[23rem_1fr] lg:gap-5 lg:pb-6 lg:pt-5">
+        <aside className="flex flex-col gap-4">
+          <RiderHero
+            profile={profile}
             online={online}
             gpsState={gpsState}
             lastPosition={lastPosition}
-            onDone={invalidate}
+            onOnlineChange={setOnline}
+            onLogout={() => {
+              logout();
+              navigate({ to: "/login" });
+            }}
           />
-        )}
+          <DashboardMetrics profile={profile} myOrders={myOrders} history={history} />
+          <DesktopNav active={tab} onChange={setTab} />
+        </aside>
 
-        {tab === "Available Orders" && (
-          <OrderGrid
-            empty={
-              ordersLoading
-                ? "Loading delivery orders..."
-                : online
-                  ? "No ready or out-for-delivery orders right now"
-                  : "Go online to receive delivery orders"
-            }
-          >
-            {available.map((order) => (
-              <DeliveryOrderCard
-                key={order.id}
-                order={order}
-                mode="available"
+        <section className="min-w-0">
+          <div className="hidden lg:block">
+            <CommandHeader online={online} available={available.length} activeOrder={activeOrder} />
+          </div>
+
+          <div className="mt-0 space-y-4 lg:mt-4">
+            {(tab === "dashboard" || tab === "trip") && (
+              <ActiveTripPanel
+                order={activeOrder}
                 online={online}
+                gpsState={gpsState}
+                lastPosition={lastPosition}
                 onDone={invalidate}
               />
-            ))}
-          </OrderGrid>
-        )}
-        {tab === "My Deliveries" && (
-          <OrderGrid empty="No active assigned deliveries">
-            {myOrders.map((order) => (
-              <DeliveryOrderCard
-                key={order.id}
-                order={order}
-                mode="mine"
+            )}
+
+            {(tab === "dashboard" || tab === "orders") && (
+              <OrdersPanel
                 online={online}
+                ordersLoading={ordersLoading}
+                available={available}
+                myOrders={myOrders}
                 onDone={invalidate}
               />
-            ))}
-          </OrderGrid>
-        )}
-        {(tab === "Completed" || tab === "History") && (
-          <OrderGrid empty="No completed deliveries yet">
-            {history.map((order) => (
-              <DeliveryOrderCard
-                key={order.id}
-                order={order}
-                mode="history"
-                online={online}
-                onDone={invalidate}
-              />
-            ))}
-          </OrderGrid>
-        )}
-        {tab === "Earnings" && <EarningsPanel profile={profile} history={history} />}
-        {tab === "Profile" && (
-          <ProfilePanel profile={profile} gpsState={gpsState} online={online} />
-        )}
+            )}
+
+            {tab === "wallet" && <WalletPanel profile={profile} history={history} />}
+            {tab === "profile" && (
+              <ProfilePanel profile={profile} gpsState={gpsState} online={online} lastPosition={lastPosition} />
+            )}
+          </div>
+        </section>
       </main>
+
+      <MobileNav active={tab} onChange={setTab} />
+
+      {incomingOrder && (
+        <IncomingOrderModal
+          order={incomingOrder}
+          onClose={() => setDismissedIncoming((current) => ({ ...current, [incomingOrder.id]: true }))}
+          onDone={async () => {
+            setIncomingOrderId(null);
+            await invalidate();
+            setTab("trip");
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function ActiveTrip({
-  order,
+function RiderHero({
+  profile,
   online,
   gpsState,
   lastPosition,
-  onDone,
+  onOnlineChange,
+  onLogout,
 }: {
-  order: Order;
+  profile?: DeliveryProfile;
   online: boolean;
   gpsState: string;
   lastPosition: DeliveryLocation | null;
+  onOnlineChange: (value: boolean) => void;
+  onLogout: () => void;
+}) {
+  return (
+    <section className="overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.07] p-4 shadow-2xl backdrop-blur">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-3xl bg-gradient-to-br from-orange-500 to-red-600 shadow-lg shadow-orange-950/40">
+            <Bike className="h-8 w-8" />
+            <span className={`absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-[#0F172A] ${online ? "bg-emerald-400" : "bg-slate-500"}`} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-orange-200">{greeting()}</p>
+            <h1 className="truncate text-2xl font-black">{profile?.user.name || "Delivery Partner"}</h1>
+            <p className="truncate text-xs font-bold text-slate-300">{profile?.branch || "Main Branch"} - Delivery Partner</p>
+          </div>
+        </div>
+        <button
+          onClick={onLogout}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/10 text-slate-100"
+          aria-label="Logout"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
+      </div>
+
+      <button
+        onClick={() => onOnlineChange(!online)}
+        className={`mt-5 flex w-full items-center justify-between rounded-[26px] p-4 text-left transition ${
+          online
+            ? "bg-emerald-400 text-emerald-950 shadow-lg shadow-emerald-950/20"
+            : "bg-slate-900 text-slate-100"
+        }`}
+      >
+        <span>
+          <span className="block text-xs font-black uppercase tracking-[0.2em]">
+            {online ? "Online" : "Offline"}
+          </span>
+          <span className="mt-1 block text-lg font-black">
+            {online ? "Receiving orders" : "Tap to start shift"}
+          </span>
+        </span>
+        <span className={`relative h-9 w-16 rounded-full ${online ? "bg-emerald-950/20" : "bg-white/10"}`}>
+          <span className={`absolute top-1 h-7 w-7 rounded-full bg-white shadow transition ${online ? "left-8" : "left-1"}`} />
+        </span>
+      </button>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <MiniStat icon={BadgeIndianRupee} label="Today" value={`Rs ${profile?.todayEarnings ?? 0}`} />
+        <MiniStat icon={Star} label="Rating" value={String(profile?.rating ?? 4.8)} />
+        <MiniStat icon={LocateFixed} label="GPS" value={gpsState.toUpperCase()} />
+        <MiniStat
+          icon={CircleDot}
+          label="Live"
+          value={lastPosition ? `${lastPosition.lat.toFixed(3)}, ${lastPosition.lng.toFixed(3)}` : "Waiting"}
+        />
+      </div>
+    </section>
+  );
+}
+
+function DashboardMetrics({
+  profile,
+  myOrders,
+  history,
+}: {
+  profile?: DeliveryProfile;
+  myOrders: Order[];
+  history: Order[];
+}) {
+  const cards = [
+    { icon: Bike, label: "Orders", value: profile?.todayDeliveries ?? 0, tone: "orange" },
+    { icon: IndianRupee, label: "Earnings", value: `Rs ${profile?.todayEarnings ?? 0}`, tone: "green" },
+    { icon: Timer, label: "Active", value: profile?.activeOrders ?? myOrders.length, tone: "blue" },
+    { icon: CheckCircle2, label: "Done", value: profile?.completedOrders ?? history.length, tone: "green" },
+    { icon: Clock3, label: "Avg ETA", value: `${profile?.averageDeliveryTime ?? 0}m`, tone: "orange" },
+    { icon: ShieldCheck, label: "Complete", value: `${profile?.completionRate ?? 100}%`, tone: "green" },
+  ];
+  return (
+    <section className="grid grid-cols-2 gap-2">
+      {cards.map((card) => (
+        <MetricCard key={card.label} {...card} />
+      ))}
+    </section>
+  );
+}
+
+function DesktopNav({ active, onChange }: { active: TabId; onChange: (tab: TabId) => void }) {
+  return (
+    <nav className="hidden rounded-[28px] border border-white/10 bg-slate-950/45 p-2 lg:block">
+      {mobileTabs.map((tab) => {
+        const Icon = tab.icon;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onChange(tab.id)}
+            className={`mb-1 flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-black transition last:mb-0 ${
+              active === tab.id ? "bg-orange-500 text-white shadow-lg shadow-orange-950/30" : "text-slate-300 hover:bg-white/10"
+            }`}
+          >
+            <span className="flex items-center gap-3">
+              <Icon className="h-5 w-5" />
+              {tab.label}
+            </span>
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function CommandHeader({
+  online,
+  available,
+  activeOrder,
+}: {
+  online: boolean;
+  available: number;
+  activeOrder?: Order;
+}) {
+  return (
+    <header className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5 shadow-2xl backdrop-blur">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">The Ankapure Dhaba</p>
+          <h2 className="mt-1 text-3xl font-black">Delivery Command Center</h2>
+          <p className="mt-1 text-sm text-slate-300">
+            {online ? `${available} ready order${available === 1 ? "" : "s"} in queue` : "Go online to receive orders"}
+          </p>
+        </div>
+        <div className="rounded-3xl border border-white/10 bg-slate-950/50 px-5 py-4 text-right">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Active Trip</p>
+          <p className="mt-1 text-2xl font-black">{activeOrder ? `#${activeOrder.id}` : "None"}</p>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function OrdersPanel({
+  online,
+  ordersLoading,
+  available,
+  myOrders,
+  onDone,
+}: {
+  online: boolean;
+  ordersLoading: boolean;
+  available: Order[];
+  myOrders: Order[];
   onDone: () => Promise<void>;
 }) {
   return (
-    <section className="grid gap-4 rounded-[28px] border border-orange-400/25 bg-orange-500/10 p-4 shadow-2xl shadow-orange-950/20 lg:grid-cols-[1.1fr_0.9fr]">
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">
-              Active trip
-            </p>
-            <h2 className="mt-1 text-3xl font-black">#{order.id}</h2>
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">Order assignment</p>
+          <h2 className="text-2xl font-black">Available Orders</h2>
+        </div>
+        <StatusPill tone={online ? "green" : "slate"}>{online ? "Online" : "Offline"}</StatusPill>
+      </div>
+      {!online ? (
+        <EmptyState icon={WifiOff} title="You are offline" text="Go online to receive ready delivery orders." />
+      ) : ordersLoading ? (
+        <EmptyState icon={Timer} title="Loading orders" text="Checking ready orders and assignments." />
+      ) : available.length === 0 ? (
+        <EmptyState icon={PackageCheck} title="No ready orders" text="New ready orders will appear here instantly." />
+      ) : (
+        <div className="grid gap-3 xl:grid-cols-2">
+          {available.map((order) => (
+            <DeliveryOrderCard key={order.id} order={order} mode="available" onDone={onDone} />
+          ))}
+        </div>
+      )}
+
+      <div className="pt-2">
+        <h3 className="mb-3 text-lg font-black">My Deliveries</h3>
+        {myOrders.length === 0 ? (
+          <EmptyState icon={Navigation} title="No assigned deliveries" text="Accept an order to begin a trip." />
+        ) : (
+          <div className="grid gap-3 xl:grid-cols-2">
+            {myOrders.map((order) => (
+              <DeliveryOrderCard key={order.id} order={order} mode="mine" onDone={onDone} />
+            ))}
           </div>
-          <StageBadge order={order} />
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <DarkInfo
-            icon={MapPin}
-            label="Customer"
-            value={order.customer.name}
-            sub={order.customer.address || order.delivery?.destinationText || "Delivery address"}
-          />
-          <DarkInfo
-            icon={Phone}
-            label="Phone"
-            value={order.customer.phone}
-            sub={order.customer.landmark || "Call when needed"}
-            href={`tel:${order.customer.phone}`}
-          />
-          <DarkInfo
-            icon={Navigation}
-            label="GPS"
-            value={online ? gpsState.toUpperCase() : "OFFLINE"}
-            sub={
-              lastPosition
-                ? `${lastPosition.lat.toFixed(5)}, ${lastPosition.lng.toFixed(5)}`
-                : "Waiting for live location"
-            }
-          />
-        </div>
-      </div>
-      <div className="min-w-0">
-        <DeliveryMap order={order} compact premium />
-      </div>
-      <div className="flex flex-wrap gap-2 lg:col-span-2">
-        <a
-          href={googleMapsDirectionsUrl(order)}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-white px-5 py-4 text-sm font-black text-slate-950 sm:flex-none"
-        >
-          <Navigation className="h-4 w-4" /> Navigate customer
-        </a>
-        <a
-          href={googleMapsRestaurantDirectionsUrl(order)}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-sm font-black text-white sm:flex-none"
-        >
-          <MapPin className="h-4 w-4" /> Navigate restaurant
-        </a>
-        <PickupAndDeliverControls order={order} onDone={onDone} compact />
+        )}
       </div>
     </section>
   );
@@ -425,394 +498,476 @@ function ActiveTrip({
 function DeliveryOrderCard({
   order,
   mode,
-  online,
   onDone,
 }: {
   order: Order;
-  mode: "available" | "mine" | "history";
-  online: boolean;
+  mode: "available" | "mine";
   onDone: () => Promise<void>;
 }) {
-  const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [pickupPin, setPickupPin] = useState("");
-  const [deliveryOtp, setDeliveryOtp] = useState("");
-  const [partnerName, setPartnerName] = useState(order.delivery?.partnerName || "");
-  const [partnerPhone, setPartnerPhone] = useState(order.delivery?.partnerPhone || "");
+  const queryClient = useQueryClient();
+  const [partnerName, setPartnerName] = useState(order.delivery?.partnerName || user?.name || "");
+  const [partnerPhone, setPartnerPhone] = useState(order.delivery?.partnerPhone || user?.phone || "");
   const [vehicleNumber, setVehicleNumber] = useState(order.delivery?.vehicleNumber || "");
-  const [manualLat, setManualLat] = useState("");
-  const [manualLng, setManualLng] = useState("");
 
   const refresh = async () => {
     await onDone();
     await queryClient.invalidateQueries({ queryKey: ["order", order.id] });
   };
-
   const reserve = useMutation({
     mutationFn: () => reserveDeliveryOrder(order.id),
     onSuccess: async () => {
       toast.success(`Order #${order.id} reserved for 30 seconds`);
       await refresh();
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Reservation failed"),
+    onError: showMutationError("Reservation failed"),
   });
-
-  const pick = useMutation({
-    mutationFn: () => {
-      if (order.status === "out_for_delivery") {
-        const now = new Date().toISOString();
-        return updateOrderDelivery(order.id, {
-          assignedRiderId: user?.id,
-          assignedRiderName: user?.name || partnerName || "Delivery Partner",
-          partnerName: partnerName || user?.name || "Delivery Partner",
-          partnerPhone: partnerPhone || user?.phone,
-          vehicleNumber: vehicleNumber || order.delivery?.vehicleNumber,
-          pickedUpAt: order.delivery?.pickedUpAt || now,
-          pickupVerifiedAt: order.delivery?.pickupVerifiedAt || now,
-          deliveryStage: "on_the_way",
-          deliveryOtp: order.delivery?.deliveryOtp || generateOtp(),
-          routeProgress: Math.max(Number(order.delivery?.routeProgress || 0), 0.35),
-          trackingPaused: false,
-          currentLocation: manualLocation(manualLat, manualLng),
-        });
-      }
-      return pickDeliveryOrder(order.id, {
+  const accept = useMutation({
+    mutationFn: () =>
+      pickDeliveryOrder(order.id, {
         partnerName,
         partnerPhone,
         vehicleNumber,
-        currentLocation: manualLocation(manualLat, manualLng),
-      });
-    },
-    onSuccess: async () => {
-      toast.success("Order assigned. Head to restaurant.");
-      await refresh();
-    },
-    onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "Could not pick order"),
-  });
-
-  const verifyPickup = useMutation({
-    mutationFn: () => verifyDeliveryPickup(order.id, pickupPin),
-    onSuccess: async () => {
-      toast.success("Pickup verified. Delivery started.");
-      await refresh();
-    },
-    onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "Pickup verification failed"),
-  });
-
-  const deliver = useMutation({
-    mutationFn: () =>
-      completeDeliveryOrder(order.id, deliveryOtp, {
-        currentLocation: manualLocation(manualLat, manualLng),
       }),
     onSuccess: async () => {
-      toast.success("Delivery completed");
+      toast.success("Order accepted. Head to restaurant.");
       await refresh();
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Delivery OTP failed"),
+    onError: showMutationError("Could not accept order"),
   });
 
-  const reservedSeconds = reserveSeconds(order);
-  const assigned = Boolean(order.delivery?.assignedRiderId);
-
   return (
-    <article className="overflow-hidden rounded-[28px] border border-white/10 bg-[#1E293B] shadow-2xl shadow-slate-950/30">
-      <header className="border-b border-white/10 bg-slate-950/30 p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+    <article className="overflow-hidden rounded-[30px] border border-white/10 bg-[#1E293B] shadow-2xl shadow-slate-950/30">
+      <header className="border-b border-white/10 bg-slate-950/35 p-4">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-2xl font-black">Order #{order.id}</div>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs font-black uppercase tracking-[0.15em]">
-              <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-emerald-200">
-                {order.paymentStatus}
-              </span>
-              <span className="rounded-full bg-blue-400/15 px-3 py-1 text-blue-200">
-                {order.type}
-              </span>
-              <span className="rounded-full bg-orange-400/15 px-3 py-1 text-orange-200">
-                {order.delivery?.priority || "normal"}
-              </span>
-            </div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-200">Order Assignment</p>
+            <h3 className="mt-1 text-2xl font-black">#{order.id}</h3>
+            <p className="mt-1 text-sm text-slate-300">{itemCount(order)} items - {order.paymentStatus.toUpperCase()} - {order.paymentMethod.toUpperCase()}</p>
           </div>
           <StageBadge order={order} />
         </div>
       </header>
-
-      <div className="grid gap-4 p-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <DarkInfo
-            icon={MapPin}
-            label="Customer"
-            value={order.customer.name}
-            sub={order.customer.address || "Address pending"}
-          />
-          <DarkInfo
-            icon={Phone}
-            label="Phone"
-            value={order.customer.phone}
-            sub={order.customer.landmark || "Tap to call"}
-            href={`tel:${order.customer.phone}`}
-          />
-          <DarkInfo
-            icon={Clock3}
-            label="Pickup ETA"
-            value={`${order.delivery?.etaMinutes || 25} min`}
-            sub={new Date(order.createdAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          />
-          <DarkInfo
-            icon={IndianRupee}
-            label="Earnings"
-            value={`₹${order.deliveryFee + Number(order.delivery?.tip || 0)}`}
-            sub={`Order value ₹${order.total}`}
-          />
+      <div className="space-y-4 p-4">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <DarkInfo icon={MapPin} label="Customer" value={order.customer.name} sub={order.customer.address || "Delivery address"} />
+          <DarkInfo icon={Phone} label="Phone" value={order.customer.phone} sub={order.customer.landmark || "Tap to call"} href={`tel:${order.customer.phone}`} />
+          <DarkInfo icon={Navigation} label="Distance" value={`${Number(order.delivery?.distanceKm || 0).toFixed(1)} km`} sub={`${order.delivery?.etaMinutes || 30} min ETA`} />
+          <DarkInfo icon={IndianRupee} label="Earnings" value={`Rs ${deliveryEarning(order)}`} sub={order.paymentMethod === "cod" ? `Collect Rs ${order.total}` : "Prepaid or wallet"} />
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-3">
-          <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-            Items
+        {mode === "available" && (
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Field label="Name" value={partnerName} onChange={setPartnerName} />
+            <Field label="Phone" value={partnerPhone} onChange={setPartnerPhone} />
+            <Field label="Vehicle" value={vehicleNumber} onChange={setVehicleNumber} placeholder="TS 00 AB 0000" />
           </div>
-          <div className="grid gap-2">
+        )}
+
+        <div className="rounded-3xl bg-slate-950/35 p-3">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Items</p>
+          <div className="mt-2 space-y-2 text-sm text-slate-100">
             {order.items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] px-3 py-2"
-              >
-                <span className="font-bold">
-                  {item.qty}x {item.name}
-                </span>
-                <span className="font-black text-slate-300">₹{item.price * item.qty}</span>
+              <div key={item.id} className="flex justify-between gap-3">
+                <span>{item.qty} x {item.name}</span>
+                <span className="font-black">Rs {item.price * item.qty}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {mode !== "history" && (
-          <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/35 p-3 sm:grid-cols-3">
-            <Field value={partnerName} onChange={setPartnerName} placeholder="Rider name" />
-            <Field value={partnerPhone} onChange={setPartnerPhone} placeholder="Rider phone" />
-            <Field value={vehicleNumber} onChange={setVehicleNumber} placeholder="Vehicle number" />
-            <Field value={manualLat} onChange={setManualLat} placeholder="Manual latitude" />
-            <Field value={manualLng} onChange={setManualLng} placeholder="Manual longitude" />
-            <a
-              href={googleMapsDirectionsUrl(order)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white"
-            >
-              <Navigation className="h-4 w-4" /> Navigate
-            </a>
-          </div>
-        )}
-
-        {mode === "available" && (
-          <div className="grid gap-3">
+        {mode === "available" ? (
+          <div className="grid gap-2 sm:grid-cols-2">
             <button
-              disabled={!online || reserve.isPending}
               onClick={() => reserve.mutate()}
-              className="rounded-2xl border border-orange-300/20 bg-orange-400/10 px-4 py-4 text-sm font-black text-orange-100 disabled:opacity-50"
+              disabled={reserve.isPending}
+              className="rounded-2xl border border-orange-400/40 bg-orange-400/10 px-4 py-4 text-sm font-black text-orange-100"
             >
-              {reservedSeconds > 0 ? `Reserved for ${reservedSeconds}s` : "Reserve Order"}
+              Reserve 30 sec
             </button>
-            <SwipeAction
-              disabled={!online || pick.isPending}
-              label="Swipe To Pick Order"
-              onComplete={() => pick.mutate()}
-            />
+            <button
+              onClick={() => accept.mutate()}
+              disabled={accept.isPending}
+              className="rounded-2xl bg-orange-500 px-4 py-4 text-sm font-black text-white shadow-lg shadow-orange-950/30"
+            >
+              Accept Order
+            </button>
           </div>
-        )}
-
-        {assigned && order.status !== "delivered" && (
-          <PickupAndDeliverControls
-            order={order}
-            pickupPin={pickupPin}
-            deliveryOtp={deliveryOtp}
-            onPickupPin={setPickupPin}
-            onDeliveryOtp={setDeliveryOtp}
-            onVerifyPickup={() => verifyPickup.mutate()}
-            onDeliver={() => deliver.mutate()}
-            busy={verifyPickup.isPending || deliver.isPending}
-            onDone={refresh}
-          />
+        ) : (
+          <a
+            href={googleMapsDirectionsUrl(order)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-4 text-sm font-black text-slate-950"
+          >
+            <Navigation className="h-4 w-4" /> Navigate to customer
+          </a>
         )}
       </div>
     </article>
   );
 }
 
-function PickupAndDeliverControls({
+function ActiveTripPanel({
   order,
-  pickupPin,
-  deliveryOtp,
-  onPickupPin,
-  onDeliveryOtp,
-  onVerifyPickup,
-  onDeliver,
-  busy,
+  online,
+  gpsState,
+  lastPosition,
   onDone,
-  compact,
 }: {
-  order: Order;
-  pickupPin?: string;
-  deliveryOtp?: string;
-  onPickupPin?: (value: string) => void;
-  onDeliveryOtp?: (value: string) => void;
-  onVerifyPickup?: () => void;
-  onDeliver?: () => void;
-  busy?: boolean;
+  order?: Order;
+  online: boolean;
+  gpsState: string;
+  lastPosition: DeliveryLocation | null;
   onDone: () => Promise<void>;
-  compact?: boolean;
 }) {
-  const [localPickup, setLocalPickup] = useState("");
-  const [localOtp, setLocalOtp] = useState("");
+  if (!order) {
+    return (
+      <section className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5 shadow-2xl">
+        <EmptyState icon={Bike} title="No active trip" text="Accepted delivery orders will appear here with navigation, OTP and live GPS controls." />
+      </section>
+    );
+  }
+  return (
+    <section className="overflow-hidden rounded-[32px] border border-orange-400/25 bg-orange-500/10 shadow-2xl shadow-orange-950/20">
+      <div className="grid gap-4 p-4 lg:grid-cols-[1fr_24rem]">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">Active trip</p>
+              <h2 className="mt-1 text-3xl font-black">#{order.id}</h2>
+              <p className="mt-1 text-sm text-slate-300">{order.customer.name} - {order.customer.address || order.delivery?.destinationText || "Delivery address"}</p>
+            </div>
+            <StageBadge order={order} />
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <DarkInfo icon={LocateFixed} label="GPS" value={online ? gpsState.toUpperCase() : "OFFLINE"} sub={lastPosition ? `${lastPosition.lat.toFixed(5)}, ${lastPosition.lng.toFixed(5)}` : "Waiting for live GPS"} />
+            <DarkInfo icon={Timer} label="ETA" value={`${order.delivery?.etaMinutes || 30} min`} sub={`${Number(order.delivery?.distanceKm || 0).toFixed(1)} km remaining`} />
+            <DarkInfo icon={IndianRupee} label="Payment" value={order.paymentMethod.toUpperCase()} sub={order.paymentMethod === "cod" ? `Collect Rs ${order.total}` : order.paymentStatus} />
+          </div>
+        </div>
+        <DeliveryMap order={order} compact premium />
+      </div>
+      <TripControls order={order} onDone={onDone} />
+    </section>
+  );
+}
+
+function TripControls({ order, onDone }: { order: Order; onDone: () => Promise<void> }) {
+  const [pickupPin, setPickupPin] = useState("");
+  const [deliveryOtp, setDeliveryOtp] = useState("");
+  const [delayReason, setDelayReason] = useState("");
+  const [proofText, setProofText] = useState("");
+  const [codAmount, setCodAmount] = useState(order.paymentMethod === "cod" ? String(order.total) : "");
+  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+  const queryClient = useQueryClient();
+
+  const refresh = async () => {
+    await onDone();
+    await queryClient.invalidateQueries({ queryKey: ["order", order.id] });
+  };
+  const updateStage = useMutation({
+    mutationFn: (deliveryStage: string) => updateDeliveryPortalStatus(order.id, { deliveryStage }),
+    onSuccess: refresh,
+    onError: showMutationError("Could not update status"),
+  });
   const verifyPickup = useMutation({
-    mutationFn: () => verifyDeliveryPickup(order.id, pickupPin ?? localPickup),
+    mutationFn: () => verifyDeliveryPickup(order.id, pickupPin),
     onSuccess: async () => {
-      toast.success("Pickup verified");
-      await onDone();
+      toast.success("Pickup verified. Delivery started.");
+      await refresh();
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Invalid pickup PIN"),
+    onError: showMutationError("Pickup verification failed"),
   });
   const deliver = useMutation({
-    mutationFn: () => completeDeliveryOrder(order.id, deliveryOtp ?? localOtp),
+    mutationFn: () =>
+      completeDeliveryOrder(order.id, deliveryOtp, {
+        codCollectedAmount: codAmount ? Number(codAmount) : undefined,
+        proofOfDelivery: proofText || undefined,
+        pickupChecklist: checklist,
+      }),
     onSuccess: async () => {
-      toast.success("Delivered");
-      await onDone();
+      toast.success("Delivery completed");
+      await refresh();
     },
-    onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "Invalid delivery OTP"),
+    onError: showMutationError("Delivery OTP failed"),
   });
-  const pickupValue = pickupPin ?? localPickup;
-  const otpValue = deliveryOtp ?? localOtp;
-  const setPickup = onPickupPin ?? setLocalPickup;
-  const setOtp = onDeliveryOtp ?? setLocalOtp;
-  const pickupAction = onVerifyPickup ?? (() => verifyPickup.mutate());
-  const deliveryAction = onDeliver ?? (() => deliver.mutate());
-  const isBusy = busy || verifyPickup.isPending || deliver.isPending;
+  const saveDelay = useMutation({
+    mutationFn: () =>
+      updateDeliveryPortalStatus(order.id, {
+        deliveryStage: order.delivery?.deliveryStage || "on_the_way",
+        delayReason,
+        etaMinutes: (order.delivery?.etaMinutes || 30) + 10,
+      }),
+    onSuccess: async () => {
+      toast.success("Delay shared with restaurant and customer");
+      await refresh();
+    },
+    onError: showMutationError("Could not save delay"),
+  });
+  const sos = useMutation({
+    mutationFn: () =>
+      updateOrderDelivery(order.id, {
+        sosAlert: true,
+        supportMessage: "Rider requested emergency support",
+        managerAlert: true,
+      }),
+    onSuccess: async () => {
+      toast.success("SOS sent to manager");
+      await refresh();
+    },
+    onError: showMutationError("Could not send SOS"),
+  });
+
+  const checklistItems = ["Food packed", "Beverages", "Cutlery", "Bill", "Thermal bag"];
 
   return (
-    <div className={`grid gap-3 ${compact ? "flex-1 sm:grid-cols-2" : ""}`}>
-      {order.status === "ready" && (
-        <div className="grid gap-2 rounded-2xl border border-white/10 bg-slate-950/35 p-3">
-          <div className="flex items-center justify-between gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-            Pickup PIN
-            {order.delivery?.pickupPin && (
-              <span className="rounded-full bg-orange-400/20 px-2 py-1 text-orange-100">
-                Kitchen {order.delivery.pickupPin}
-              </span>
-            )}
+    <div className="space-y-4 border-t border-white/10 bg-slate-950/35 p-4">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <a href={googleMapsRestaurantDirectionsUrl(order)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-4 text-sm font-black text-white">
+          <MapPin className="h-4 w-4" /> Restaurant
+        </a>
+        <a href={googleMapsDirectionsUrl(order)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-4 text-sm font-black text-white">
+          <Navigation className="h-4 w-4" /> Customer
+        </a>
+        <a href={`tel:${order.customer.phone}`} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-4 text-sm font-black text-white">
+          <Phone className="h-4 w-4" /> Call customer
+        </a>
+        <button onClick={() => sos.mutate()} disabled={sos.isPending} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-400/30 bg-red-500/15 px-4 py-4 text-sm font-black text-red-100">
+          <ShieldAlert className="h-4 w-4" /> SOS
+        </button>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="rounded-[26px] border border-white/10 bg-white/[0.06] p-4">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-200">Pickup verification</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <Field label="Pickup PIN" value={pickupPin} onChange={setPickupPin} placeholder="4 digit PIN" />
+            <button onClick={() => verifyPickup.mutate()} disabled={verifyPickup.isPending} className="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-emerald-950">
+              Verify
+            </button>
           </div>
-          <Field value={pickupValue} onChange={setPickup} placeholder="Enter 4 digit pickup PIN" />
-          <button
-            disabled={!pickupValue || isBusy}
-            onClick={pickupAction}
-            className="rounded-2xl bg-orange-500 px-4 py-3 text-sm font-black text-white disabled:opacity-50"
-          >
-            Verify Pickup
-          </button>
-        </div>
-      )}
-      {order.status === "out_for_delivery" && (
-        <div className="grid gap-2 rounded-2xl border border-white/10 bg-slate-950/35 p-3">
-          <div className="flex items-center justify-between gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-            Delivery OTP
-            {order.delivery?.deliveryOtp && (
-              <span className="rounded-full bg-emerald-400/20 px-2 py-1 text-emerald-100">
-                Customer {order.delivery.deliveryOtp}
-              </span>
-            )}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {checklistItems.map((item) => (
+              <label key={item} className="flex items-center gap-2 rounded-2xl bg-slate-950/35 px-3 py-2 text-sm font-bold">
+                <input
+                  type="checkbox"
+                  checked={Boolean(checklist[item])}
+                  onChange={(e) => setChecklist((current) => ({ ...current, [item]: e.target.checked }))}
+                  className="h-4 w-4 accent-orange-500"
+                />
+                {item}
+              </label>
+            ))}
           </div>
-          <Field value={otpValue} onChange={setOtp} placeholder="Enter delivery OTP" />
-          <SwipeAction
-            disabled={!otpValue || isBusy}
-            label="Swipe To Complete Delivery"
-            onComplete={deliveryAction}
-            tone="green"
-          />
         </div>
-      )}
+
+        <div className="rounded-[26px] border border-white/10 bg-white/[0.06] p-4">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-200">Delivery verification</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <Field label="Delivery OTP" value={deliveryOtp} onChange={setDeliveryOtp} placeholder="Customer OTP" />
+            <button onClick={() => deliver.mutate()} disabled={deliver.isPending} className="rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white">
+              Deliver
+            </button>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {order.paymentMethod === "cod" && <Field label="COD collected" value={codAmount} onChange={setCodAmount} />}
+            <Field label="Proof / recipient note" value={proofText} onChange={setProofText} placeholder="Recipient name or note" />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-4">
+        <button onClick={() => updateStage.mutate("arrived_restaurant")} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white">Reached Restaurant</button>
+        <button onClick={() => updateStage.mutate("nearby")} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white">Nearby</button>
+        <button onClick={() => updateStage.mutate("almost_there")} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white">Almost There</button>
+        <button onClick={() => updateStage.mutate("outside")} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white">Outside</button>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <Field label="Delay reason" value={delayReason} onChange={setDelayReason} placeholder="Traffic, customer delay, vehicle issue..." />
+        <button onClick={() => saveDelay.mutate()} disabled={!delayReason || saveDelay.isPending} className="rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-5 py-3 text-sm font-black text-yellow-100">
+          Share Delay
+        </button>
+      </div>
     </div>
   );
 }
 
-function SwipeAction({
-  label,
-  onComplete,
-  disabled,
-  tone = "orange",
+function IncomingOrderModal({
+  order,
+  onClose,
+  onDone,
 }: {
-  label: string;
-  onComplete: () => void;
-  disabled?: boolean;
-  tone?: "orange" | "green";
+  order: Order;
+  onClose: () => void;
+  onDone: () => Promise<void>;
 }) {
-  const [drag, setDrag] = useState(0);
-  const [active, setActive] = useState(false);
-  const trackRef = useRef<HTMLButtonElement | null>(null);
-  const color = tone === "green" ? "bg-emerald-500" : "bg-orange-500";
+  const [seconds, setSeconds] = useState(30);
+  const accept = useMutation({
+    mutationFn: () => pickDeliveryOrder(order.id),
+    onSuccess: async () => {
+      toast.success("Order accepted");
+      await onDone();
+    },
+    onError: showMutationError("Could not accept order"),
+  });
+  const reserve = useMutation({
+    mutationFn: () => reserveDeliveryOrder(order.id),
+    onSuccess: async () => {
+      toast.success("Order reserved for 30 seconds");
+      await onDone();
+    },
+    onError: showMutationError("Could not reserve order"),
+  });
 
-  const finish = () => {
-    if (disabled) return;
-    const width = trackRef.current?.clientWidth || 1;
-    if (drag > width * 0.58) onComplete();
-    setDrag(0);
-    setActive(false);
-  };
+  useEffect(() => {
+    const timer = window.setInterval(() => setSeconds((current) => Math.max(0, current - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
-    <button
-      ref={trackRef}
-      type="button"
-      disabled={disabled}
-      onPointerDown={(event) => {
-        if (disabled) return;
-        setActive(true);
-        event.currentTarget.setPointerCapture(event.pointerId);
-      }}
-      onPointerMove={(event) => {
-        if (!active || disabled) return;
-        const rect = event.currentTarget.getBoundingClientRect();
-        setDrag(Math.max(0, Math.min(event.clientX - rect.left, rect.width - 56)));
-      }}
-      onPointerUp={finish}
-      onClick={() => {
-        if (!active && !disabled) onComplete();
-      }}
-      className="relative h-16 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/60 px-4 text-center text-sm font-black text-white disabled:opacity-50"
-    >
-      <span
-        className={`absolute left-1 top-1 grid h-14 w-14 place-items-center rounded-2xl ${color} shadow-lg transition-transform`}
-        style={{ transform: `translateX(${drag}px)` }}
-      >
-        <Bike className="h-5 w-5" />
-      </span>
-      <span className="pl-12">{label}</span>
-    </button>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4 backdrop-blur">
+      <section className="w-full max-w-md overflow-hidden rounded-[34px] border border-orange-300/30 bg-[#111827] text-white shadow-2xl">
+        <div className="bg-gradient-to-br from-orange-500 to-red-600 p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.24em] text-white/80">New delivery order</p>
+              <h2 className="mt-1 text-3xl font-black">#{order.id}</h2>
+            </div>
+            <div className="grid h-16 w-16 place-items-center rounded-3xl bg-white text-2xl font-black text-red-600">
+              {seconds}
+            </div>
+          </div>
+        </div>
+        <div className="space-y-4 p-5">
+          <div className="grid gap-2">
+            <DarkInfo icon={MapPin} label="Customer" value={order.customer.name} sub={order.customer.address || "Delivery address"} />
+            <DarkInfo icon={Timer} label="ETA and earnings" value={`${order.delivery?.etaMinutes || 30} min`} sub={`Expected earnings Rs ${deliveryEarning(order)}`} />
+            <DarkInfo icon={IndianRupee} label="Payment" value={order.paymentMethod.toUpperCase()} sub={order.paymentMethod === "cod" ? `Collect Rs ${order.total}` : order.paymentStatus} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={onClose} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 text-sm font-black">Decline</button>
+            <button onClick={() => reserve.mutate()} disabled={reserve.isPending} className="rounded-2xl border border-orange-300/30 bg-orange-300/10 px-4 py-4 text-sm font-black text-orange-100">Reserve</button>
+          </div>
+          <button onClick={() => accept.mutate()} disabled={accept.isPending} className="w-full rounded-2xl bg-orange-500 px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-950/30">
+            Accept and Start Trip
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 
-function Metric({
-  icon: Icon,
-  label,
-  value,
-  tone = "slate",
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: React.ReactNode;
-  tone?: "slate" | "green" | "yellow";
-}) {
-  const toneClass =
-    tone === "green" ? "text-emerald-300" : tone === "yellow" ? "text-yellow-300" : "text-white";
+function WalletPanel({ profile, history }: { profile?: DeliveryProfile; history: Order[] }) {
+  const earnings = history.reduce((sum, order) => sum + deliveryEarning(order), 0);
   return (
-    <div className="rounded-[22px] border border-white/10 bg-white/[0.06] p-3 shadow-xl backdrop-blur">
-      <Icon className={`h-5 w-5 ${toneClass}`} />
-      <div className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-        {label}
+    <section className="space-y-4">
+      <div className="rounded-[32px] border border-emerald-400/20 bg-emerald-400/10 p-5">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-200">Driver wallet</p>
+        <h2 className="mt-2 text-4xl font-black text-emerald-100">Rs {profile?.todayEarnings ?? 0}</h2>
+        <p className="mt-1 text-sm text-emerald-100/80">Today earnings. Withdrawals and payouts can be connected later.</p>
       </div>
-      <div className={`mt-1 text-2xl font-black ${toneClass}`}>{value}</div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <MetricCard icon={WalletCards} label="Total shown" value={`Rs ${earnings}`} tone="green" />
+        <MetricCard icon={BadgeIndianRupee} label="Bonus" value={`Rs ${profile?.bonusEarned ?? 0}`} tone="orange" />
+        <MetricCard icon={History} label="Completed" value={history.length} tone="blue" />
+      </div>
+      <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-4">
+        <h3 className="text-lg font-black">Recent delivery earnings</h3>
+        <div className="mt-3 space-y-2">
+          {history.slice(0, 8).map((order) => (
+            <div key={order.id} className="flex items-center justify-between gap-2 rounded-2xl bg-slate-950/40 p-3 text-sm">
+              <span className="font-bold">#{order.id}</span>
+              <span className="text-slate-300">{new Date(order.updatedAt).toLocaleString()}</span>
+              <span className="font-black text-emerald-300">Rs {deliveryEarning(order)}</span>
+            </div>
+          ))}
+          {history.length === 0 && <p className="text-sm text-slate-400">No completed deliveries yet.</p>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProfilePanel({
+  profile,
+  gpsState,
+  online,
+  lastPosition,
+}: {
+  profile?: DeliveryProfile;
+  gpsState: string;
+  online: boolean;
+  lastPosition: DeliveryLocation | null;
+}) {
+  return (
+    <section className="grid gap-4 lg:grid-cols-2">
+      <div className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">Driver profile</p>
+        <h2 className="mt-2 text-3xl font-black">{profile?.user.name || "Delivery Partner"}</h2>
+        <div className="mt-4 grid gap-2">
+          <DarkInfo icon={Phone} label="Phone" value={profile?.user.phone || "Not set"} sub="Login phone" />
+          <DarkInfo icon={Bike} label="Branch" value={profile?.branch || "Main Branch"} sub="The Ankapure Dhaba" />
+          <DarkInfo icon={Star} label="Rating" value={String(profile?.rating ?? 4.8)} sub="Customer rating" />
+        </div>
+      </div>
+      <div className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">Device and safety</p>
+        <div className="mt-4 grid gap-2">
+          <DarkInfo icon={LocateFixed} label="GPS" value={gpsState.toUpperCase()} sub={online ? "Tracking active when trip is assigned" : "Offline"} />
+          <DarkInfo icon={CircleDot} label="Last location" value={lastPosition ? `${lastPosition.lat.toFixed(5)}, ${lastPosition.lng.toFixed(5)}` : "Waiting"} sub={lastPosition?.updatedAt || "No GPS update yet"} />
+          <DarkInfo icon={Headphones} label="Support" value="Manager and restaurant" sub="SOS available from active trip" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MobileNav({ active, onChange }: { active: TabId; onChange: (tab: TabId) => void }) {
+  return (
+    <nav className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 gap-1 rounded-[28px] border border-white/15 bg-slate-950/88 p-2 shadow-2xl shadow-black/50 backdrop-blur-xl lg:hidden">
+      {mobileTabs.map((tab) => {
+        const Icon = tab.icon;
+        const selected = active === tab.id;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onChange(tab.id)}
+            className={`rounded-2xl px-2 py-2 text-[11px] font-black transition ${selected ? "bg-orange-500 text-white" : "text-slate-300"}`}
+          >
+            <Icon className="mx-auto mb-1 h-5 w-5" />
+            {tab.label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function MetricCard({ icon: Icon, label, value, tone }: { icon: any; label: string; value: any; tone: string }) {
+  const colors: Record<string, string> = {
+    orange: "bg-orange-500/12 text-orange-200",
+    green: "bg-emerald-500/12 text-emerald-200",
+    blue: "bg-sky-500/12 text-sky-200",
+  };
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-white/[0.06] p-3">
+      <div className={`mb-3 grid h-10 w-10 place-items-center rounded-2xl ${colors[tone] || colors.orange}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="mt-1 text-xl font-black">{value}</p>
+    </div>
+  );
+}
+
+function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-white/10 bg-slate-950/35 p-3">
+      <Icon className="mb-2 h-4 w-4 text-orange-200" />
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="mt-1 truncate text-sm font-black">{value}</p>
     </div>
   );
 }
@@ -824,196 +979,89 @@ function DarkInfo({
   sub,
   href,
 }: {
-  icon: React.ElementType;
+  icon: any;
   label: string;
   value: string;
   sub?: string;
   href?: string;
 }) {
-  const content = (
-    <div className="flex min-w-0 gap-3 rounded-2xl border border-white/10 bg-white/[0.05] p-3">
-      <Icon className="mt-1 h-5 w-5 shrink-0 text-orange-300" />
-      <div className="min-w-0">
-        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-          {label}
-        </div>
-        <div className="truncate text-base font-black text-white">{value}</div>
-        {sub && <div className="mt-1 line-clamp-2 text-xs font-semibold text-slate-300">{sub}</div>}
-      </div>
-    </div>
+  const body = (
+    <>
+      <Icon className="h-5 w-5 shrink-0 text-orange-200" />
+      <span className="min-w-0">
+        <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</span>
+        <span className="mt-1 block break-words text-sm font-black text-white">{value}</span>
+        {sub && <span className="mt-0.5 block break-words text-xs text-slate-400">{sub}</span>}
+      </span>
+    </>
   );
-  return href ? <a href={href}>{content}</a> : content;
+  const className = "flex min-w-0 gap-3 rounded-2xl border border-white/10 bg-slate-950/35 p-3";
+  return href ? (
+    <a href={href} className={className}>
+      {body}
+    </a>
+  ) : (
+    <div className={className}>{body}</div>
+  );
 }
 
 function Field({
+  label,
   value,
   onChange,
   placeholder,
 }: {
+  label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
+  placeholder?: string;
 }) {
   return (
-    <input
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      placeholder={placeholder}
-      className="min-w-0 rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-slate-500 focus:border-orange-300"
-    />
+    <label className="block">
+      <span className="mb-1 block text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/45 px-3 text-sm font-bold text-white outline-none focus:border-orange-300"
+      />
+    </label>
   );
 }
 
-function OnlineToggle({
-  online,
-  onChange,
-}: {
-  online: boolean;
-  onChange: (online: boolean) => void;
-}) {
-  return (
-    <button
-      onClick={() => onChange(!online)}
-      className={`flex items-center justify-between gap-4 rounded-2xl px-5 py-4 text-left shadow-lg ${online ? "bg-emerald-500 text-slate-950 shadow-emerald-500/20" : "bg-slate-800 text-slate-100 shadow-slate-950/30"}`}
-    >
-      <span>
-        <span className="block text-[11px] font-black uppercase tracking-[0.18em] opacity-75">
-          Status
-        </span>
-        <span className="block text-lg font-black">{online ? "ONLINE" : "OFFLINE"}</span>
-      </span>
-      <span className={`h-7 w-12 rounded-full p-1 ${online ? "bg-slate-950/20" : "bg-white/10"}`}>
-        <span
-          className={`block h-5 w-5 rounded-full bg-white transition-transform ${online ? "translate-x-5" : ""}`}
-        />
-      </span>
-    </button>
-  );
+function StatusPill({ tone, children }: { tone: "green" | "orange" | "slate"; children: any }) {
+  const colors = {
+    green: "bg-emerald-400/15 text-emerald-200 border-emerald-300/20",
+    orange: "bg-orange-400/15 text-orange-200 border-orange-300/20",
+    slate: "bg-slate-500/15 text-slate-200 border-white/10",
+  };
+  return <span className={`rounded-full border px-3 py-1 text-xs font-black ${colors[tone]}`}>{children}</span>;
 }
 
 function StageBadge({ order }: { order: Order }) {
-  const label = (order.delivery?.deliveryStage || order.status).replace(/_/g, " ");
-  const color =
-    order.status === "delivered"
-      ? "bg-emerald-400/15 text-emerald-200"
-      : order.status === "out_for_delivery"
-        ? "bg-blue-400/15 text-blue-200"
-        : "bg-orange-400/15 text-orange-200";
-  return (
-    <span
-      className={`rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.16em] ${color}`}
-    >
-      {label}
-    </span>
-  );
+  const stage = order.delivery?.deliveryStage || order.status;
+  const label = String(stage).replace(/_/g, " ");
+  const tone = order.status === "delivered" ? "green" : order.status === "ready" ? "orange" : "slate";
+  return <StatusPill tone={tone}>{label}</StatusPill>;
 }
 
-function OrderGrid({ children, empty }: { children: React.ReactNode; empty: string }) {
-  const list = Array.isArray(children) ? children.filter(Boolean) : children;
-  if (Array.isArray(list) && list.length === 0) {
-    return (
-      <div className="grid min-h-72 place-items-center rounded-[28px] border border-dashed border-white/15 bg-white/[0.04] p-8 text-center">
-        <div>
-          <Bike className="mx-auto h-10 w-10 text-slate-500" />
-          <p className="mt-4 text-xl font-black text-slate-300">{empty}</p>
-        </div>
-      </div>
-    );
-  }
-  return <section className="grid gap-4 lg:grid-cols-2">{children}</section>;
-}
-
-function EarningsPanel({ profile, history }: { profile?: any; history: Order[] }) {
+function EmptyState({ icon: Icon, title, text }: { icon: any; title: string; text: string }) {
   return (
-    <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-      <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-5">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Earnings</p>
-        <div className="mt-3 flex items-center gap-2 text-5xl font-black text-emerald-300">
-          <IndianRupee className="h-8 w-8" />
-          {profile?.todayEarnings ?? 0}
-        </div>
-        <p className="mt-2 text-sm font-semibold text-slate-300">
-          Bonus earned ₹{profile?.bonusEarned ?? 0}
-        </p>
-      </div>
-      <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-5">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-          Recent completed deliveries
-        </p>
-        <div className="mt-4 grid gap-2">
-          {history.slice(0, 8).map((order) => (
-            <div
-              key={order.id}
-              className="flex items-center justify-between rounded-2xl bg-slate-950/45 px-4 py-3"
-            >
-              <span className="font-black">#{order.id}</span>
-              <span className="text-sm font-bold text-slate-300">{order.customer.name}</span>
-              <span className="font-black text-emerald-300">
-                ₹{order.deliveryFee + Number(order.delivery?.tip || 0)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ProfilePanel({
-  profile,
-  gpsState,
-  online,
-}: {
-  profile?: any;
-  gpsState: string;
-  online: boolean;
-}) {
-  return (
-    <section className="rounded-[28px] border border-white/10 bg-white/[0.06] p-5">
-      <div className="flex items-center gap-4">
-        <div className="grid h-20 w-20 place-items-center rounded-3xl bg-orange-500 text-3xl font-black">
-          {(profile?.user.name || "D").slice(0, 1)}
-        </div>
-        <div>
-          <h2 className="text-3xl font-black">{profile?.user.name || "Delivery Partner"}</h2>
-          <p className="font-bold text-slate-300">{profile?.user.phone}</p>
-          <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-orange-200">
-            {profile?.branch || "Main Branch"}
-          </p>
-        </div>
-      </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-3">
-        <DarkInfo
-          icon={ShieldCheck}
-          label="Access"
-          value={profile?.user.role || "DELIVERY"}
-          sub="Role based portal"
-        />
-        <DarkInfo
-          icon={Navigation}
-          label="GPS"
-          value={gpsState.toUpperCase()}
-          sub={online ? "Tracking starts with active trip" : "Offline"}
-        />
-        <DarkInfo
-          icon={AlertTriangle}
-          label="Emergency"
-          value="Call Manager"
-          sub="SOS hooks ready for provider setup"
-          href="tel:+919963218601"
-        />
-      </div>
-    </section>
+    <div className="rounded-[28px] border border-dashed border-white/15 bg-white/[0.04] p-6 text-center">
+      <Icon className="mx-auto h-10 w-10 text-orange-200" />
+      <h3 className="mt-3 text-xl font-black">{title}</h3>
+      <p className="mx-auto mt-1 max-w-md text-sm text-slate-400">{text}</p>
+    </div>
   );
 }
 
 function DeliveryGate({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="grid min-h-screen place-items-center bg-[#0F172A] px-4 text-center text-white">
-      <div>
+    <div className="grid min-h-screen place-items-center bg-[#0F172A] p-6 text-center text-white">
+      <div className="max-w-md rounded-[30px] border border-white/10 bg-white/[0.06] p-8 shadow-2xl">
         <Bike className="mx-auto h-12 w-12 text-orange-300" />
         <h1 className="mt-4 text-3xl font-black">{title}</h1>
-        {subtitle && <p className="mt-2 text-slate-300">{subtitle}</p>}
+        {subtitle && <p className="mt-2 text-sm text-slate-300">{subtitle}</p>}
       </div>
     </div>
   );
@@ -1029,82 +1077,41 @@ function isMine(order: Order, userId?: string, phone?: string) {
 }
 
 function reservationExpired(order: Order) {
-  const expires = order.delivery?.reserveExpiresAt;
-  return !expires || new Date(expires).getTime() <= Date.now();
+  const expiry = order.delivery?.reserveExpiresAt;
+  if (!expiry) return true;
+  return new Date(expiry).getTime() <= Date.now();
 }
 
-function reserveSeconds(order: Order) {
-  const expires = order.delivery?.reserveExpiresAt;
-  if (!expires) return 0;
-  return Math.max(0, Math.ceil((new Date(expires).getTime() - Date.now()) / 1000));
+function itemCount(order: Order) {
+  return order.items.reduce((sum, item) => sum + item.qty, 0);
 }
 
-function generateOtp() {
-  return String(Math.floor(1000 + Math.random() * 9000));
-}
-
-function manualLocation(lat: string, lng: string): DeliveryLocation | undefined {
-  const parsedLat = Number(lat);
-  const parsedLng = Number(lng);
-  if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) return undefined;
-  return {
-    lat: parsedLat,
-    lng: parsedLng,
-    label: "Manual rider location",
-    updatedAt: new Date().toISOString(),
-  };
+function deliveryEarning(order: Order) {
+  return Number(order.deliveryFee || 0) + Number(order.delivery?.tip || 0) + Number(order.delivery?.bonus || 0);
 }
 
 function nextProgress(order: Order, location: DeliveryLocation) {
-  const current = Number(order.delivery?.routeProgress || 0);
-  if (order.status === "ready") {
-    const restaurantDistance = distanceMeters(
-      location.lat,
-      location.lng,
-      order.delivery?.restaurantLat,
-      order.delivery?.restaurantLng,
-    );
-    if (restaurantDistance < 100) return Math.max(current, 0.28);
-    return Math.max(current, 0.16);
-  }
-  const destinationDistance = distanceMeters(
-    location.lat,
-    location.lng,
-    order.delivery?.destinationLat,
-    order.delivery?.destinationLng,
-  );
-  if (destinationDistance < 20) return 0.96;
-  if (destinationDistance < 50) return 0.9;
-  if (destinationDistance < 100) return 0.82;
-  return Math.min(0.78, Math.max(current + 0.03, 0.4));
+  const destination = coordsFrom(order.delivery?.destinationLat, order.delivery?.destinationLng);
+  const restaurant = coordsFrom(order.delivery?.restaurantLat, order.delivery?.restaurantLng);
+  if (!destination) return Math.max(Number(order.delivery?.routeProgress || 0), 0.15);
+  const start = restaurant || destination;
+  const total = Math.max(distanceMeters(start.lat, start.lng, destination.lat, destination.lng), 1);
+  const left = distanceMeters(location.lat, location.lng, destination.lat, destination.lng);
+  const progress = Math.min(0.98, Math.max(0.15, 1 - left / total));
+  return Number(progress.toFixed(2));
 }
 
 function estimateDistanceKm(order: Order, location: DeliveryLocation) {
-  const meters =
-    order.status === "ready"
-      ? distanceMeters(
-          location.lat,
-          location.lng,
-          order.delivery?.restaurantLat,
-          order.delivery?.restaurantLng,
-        )
-      : distanceMeters(
-          location.lat,
-          location.lng,
-          order.delivery?.destinationLat,
-          order.delivery?.destinationLng,
-        );
-  return meters ? Number((meters / 1000).toFixed(2)) : order.delivery?.distanceKm;
+  const destination = coordsFrom(order.delivery?.destinationLat, order.delivery?.destinationLng);
+  if (!destination) return Number(order.delivery?.distanceKm || 0);
+  return Number((distanceMeters(location.lat, location.lng, destination.lat, destination.lng) / 1000).toFixed(2));
 }
 
 async function liveRoutePatch(order: Order, location: DeliveryLocation) {
-  const target =
-    order.status === "ready"
-      ? coordsFrom(order.delivery?.restaurantLat, order.delivery?.restaurantLng)
-      : coordsFrom(order.delivery?.destinationLat, order.delivery?.destinationLng);
-  if (!target) return {};
+  const destination = coordsFrom(order.delivery?.destinationLat, order.delivery?.destinationLng);
+  if (!destination) return {};
   try {
-    return await calculateDrivingRoute({ lat: location.lat, lng: location.lng }, target);
+    return await calculateDrivingRoute(location, destination);
   } catch {
     return {};
   }
@@ -1113,57 +1120,31 @@ async function liveRoutePatch(order: Order, location: DeliveryLocation) {
 async function maybeUpdateGeofence(
   order: Order,
   location: DeliveryLocation,
-  stageRef: Record<string, string>,
+  stageCache: Record<string, string>,
 ) {
-  const current = order.delivery?.deliveryStage || "";
-  if (order.status === "ready") {
-    const restaurantDistance = distanceMeters(
-      location.lat,
-      location.lng,
-      order.delivery?.restaurantLat,
-      order.delivery?.restaurantLng,
-    );
-    if (
-      restaurantDistance &&
-      restaurantDistance <= 100 &&
-      current !== "arrived_restaurant" &&
-      stageRef[order.id] !== "arrived_restaurant"
-    ) {
-      stageRef[order.id] = "arrived_restaurant";
-      await updateDeliveryPortalStatus(order.id, { deliveryStage: "arrived_restaurant" });
-    }
-    return;
-  }
-  if (order.status !== "out_for_delivery") return;
-  const destinationDistance = distanceMeters(
-    location.lat,
-    location.lng,
-    order.delivery?.destinationLat,
-    order.delivery?.destinationLng,
-  );
-  let nextStage = "";
-  if (destinationDistance && destinationDistance <= 20) nextStage = "outside";
-  else if (destinationDistance && destinationDistance <= 50) nextStage = "almost_there";
-  else if (destinationDistance && destinationDistance <= 100) nextStage = "nearby";
-  if (nextStage && current !== nextStage && stageRef[order.id] !== nextStage) {
-    stageRef[order.id] = nextStage;
-    await updateDeliveryPortalStatus(order.id, { deliveryStage: nextStage });
-  }
-}
-
-function distanceMeters(lat1?: number, lng1?: number, lat2?: number, lng2?: number) {
+  const restaurant = coordsFrom(order.delivery?.restaurantLat, order.delivery?.restaurantLng);
+  const destination = coordsFrom(order.delivery?.destinationLat, order.delivery?.destinationLng);
+  const currentStage = order.delivery?.deliveryStage || "";
+  let nextStage: string | null = null;
   if (
-    ![lat1, lng1, lat2, lng2].every((value) => typeof value === "number" && Number.isFinite(value))
-  )
-    return 0;
-  const earth = 6371000;
-  const toRad = (value: number) => (value * Math.PI) / 180;
-  const dLat = toRad((lat2 as number) - (lat1 as number));
-  const dLng = toRad((lng2 as number) - (lng1 as number));
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1 as number)) * Math.cos(toRad(lat2 as number)) * Math.sin(dLng / 2) ** 2;
-  return earth * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    restaurant &&
+    ["reserved", "heading_to_restaurant"].includes(currentStage) &&
+    distanceMeters(location.lat, location.lng, restaurant.lat, restaurant.lng) <= 100
+  ) {
+    nextStage = "arrived_restaurant";
+  }
+  if (destination && ["on_the_way", "nearby", "almost_there"].includes(currentStage)) {
+    const meters = distanceMeters(location.lat, location.lng, destination.lat, destination.lng);
+    if (meters <= 20) nextStage = "outside";
+    else if (meters <= 50) nextStage = "almost_there";
+    else if (meters <= 100) nextStage = "nearby";
+  }
+  if (!nextStage || nextStage === currentStage || stageCache[order.id] === nextStage) return;
+  stageCache[order.id] = nextStage;
+  await updateDeliveryPortalStatus(order.id, {
+    deliveryStage: nextStage,
+    etaMinutes: order.delivery?.etaMinutes,
+  });
 }
 
 function coordsFrom(lat?: number, lng?: number) {
@@ -1171,9 +1152,40 @@ function coordsFrom(lat?: number, lng?: number) {
   return { lat, lng };
 }
 
+function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const r = 6371e3;
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function notifyNewOrder(order: Order) {
+  try {
+    navigator.vibrate?.([180, 80, 180]);
+    if (Notification.permission === "granted") {
+      new Notification("New delivery order", {
+        body: `Order #${order.id} is ready for delivery.`,
+        icon: "/the-ankapure-dhaba-logo.png",
+      });
+    }
+  } catch {
+    // Browser notification support varies; ignore safely.
+  }
+}
+
+function showMutationError(fallback: string) {
+  return (error: unknown) => toast.error(error instanceof Error ? error.message : fallback);
+}
+
 function greeting() {
   const hour = new Date().getHours();
-  if (hour < 12) return "Good Morning";
-  if (hour < 17) return "Good Afternoon";
-  return "Good Evening";
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  if (hour < 21) return "Good evening";
+  return "Good night";
 }
