@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">The Ankapure Dhaba</string>
+    <string name="title_activity_main">The Ankapure Dhaba</string>
+    <string name="package_name">the.Ankapur.dhaba</string>
+    <string name="custom_url_scheme">the.Ankapur.dhaba</string>
+</resources>
