@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
-import { LocateFixed, MapPin, Search } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   geocodePlace,
@@ -39,8 +39,6 @@ export function LocationPicker({
   const [query, setQuery] = useState(address);
   const [loading, setLoading] = useState(false);
   const [mapsReady, setMapsReady] = useState(false);
-  const [manualLat, setManualLat] = useState(value?.lat ? String(value.lat) : "");
-  const [manualLng, setManualLng] = useState(value?.lng ? String(value.lng) : "");
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const [pinAddress, setPinAddress] = useState(address);
@@ -48,11 +46,6 @@ export function LocationPicker({
 
   useEffect(() => setQuery(address), [address]);
   useEffect(() => setPinAddress(address), [address]);
-  useEffect(() => {
-    setManualLat(value?.lat ? String(value.lat) : "");
-    setManualLng(value?.lng ? String(value.lng) : "");
-  }, [value?.lat, value?.lng]);
-
   useEffect(() => {
     if (!hasGoogleMapsKey() || !mapRef.current) return;
     let cancelled = false;
@@ -62,12 +55,16 @@ export function LocationPicker({
         const center = value || restaurant || DEFAULT_CENTER;
         const map = new google.maps.Map(mapRef.current, {
           center,
-          zoom: value ? 18 : 16,
-          disableDefaultUI: false,
+          zoom: value ? 20 : 18,
+          maxZoom: 21,
+          minZoom: 14,
+          disableDefaultUI: true,
           streetViewControl: false,
           fullscreenControl: false,
           mapTypeControl: false,
           zoomControl: false,
+          rotateControl: false,
+          scaleControl: false,
           clickableIcons: false,
           draggable: true,
           keyboardShortcuts: true,
@@ -120,7 +117,7 @@ export function LocationPicker({
     ignoreNextIdle.current = true;
     latestCenter.current = value;
     mapInstance.current.panTo(value);
-    mapInstance.current.setZoom(18);
+    mapInstance.current.setZoom(20);
   }, [value?.lat, value?.lng]);
 
   useEffect(() => {
@@ -139,8 +136,6 @@ export function LocationPicker({
   }, [query]);
 
   function emitLocation(coords: LatLngLiteral, nextAddress?: string, parsed?: ParsedAddress) {
-    setManualLat(String(coords.lat));
-    setManualLng(String(coords.lng));
     if (nextAddress) setPinAddress(nextAddress);
     onChange({ coords, address: nextAddress, parsed });
   }
@@ -160,7 +155,7 @@ export function LocationPicker({
     }
   }
 
-  function moveMapTo(coords: LatLngLiteral, zoom = 18) {
+  function moveMapTo(coords: LatLngLiteral, zoom = 20) {
     latestCenter.current = coords;
     ignoreNextIdle.current = true;
     mapInstance.current?.panTo(coords);
@@ -171,7 +166,7 @@ export function LocationPicker({
     if (!query.trim()) return toast.error("Enter an area, street, apartment or landmark");
     if (!hasGoogleMapsKey())
       return toast.error(
-        "Google Maps key is not configured. Enter latitude and longitude manually.",
+        "Google Maps key is not configured. Please try again after Maps is available.",
       );
     setLoading(true);
     try {
@@ -211,43 +206,13 @@ export function LocationPicker({
     }
   }
 
-  function useCurrentLocation() {
-    if (!navigator.geolocation)
-      return toast.error("Location permission is not supported on this device");
-    setLoading(true);
-    toast.info("Please allow location permission to detect your delivery address");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-        moveMapTo(coords);
-        reverseGeocode(coords);
-      },
-      () => {
-        setLoading(false);
-        toast.error(
-          "Location permission was denied. Search your address or enter coordinates manually.",
-        );
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 },
-    );
-  }
-
-  function applyManualCoords() {
-    const lat = Number(manualLat);
-    const lng = Number(manualLng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng))
-      return toast.error("Enter valid latitude and longitude");
-    const coords = { lat, lng };
-    moveMapTo(coords);
-    reverseGeocode(coords);
-  }
 
   const selectedLabel =
     pinAddress || address || (value ? `${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}` : "");
 
   return (
     <div className="overflow-hidden rounded-[30px] border border-zinc-100 bg-zinc-50 shadow-sm">
-      <div className="grid gap-2 p-3 md:grid-cols-[1fr_auto_auto]">
+      <div className="grid gap-2 p-3 md:grid-cols-[1fr_auto]">
         <label className="relative flex min-h-12 items-center gap-2 rounded-2xl bg-white px-3 shadow-sm ring-1 ring-zinc-100 focus-within:ring-2 focus-within:ring-red-500/25">
           <Search className="h-4 w-4 shrink-0 text-red-600" />
           <input
@@ -259,7 +224,7 @@ export function LocationPicker({
                 searchAddress();
               }
             }}
-            placeholder="Search for area, street or apartment"
+            placeholder="Search area, street, apartment"
             className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-zinc-400"
             aria-label="Search delivery location"
           />
@@ -272,14 +237,6 @@ export function LocationPicker({
           className="min-h-12 rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white disabled:bg-zinc-300"
         >
           Search
-        </button>
-        <button
-          type="button"
-          onClick={useCurrentLocation}
-          disabled={loading}
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-green-600 px-4 text-sm font-black text-white disabled:bg-zinc-300"
-        >
-          <LocateFixed className="h-4 w-4" /> Current
         </button>
       </div>
 
@@ -312,7 +269,7 @@ export function LocationPicker({
         <div className="relative">
           <div
             ref={mapRef}
-            className={`${compact ? "h-[42vh] min-h-[300px] md:h-[520px] md:min-h-[420px]" : "h-[72vh] min-h-[520px]"} w-full bg-zinc-200`}
+            className={`${compact ? "h-[56vh] min-h-[430px] md:h-[620px] md:min-h-[520px]" : "h-[76vh] min-h-[560px]"} w-full bg-zinc-200`}
           />
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <CenterPin moving={moving || loading} />
@@ -325,7 +282,7 @@ export function LocationPicker({
             <p className="mt-2 text-sm font-bold text-zinc-700">
               Google Maps key is not configured on this build.
             </p>
-            <p className="mt-1 text-xs text-zinc-500">Coordinates can still be entered manually.</p>
+            <p className="mt-1 text-xs text-zinc-500">Please try again after Maps is available.</p>
           </div>
         </div>
       )}
@@ -344,27 +301,6 @@ export function LocationPicker({
         )}
       </div>
 
-      <div className="grid gap-2 border-t border-zinc-100 p-3 md:grid-cols-[1fr_1fr_auto]">
-        <input
-          value={manualLat}
-          onChange={(event) => setManualLat(event.target.value)}
-          placeholder="Latitude"
-          className="h-11 rounded-2xl bg-white px-3 text-sm font-semibold outline-none ring-1 ring-zinc-100"
-        />
-        <input
-          value={manualLng}
-          onChange={(event) => setManualLng(event.target.value)}
-          placeholder="Longitude"
-          className="h-11 rounded-2xl bg-white px-3 text-sm font-semibold outline-none ring-1 ring-zinc-100"
-        />
-        <button
-          type="button"
-          onClick={applyManualCoords}
-          className="min-h-11 rounded-2xl bg-white px-4 text-sm font-black text-zinc-800 shadow-sm ring-1 ring-zinc-100"
-        >
-          Set pin
-        </button>
-      </div>
       {!mapsReady && hasGoogleMapsKey() && (
         <div className="border-t border-zinc-100 px-4 py-3 text-xs font-bold text-zinc-500">
           Loading Google Maps...

@@ -3,15 +3,12 @@ import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from
 import {
   BriefcaseBusiness,
   ChevronDown,
-  Clock3,
   Home,
   LocateFixed,
   MapPin,
   Navigation,
   Pencil,
-  Plus,
   Search,
-  Star,
   Trash2,
   X,
 } from "lucide-react";
@@ -35,7 +32,7 @@ import {
   zoneFallback,
   type DeliveryEta,
 } from "@/lib/delivery-location";
-import type { LatLngLiteral, ParsedAddress } from "@/lib/google-maps";
+import { reverseGeocodeAddress, type LatLngLiteral, type ParsedAddress } from "@/lib/google-maps";
 
 type AddressDraft = Omit<CustomerAddress, "id" | "createdAt" | "updatedAt">;
 
@@ -58,23 +55,6 @@ const emptyDraft: AddressDraft = {
   isDefault: false,
 };
 
-const popularLocations = [
-  {
-    label: "Maisammaguda",
-    subtitle: "Hyderabad, Telangana",
-    coords: { lat: 17.562861, lng: 78.453472 },
-  },
-  {
-    label: "Dulapally",
-    subtitle: "Near Kompally",
-    coords: { lat: 17.547264, lng: 78.466253 },
-  },
-  {
-    label: "Kompally",
-    subtitle: "Hyderabad, Telangana",
-    coords: { lat: 17.537742, lng: 78.485449 },
-  },
-];
 
 export function AddressBottomSheet({
   open,
@@ -88,7 +68,6 @@ export function AddressBottomSheet({
   const setSelectedAddress = useSelectedLocation((state) => state.setSelectedAddress);
   const setEta = useSelectedLocation((state) => state.setEta);
   const [mode, setMode] = useState<"saved" | "confirm">("saved");
-  const [snap, setSnap] = useState<"compact" | "roomy" | "full">("roomy");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AddressDraft>({ ...emptyDraft });
   const [draftEta, setDraftEta] = useState<DeliveryEta | null>(null);
@@ -260,30 +239,25 @@ export function AddressBottomSheet({
       toast.error("Location permission is not supported on this device");
       return;
     }
-    toast.info("Please allow location permission to detect your delivery address");
+    toast.info("Allow location permission. We will pin your exact delivery spot.");
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-        onPinChange({ coords, address: "Current location" });
         setMode("confirm");
+        try {
+          const parsed = await reverseGeocodeAddress(coords);
+          onPinChange({
+            coords,
+            address: parsed.formattedAddress || "Current location",
+            parsed,
+          });
+        } catch {
+          onPinChange({ coords, address: "Current location" });
+        }
       },
       () => toast.error("Location permission was denied. Search or select on map instead."),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
     );
-  }
-
-  function choosePopularLocation(location: (typeof popularLocations)[number]) {
-    onPinChange({
-      coords: location.coords,
-      address: `${location.label}, ${location.subtitle}`,
-      parsed: {
-        formattedAddress: `${location.label}, ${location.subtitle}`,
-        city: "Hyderabad",
-        state: "Telangana",
-        country: "India",
-      },
-    });
-    setMode("confirm");
   }
 
   if (!open) return null;
@@ -300,21 +274,18 @@ export function AddressBottomSheet({
         role="dialog"
         aria-modal="true"
         aria-label="Choose delivery location"
-        className={`absolute inset-x-0 bottom-0 mx-auto max-w-4xl overflow-hidden rounded-t-[34px] bg-[#F8F9FB] shadow-2xl transition-all duration-300 md:bottom-5 md:rounded-[34px] ${
-          snap === "compact" ? "h-[40vh]" : snap === "full" ? "h-[100vh] md:h-[92vh]" : "h-[90vh]"
-        }`}
+        className="absolute inset-x-0 bottom-0 mx-auto h-[92vh] max-w-4xl overflow-hidden rounded-t-[34px] bg-[#F8F9FB] shadow-2xl transition-all duration-300 md:bottom-5 md:h-[90vh] md:rounded-[34px]"
       >
         <div className="sticky top-0 z-10 border-b border-zinc-100 bg-white/94 px-4 py-3 backdrop-blur-xl">
           <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-zinc-300" />
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-black">Choose Delivery Location</h2>
-              <p className="mt-0.5 text-sm font-bold text-zinc-500">
-                Deliver delicious food to your doorstep
+              <h2 className="text-xl font-black sm:text-2xl">Choose delivery location</h2>
+              <p className="mt-0.5 text-xs font-bold text-zinc-500 sm:text-sm">
+                Search, use GPS, or move the map pin to your exact doorway.
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <SnapButton snap={snap} setSnap={setSnap} />
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
@@ -357,56 +328,6 @@ export function AddressBottomSheet({
                 ) : (
                   <EmptyAddressState onAdd={startNewAddress} />
                 )}
-              </div>
-
-              {addresses.length > 0 && (
-                <div className="space-y-3">
-                  <SectionTitle title="Recent Searches" />
-                  {addresses.slice(0, 3).map((address) => (
-                    <button
-                      key={`recent-${address.id}`}
-                      type="button"
-                      onClick={() => editAddress(address)}
-                      className="flex w-full items-center gap-3 rounded-[22px] bg-white p-3 text-left shadow-sm ring-1 ring-zinc-100"
-                    >
-                      <span className="grid h-10 w-10 place-items-center rounded-2xl bg-zinc-100 text-zinc-600">
-                        <Clock3 className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-black text-zinc-900">
-                          {address.label || shortAddress(address)}
-                        </span>
-                        <span className="block truncate text-xs font-semibold text-zinc-500">
-                          {address.address}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <SectionTitle title="Popular Locations" />
-                {popularLocations.map((location) => (
-                  <button
-                    key={location.label}
-                    type="button"
-                    onClick={() => choosePopularLocation(location)}
-                    className="flex w-full items-center gap-3 rounded-[22px] bg-white p-3 text-left shadow-sm ring-1 ring-zinc-100"
-                  >
-                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-red-50 text-red-600">
-                      <Star className="h-4 w-4" />
-                    </span>
-                    <span>
-                      <span className="block text-sm font-black text-zinc-900">
-                        {location.label}
-                      </span>
-                      <span className="block text-xs font-semibold text-zinc-500">
-                        {location.subtitle}
-                      </span>
-                    </span>
-                  </button>
-                ))}
               </div>
             </div>
           ) : (
@@ -603,7 +524,13 @@ function ConfirmAddressForm({
         <ChevronDown className="h-4 w-4 rotate-90" /> Saved addresses
       </button>
 
-      <div data-address-map className="rounded-[30px] bg-white p-2 shadow-sm ring-1 ring-zinc-100">
+      <div className="rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-zinc-100">
+        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-red-600">Exact pin</p>
+        <h3 className="mt-1 text-lg font-black text-zinc-950">Move the map under the pin</h3>
+        <p className="mt-1 text-sm font-semibold text-zinc-500">Zoom in and place the red pin exactly on your gate or building entrance.</p>
+      </div>
+
+      <div data-address-map className="overflow-hidden rounded-[30px] bg-white p-0 shadow-sm ring-1 ring-zinc-100">
         <LocationPicker
           compact
           value={coords}
@@ -802,21 +729,3 @@ function EmptyAddressState({ onAdd }: { onAdd: () => void }) {
   );
 }
 
-function SnapButton({
-  snap,
-  setSnap,
-}: {
-  snap: "compact" | "roomy" | "full";
-  setSnap: (snap: "compact" | "roomy" | "full") => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => setSnap(snap === "compact" ? "roomy" : snap === "roomy" ? "full" : "compact")}
-      className="grid h-11 w-11 place-items-center rounded-2xl bg-zinc-100 text-zinc-700"
-      aria-label="Resize address sheet"
-    >
-      <ChevronDown className={`h-5 w-5 transition ${snap === "full" ? "" : "rotate-180"}`} />
-    </button>
-  );
-}
