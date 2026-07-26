@@ -9,13 +9,13 @@ import {
 } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC5bRRKh_8cE2yU5WPhC60kdCMVxl7zI68",
-  authDomain: "idea-makers-263ea.firebaseapp.com",
-  projectId: "idea-makers-263ea",
-  storageBucket: "idea-makers-263ea.firebasestorage.app",
-  messagingSenderId: "857979552512",
-  appId: "1:857979552512:web:3bf4b37becaa038b63a9e5",
-  measurementId: "G-RM0QSZLN17",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAnCHV-N16e-Ok9bLPd0PN5lOrdJSXgZpg",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "the-ankapur-dhaba.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "the-ankapur-dhaba",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "the-ankapur-dhaba.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "51078196561",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:51078196561:web:theankapurdhaba",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || undefined,
 };
 
 export const firebaseApp: FirebaseApp = getApps()[0] ?? initializeApp(firebaseConfig);
@@ -26,7 +26,7 @@ let recaptchaVerifier: RecaptchaVerifier | null = null;
 let confirmationResult: ConfirmationResult | null = null;
 
 export function getFirebaseAnalytics() {
-  if (typeof window === "undefined") return Promise.resolve(null);
+  if (typeof window === "undefined" || !firebaseConfig.measurementId) return Promise.resolve(null);
 
   analyticsPromise ??= isSupported()
     .then((supported) => (supported ? getAnalytics(firebaseApp) : null))
