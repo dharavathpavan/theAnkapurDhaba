@@ -42,6 +42,8 @@ export function LocationPicker({
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
   const [mapsReady, setMapsReady] = useState(false);
+  const [mapError, setMapError] = useState("");
+  const [mapRetry, setMapRetry] = useState(0);
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const [pinAddress, setPinAddress] = useState(address);
@@ -54,6 +56,7 @@ export function LocationPicker({
   useEffect(() => {
     if (!hasGoogleMapsKey() || !mapRef.current) return;
     let cancelled = false;
+    setMapError("");
     loadGoogleMaps()
       .then((google) => {
         if (cancelled || !mapRef.current) return;
@@ -110,12 +113,15 @@ export function LocationPicker({
         });
         setMapsReady(true);
       })
-      .catch(() => setMapsReady(false));
+      .catch((error) => {
+        setMapsReady(false);
+        setMapError(error instanceof Error ? error.message : "Google Maps could not load");
+      });
     return () => {
       cancelled = true;
       if (idleTimer.current) window.clearTimeout(idleTimer.current);
     };
-  }, []);
+  }, [mapRetry]);
 
   useEffect(() => {
     if (!value || !mapInstance.current) return;
@@ -339,18 +345,41 @@ export function LocationPicker({
 
       {hasGoogleMapsKey() ? (
         <div className="relative">
-          <div
-            ref={mapRef}
-            className={`${compact ? "h-[56vh] min-h-[430px] md:h-[620px] md:min-h-[520px]" : "h-[76vh] min-h-[560px]"} w-full bg-zinc-200`}
-          />
-          {userLocation && (
+          {mapError ? (
+            <div
+              className={`${compact ? "h-[56vh] min-h-[430px] md:h-[620px] md:min-h-[520px]" : "h-[76vh] min-h-[560px]"} grid w-full place-items-center bg-zinc-200 p-5 text-center`}
+            >
+              <div className="max-w-sm rounded-[28px] bg-white p-5 shadow-xl ring-1 ring-zinc-100">
+                <MapPin className="mx-auto h-9 w-9 text-red-600" />
+                <p className="mt-3 text-base font-black text-zinc-900">Map could not load</p>
+                <p className="mt-1 text-sm font-semibold text-zinc-500">
+                  {mapError}. Check the Google Maps key, enabled APIs, and allowed domain.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setMapRetry((count) => count + 1)}
+                  className="mt-4 min-h-11 rounded-2xl bg-zinc-950 px-5 text-sm font-black text-white"
+                >
+                  Retry map
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              ref={mapRef}
+              className={`${compact ? "h-[56vh] min-h-[430px] md:h-[620px] md:min-h-[520px]" : "h-[76vh] min-h-[560px]"} w-full bg-zinc-200`}
+            />
+          )}
+          {!mapError && userLocation && (
             <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-white/95 px-3 py-2 text-xs font-black text-blue-700 shadow-lg ring-1 ring-blue-100">
               Blue dot: your current location
             </div>
           )}
-          <div className="pointer-events-none absolute inset-0 grid place-items-center">
-            <CenterPin moving={moving || loading} />
-          </div>
+          {!mapError && (
+            <div className="pointer-events-none absolute inset-0 grid place-items-center">
+              <CenterPin moving={moving || loading} />
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid h-64 place-items-center bg-zinc-200 p-5 text-center">

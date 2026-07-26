@@ -33,16 +33,44 @@ export function loadGoogleMaps(): Promise<any> {
   if (!GOOGLE_MAPS_KEY) return Promise.reject(new Error("Google Maps API key is not configured"));
   if (typeof window === "undefined")
     return Promise.reject(new Error("Google Maps is only available in the browser"));
-  if (window.google?.maps) return Promise.resolve(window.google);
+  if (window.google?.maps?.places && window.google?.maps?.geometry) return Promise.resolve(window.google);
   if (mapsPromise) return mapsPromise;
 
   mapsPromise = new Promise((resolve, reject) => {
+    const cleanupAndReject = (error: Error) => {
+      mapsPromise = null;
+      document.querySelectorAll<HTMLScriptElement>("script[data-google-maps='true']").forEach((script) => {
+        if (!window.google?.maps) script.remove();
+      });
+      reject(error);
+    };
+
+    const resolveWhenReady = () => {
+      if (window.google?.maps?.places && window.google?.maps?.geometry) {
+        resolve(window.google);
+        return;
+      }
+      window.setTimeout(() => {
+        if (window.google?.maps?.places && window.google?.maps?.geometry) {
+          resolve(window.google);
+        } else {
+          cleanupAndReject(new Error("Google Maps loaded without required Places or Geometry libraries"));
+        }
+      }, 250);
+    };
+
     const existing = document.querySelector<HTMLScriptElement>("script[data-google-maps='true']");
     if (existing) {
-      existing.addEventListener("load", () =>
-        window.google ? resolve(window.google) : reject(new Error("Google Maps failed to load")),
+      if (window.google?.maps) {
+        resolveWhenReady();
+        return;
+      }
+      existing.addEventListener("load", resolveWhenReady, { once: true });
+      existing.addEventListener(
+        "error",
+        () => cleanupAndReject(new Error("Google Maps failed to load")),
+        { once: true },
       );
-      existing.addEventListener("error", () => reject(new Error("Google Maps failed to load")));
       return;
     }
 
@@ -51,14 +79,15 @@ export function loadGoogleMaps(): Promise<any> {
       key: GOOGLE_MAPS_KEY,
       libraries: "places,geometry",
       loading: "async",
+      v: "weekly",
+      region: "IN",
     });
     script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
     script.async = true;
     script.defer = true;
     script.dataset.googleMaps = "true";
-    script.onload = () =>
-      window.google ? resolve(window.google) : reject(new Error("Google Maps failed to load"));
-    script.onerror = () => reject(new Error("Google Maps failed to load"));
+    script.onload = resolveWhenReady;
+    script.onerror = () => cleanupAndReject(new Error("Google Maps failed to load"));
     document.head.appendChild(script);
   });
 
