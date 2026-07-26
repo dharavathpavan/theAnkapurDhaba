@@ -92,8 +92,8 @@ export async function calculateDrivingRoute(origin: LatLngLiteral, destination: 
         "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline",
       },
       body: JSON.stringify({
-        origin: { location: { latLng: origin } },
-        destination: { location: { latLng: destination } },
+        origin: { location: { latLng: toRoutesLatLng(origin) } },
+        destination: { location: { latLng: toRoutesLatLng(destination) } },
         travelMode: "DRIVE",
         routingPreference: "TRAFFIC_AWARE",
         computeAlternativeRoutes: false,
@@ -117,6 +117,13 @@ export async function calculateDrivingRoute(origin: LatLngLiteral, destination: 
       path: [origin, destination],
     };
   }
+}
+
+function toRoutesLatLng(coords: LatLngLiteral) {
+  return {
+    latitude: coords.lat,
+    longitude: coords.lng,
+  };
 }
 
 function parseGoogleDurationSeconds(duration: unknown) {
