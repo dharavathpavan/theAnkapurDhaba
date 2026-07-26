@@ -67,7 +67,13 @@ function LoginPage() {
         body: JSON.stringify({ phone, password }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) return toast.error(data.error || "Login failed");
+      if (!res.ok) {
+        const message =
+          res.status === 401
+            ? "Invalid phone or password. Customers should use OTP login; admin, kitchen, waiter and delivery staff should use password login."
+            : data.error || "Login failed";
+        return toast.error(message);
+      }
       finishLogin({ token: data.token, user: data.user as AuthUser });
     } catch {
       toast.error("Could not reach the server. Please try again.");

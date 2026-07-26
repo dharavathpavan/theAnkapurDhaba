@@ -24,7 +24,7 @@ export function DeliveryMap({
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<any>(null);
   const riderMarker = useRef<any>(null);
-  const directionsRenderer = useRef<any>(null);
+  const routeLine = useRef<any>(null);
   const [mapsLive, setMapsLive] = useState(false);
   const [routeEta, setRouteEta] = useState<{ distanceKm?: number; etaMinutes?: number }>({});
   const location = order.delivery?.currentLocation;
@@ -67,13 +67,6 @@ export function DeliveryMap({
           });
         mapInstance.current = map;
 
-        if (!directionsRenderer.current) {
-          directionsRenderer.current = new google.maps.DirectionsRenderer({
-            map,
-            suppressMarkers: true,
-            polylineOptions: { strokeColor: "#16A34A", strokeWeight: 6, strokeOpacity: 0.9 },
-          });
-        }
 
         if (restaurantCoords)
           new google.maps.Marker({
@@ -107,7 +100,22 @@ export function DeliveryMap({
           .then((route) => {
             if (cancelled) return;
             setRouteEta({ distanceKm: route.distanceKm, etaMinutes: route.etaMinutes });
-            if (route.result) directionsRenderer.current?.setDirections(route.result);
+            if (route.path?.length) {
+              if (!routeLine.current) {
+                routeLine.current = new google.maps.Polyline({
+                  map,
+                  path: route.path,
+                  strokeColor: "#16A34A",
+                  strokeWeight: 6,
+                  strokeOpacity: 0.9,
+                });
+              } else {
+                routeLine.current.setPath(route.path);
+              }
+              const bounds = new google.maps.LatLngBounds();
+              route.path.forEach((point) => bounds.extend(point));
+              map.fitBounds(bounds, 48);
+            }
             setMapsLive(true);
           })
           .catch(() => setMapsLive(false));

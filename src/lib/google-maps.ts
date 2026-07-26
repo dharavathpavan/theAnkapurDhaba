@@ -47,7 +47,12 @@ export function loadGoogleMaps(): Promise<any> {
     }
 
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_KEY)}&libraries=places,geometry`;
+    const params = new URLSearchParams({
+      key: GOOGLE_MAPS_KEY,
+      libraries: "places,geometry",
+      loading: "async",
+    });
+    script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
     script.async = true;
     script.defer = true;
     script.dataset.googleMaps = "true";
@@ -76,36 +81,56 @@ export function fallbackEtaMinutes(distanceKm: number) {
 }
 
 export async function calculateDrivingRoute(origin: LatLngLiteral, destination: LatLngLiteral) {
-  const google = await loadGoogleMaps();
-  return new Promise<{ distanceKm: number; etaMinutes: number; result?: any }>(
-    (resolve, reject) => {
-      const directions = new google.maps.DirectionsService();
-      directions.route(
-        {
-          origin,
-          destination,
-          travelMode: google.maps.TravelMode.DRIVING,
-          drivingOptions: {
-            departureTime: new Date(),
-            trafficModel: google.maps.TrafficModel.BEST_GUESS,
-          },
-        },
-        (result: any, status: string) => {
-          if (status !== "OK" || !result?.routes?.[0]?.legs?.[0])
-            return reject(new Error("Unable to calculate route"));
-          const leg = result.routes[0].legs[0];
-          resolve({
-            distanceKm: Math.round(((leg.distance?.value || 0) / 1000) * 10) / 10,
-            etaMinutes: Math.max(
-              1,
-              Math.round((leg.duration_in_traffic?.value || leg.duration?.value || 0) / 60),
-            ),
-            result,
-          });
-        },
-      );
-    },
-  );
+  if (!GOOGLE_MAPS_KEY) throw new Error("Google Maps API key is not configured");
+
+  try {
+    const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": GOOGLE_MAPS_KEY,
+        "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline",
+      },
+      body: JSON.stringify({
+        origin: { location: { latLng: origin } },
+        destination: { location: { latLng: destination } },
+        travelMode: "DRIVE",
+        routingPreference: "TRAFFIC_AWARE",
+        computeAlternativeRoutes: false,
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    const route = data?.routes?.[0];
+    if (!response.ok || !route) throw new Error(data?.error?.message || "Unable to calculate route");
+    const distanceKm = Math.round(((Number(route.distanceMeters) || 0) / 1000) * 10) / 10;
+    const etaMinutes = Math.max(1, Math.round(parseGoogleDurationSeconds(route.duration) / 60));
+    return {
+      distanceKm,
+      etaMinutes,
+      path: decodeRoutePath(route.polyline?.encodedPolyline),
+    };
+  } catch {
+    const distanceKm = Math.round((distanceMeters(origin, destination) / 1000) * 10) / 10;
+    return {
+      distanceKm,
+      etaMinutes: fallbackEtaMinutes(distanceKm),
+      path: [origin, destination],
+    };
+  }
+}
+
+function parseGoogleDurationSeconds(duration: unknown) {
+  if (typeof duration === "string") return Number(duration.replace("s", "")) || 0;
+  if (typeof duration === "number") return duration;
+  return 0;
+}
+
+function decodeRoutePath(encoded?: string): LatLngLiteral[] | undefined {
+  if (!encoded || typeof window === "undefined" || !window.google?.maps?.geometry?.encoding) return undefined;
+  return window.google.maps.geometry.encoding.decodePath(encoded).map((point: any) => ({
+    lat: point.lat(),
+    lng: point.lng(),
+  }));
 }
 
 export async function getPlaceSuggestions(query: string) {
