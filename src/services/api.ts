@@ -540,6 +540,27 @@ export async function registerCustomerPushToken(input: {
   return json;
 }
 
+export async function sendAdminPushNotification(input: {
+  title: string;
+  message: string;
+  target?: string;
+  url?: string;
+}): Promise<{
+  success: boolean;
+  inAppCreated: number;
+  pushSent: number;
+  pushFailed: number;
+  setupRequired?: boolean;
+}> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/notifications/send`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to send notification");
+  return json;
+}
+
 export async function listCustomerFavorites(): Promise<Array<{ id: string; itemId: string }>> {
   const res = await apiFetch(`${API_BASE}/customer/favorites`);
   if (!res.ok) throw new Error("Failed to fetch favorites");

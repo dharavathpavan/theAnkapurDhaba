@@ -27,6 +27,7 @@ import {
   deleteAdminBanner,
   deleteAdminCoupon,
   getAdminCustomerContent,
+  sendAdminPushNotification,
   updateAdminAnnouncement,
   updateAdminBanner,
   updateAdminCoupon,
@@ -181,6 +182,23 @@ function PushNotificationPanel() {
   const [title, setTitle] = useState("Ankapur Dhaba");
   const [message, setMessage] = useState("New offer is live. Order now!");
   const [target, setTarget] = useState("All customers");
+  const [url, setUrl] = useState("/");
+
+  const sendPush = useMutation({
+    mutationFn: sendAdminPushNotification,
+    onSuccess: (result) => {
+      if (result.setupRequired) {
+        toast.warning(
+          `Saved ${result.inAppCreated} in-app notifications. Add Firebase service account secrets to enable device push.`,
+        );
+        return;
+      }
+      toast.success(`Push sent to ${result.pushSent} devices`);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to send push notification");
+    },
+  });
 
   async function sendPreview() {
     if (!message.trim()) {
@@ -203,30 +221,53 @@ function PushNotificationPanel() {
     toast.success(`Preview sent to this device for ${target}`);
   }
 
+  function sendBroadcast() {
+    if (!message.trim()) {
+      toast.error("Add notification message");
+      return;
+    }
+    sendPush.mutate({
+      title: title || "The Ankapure Dhaba",
+      message,
+      target,
+      url,
+    });
+  }
+
   return (
     <div className="rounded-xl border border-border bg-surface p-5">
       <h2 className="flex items-center gap-2 font-display text-xl tracking-widest">
         <Bell className="h-5 w-5 text-primary" /> Push Notifications
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Create a notification message and preview it on this admin device. Real push delivery can
-        connect to a provider later.
+        Create a realtime Firebase notification. Customers who enabled notifications receive a
+        device push; everyone also gets an in-app notification.
       </p>
       <div className="mt-4 grid gap-3">
         <MiniInput label="Title" value={title} onChange={setTitle} />
         <MiniInput label="Message" value={message} onChange={setMessage} />
+        <MiniInput label="Open URL" value={url} onChange={setUrl} />
         <SelectField
           label="Target"
           value={target}
           options={["All customers", "Active orders", "Loyalty customers", "Inactive customers"]}
           onChange={setTarget}
         />
-        <button
-          onClick={sendPreview}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 font-display text-xs tracking-widest text-primary-foreground"
-        >
-          <Bell className="h-4 w-4" /> SEND PREVIEW
-        </button>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            onClick={sendPreview}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-border bg-background py-3 font-display text-xs tracking-widest text-foreground"
+          >
+            <Eye className="h-4 w-4" /> PREVIEW
+          </button>
+          <button
+            onClick={sendBroadcast}
+            disabled={sendPush.isPending}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 font-display text-xs tracking-widest text-primary-foreground disabled:opacity-60"
+          >
+            <Bell className="h-4 w-4" /> {sendPush.isPending ? "SENDING..." : "SEND PUSH"}
+          </button>
+        </div>
       </div>
     </div>
   );
