@@ -561,6 +561,232 @@ export async function sendAdminPushNotification(input: {
   return json;
 }
 
+export type AdminRangePreset = "today" | "yesterday" | "week" | "month" | "year" | "custom";
+
+export interface AdminDateRange {
+  preset: string;
+  start: string;
+  end: string;
+}
+
+export interface AdminDashboardData {
+  range: AdminDateRange;
+  kpis: Record<string, number>;
+  ordersByStatus: Array<{ status: string; count: number }>;
+  paymentBreakdown: Array<{ method: string; count: number; amount: number; pending: number; refunded: number }>;
+  expenseBreakdown: Array<{ label: string; amount: number; count: number }>;
+  inventoryStatus: { available: number; low: number; out: number };
+  latestOrders: Order[];
+  lowStock: InventoryIngredient[];
+}
+
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
+export interface Expense {
+  id: string;
+  date: string;
+  categoryId?: string | null;
+  categoryName: string;
+  amount: number;
+  paymentMethod: string;
+  description: string;
+  receiptUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExpensePayload {
+  date: string;
+  categoryId?: string | null;
+  categoryName: string;
+  amount: number;
+  paymentMethod: string;
+  description?: string;
+  receiptUrl?: string | null;
+}
+
+export interface ExpensesData {
+  categories: ExpenseCategory[];
+  expenses: Expense[];
+  summary: {
+    total: number;
+    today: number;
+    byCategory: Array<{ label: string; amount: number; count: number }>;
+  };
+}
+
+export interface AdminSalesData {
+  range: AdminDateRange;
+  summary: {
+    totalSales: number;
+    onlineSales: number;
+    cashSales: number;
+    expenseTotal: number;
+    profit: number;
+    avgOrderValue: number;
+    orderCount: number;
+    completedCount: number;
+  };
+  paymentBreakdown: AdminDashboardData["paymentBreakdown"];
+  bestSellingItem: { name: string; qty: number; revenue: number } | null;
+  topItems: Array<{ name: string; qty: number; revenue: number }>;
+  dailySales: Array<{ date: string; amount: number }>;
+}
+
+export interface AdminPaymentsData {
+  range: AdminDateRange;
+  summary: { total: number; pending: number; paid: number; refunds: number };
+  breakdown: AdminDashboardData["paymentBreakdown"];
+  pendingOrders: Order[];
+  refundedOrders: Order[];
+}
+
+export interface AdminInventoryData {
+  items: InventoryIngredient[];
+  movements: Array<{
+    id: string;
+    ingredientId: string;
+    type: string;
+    quantity: number;
+    note?: string | null;
+    createdAt: string;
+  }>;
+  summary: { total: number; available: number; low: number; out: number; recentlyAdded: InventoryIngredient[] };
+}
+
+export interface StaffSalary {
+  id: string;
+  employeeName: string;
+  employeePhone?: string | null;
+  role: string;
+  salary: number;
+  advance: number;
+  bonus: number;
+  deduction: number;
+  finalSalary: number;
+  status: "paid" | "pending" | string;
+  period: string;
+  paidAt?: string | null;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SalaryData {
+  period: string;
+  salaries: StaffSalary[];
+  summary: {
+    totalSalary: number;
+    advances: number;
+    bonuses: number;
+    deductions: number;
+    finalPayable: number;
+    paid: number;
+    pending: number;
+  };
+}
+
+export interface AdminReportsData {
+  range: AdminDateRange;
+  available: string[];
+  summary: Record<string, unknown>;
+}
+
+function adminQuery(params: { range?: AdminRangePreset; from?: string; to?: string; type?: string; period?: string } = {}) {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) qs.set(key, value);
+  });
+  return qs.size ? `?${qs.toString()}` : "";
+}
+
+export async function getAdminDashboard(params?: { range?: AdminRangePreset; from?: string; to?: string }): Promise<AdminDashboardData> {
+  const res = await apiFetch(`${API_BASE}/dashboard${adminQuery(params)}`);
+  if (!res.ok) throw new Error("Failed to fetch dashboard");
+  return res.json();
+}
+
+export async function getAdminSales(params?: { range?: AdminRangePreset; from?: string; to?: string }): Promise<AdminSalesData> {
+  const res = await apiFetch(`${API_BASE}/sales${adminQuery(params)}`);
+  if (!res.ok) throw new Error("Failed to fetch sales");
+  return res.json();
+}
+
+export async function getAdminPayments(params?: { range?: AdminRangePreset; from?: string; to?: string }): Promise<AdminPaymentsData> {
+  const res = await apiFetch(`${API_BASE}/payments${adminQuery(params)}`);
+  if (!res.ok) throw new Error("Failed to fetch payments");
+  return res.json();
+}
+
+export async function listExpenses(params?: { range?: AdminRangePreset; from?: string; to?: string }): Promise<ExpensesData> {
+  const res = await apiFetch(`${API_BASE}/expenses${adminQuery(params)}`);
+  if (!res.ok) throw new Error("Failed to fetch expenses");
+  return res.json();
+}
+
+export async function createExpense(input: ExpensePayload): Promise<Expense> {
+  const res = await apiFetch(`${API_BASE}/expenses`, { method: "POST", body: JSON.stringify(input) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to save expense");
+  return json;
+}
+
+export async function updateExpense(id: string, input: Partial<ExpensePayload>): Promise<Expense> {
+  const res = await apiFetch(`${API_BASE}/expenses/${id}`, { method: "PUT", body: JSON.stringify(input) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to update expense");
+  return json;
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  const res = await apiFetch(`${API_BASE}/expenses/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete expense");
+}
+
+export async function getAdminInventory(): Promise<AdminInventoryData> {
+  const res = await apiFetch(`${API_BASE}/inventory`);
+  if (!res.ok) throw new Error("Failed to fetch inventory");
+  return res.json();
+}
+
+export async function updateAdminInventory(input: { id: string; action?: "add" | "reduce" | "update"; quantity?: number; note?: string } & Partial<InventoryIngredient>): Promise<InventoryIngredient> {
+  const res = await apiFetch(`${API_BASE}/inventory`, { method: "PUT", body: JSON.stringify(input) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to update inventory");
+  return json;
+}
+
+export async function getAdminSalary(params?: { period?: string }): Promise<SalaryData> {
+  const res = await apiFetch(`${API_BASE}/salary${adminQuery(params)}`);
+  if (!res.ok) throw new Error("Failed to fetch salary");
+  return res.json();
+}
+
+export async function saveAdminSalary(input: Omit<StaffSalary, "id" | "finalSalary" | "createdAt" | "updatedAt"> & { id?: string }): Promise<StaffSalary> {
+  const { id, ...payload } = input;
+  const res = await apiFetch(`${API_BASE}/salary${id ? `/${id}` : ""}`, {
+    method: id ? "PUT" : "POST",
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to save salary");
+  return json;
+}
+
+export async function getAdminReports(params?: { range?: AdminRangePreset; from?: string; to?: string }): Promise<AdminReportsData> {
+  const res = await apiFetch(`${API_BASE}/reports${adminQuery(params)}`);
+  if (!res.ok) throw new Error("Failed to fetch reports");
+  return res.json();
+}
+
+export function adminReportDownloadUrl(format: "csv" | "excel" | "pdf", params: { type: string; range?: AdminRangePreset; from?: string; to?: string }) {
+  return `${API_BASE}/reports/${format}${adminQuery(params)}`;
+}
+
 export async function listCustomerFavorites(): Promise<Array<{ id: string; itemId: string }>> {
   const res = await apiFetch(`${API_BASE}/customer/favorites`);
   if (!res.ok) throw new Error("Failed to fetch favorites");

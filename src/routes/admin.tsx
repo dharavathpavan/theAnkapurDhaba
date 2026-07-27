@@ -11,12 +11,14 @@ import {
   Store,
   Users,
   ReceiptText,
-  Megaphone,
+  PackageSearch,
+  WalletCards,
+  BadgeIndianRupee,
+  BarChart3,
   Bell,
   LogOut,
   PanelLeft,
   ShieldCheck,
-  Headphones,
 } from "lucide-react";
 import { useAuth } from "@/stores/auth";
 import { subscribeToCustomerContent, subscribeToOrderEvents } from "@/services/api";
@@ -32,17 +34,19 @@ export const Route = createFileRoute("/admin")({
 
 const NAV = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/admin/billing", label: "Billing", icon: ReceiptText },
-  { to: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
   { to: "/admin/orders", label: "Orders", icon: ClipboardList },
+  { to: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
   { to: "/admin/tables", label: "Tables", icon: QrCode },
-  { to: "/waiter", label: "Waiter", icon: HandPlatter },
-  { to: "/admin/store", label: "Store", icon: Store },
-  { to: "/admin/marketing", label: "Marketing", icon: Megaphone },
-  { to: "/admin/users", label: "Users", icon: Users },
-  { to: "/admin/support", label: "Support", icon: Headphones },
   { to: "/kitchen", label: "Kitchen", icon: ChefHat },
+  { to: "/waiter", label: "Waiters", icon: HandPlatter },
   { to: "/delivery", label: "Delivery", icon: Bike },
+  { to: "/admin/users", label: "Customers", icon: Users },
+  { to: "/admin/inventory", label: "Inventory", icon: PackageSearch },
+  { to: "/admin/expenses", label: "Expenses", icon: ReceiptText },
+  { to: "/admin/salary", label: "Staff Salary", icon: BadgeIndianRupee },
+  { to: "/admin/payments", label: "Payments", icon: WalletCards },
+  { to: "/admin/reports", label: "Reports", icon: BarChart3 },
+  { to: "/admin/store", label: "Settings", icon: Store },
 ];
 
 function AdminLayout() {

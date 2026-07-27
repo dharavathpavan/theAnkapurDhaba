@@ -38,6 +38,7 @@ export const Route = createFileRoute("/admin/orders")({
 });
 
 type OrderTab = "active" | OrderStatus | "completed";
+type DatePreset = "today" | "yesterday" | "week" | "month" | "custom";
 
 const ACTIVE_STATUSES: OrderStatus[] = [
   "received",
@@ -90,6 +91,7 @@ function AdminOrders() {
   const [typeFilter, setTypeFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
   const [riderFilter, setRiderFilter] = useState("");
+  const [datePreset, setDatePreset] = useState<DatePreset>("today");
   const [dateFilter, setDateFilter] = useState("");
   const [selectedId, setSelectedId] = useState<string>("");
 
@@ -125,8 +127,7 @@ function AdminOrders() {
           (order.delivery?.assignedRiderId || order.delivery?.partnerPhone || "") !== riderFilter
         )
           return false;
-        if (dateFilter && new Date(order.createdAt).toISOString().slice(0, 10) !== dateFilter)
-          return false;
+        if (!matchesDatePreset(order.createdAt, datePreset, dateFilter)) return false;
         if (!text) return true;
         const haystack = [
           order.id,
@@ -145,7 +146,7 @@ function AdminOrders() {
         return haystack.includes(text);
       })
       .sort((a, b) => orderSortScore(a) - orderSortScore(b));
-  }, [orders, tab, query, typeFilter, paymentFilter, riderFilter, dateFilter]);
+  }, [orders, tab, query, typeFilter, paymentFilter, riderFilter, datePreset, dateFilter]);
 
   useEffect(() => {
     if (!filtered.length) {
@@ -209,6 +210,18 @@ function AdminOrders() {
             </button>
           ))}
         </div>
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+          {(["today", "yesterday", "week", "month", "custom"] as DatePreset[]).map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setDatePreset(item)}
+              className={`min-h-10 shrink-0 rounded-2xl px-4 text-xs font-black uppercase tracking-widest transition ${datePreset === item ? "bg-red-600 text-white" : "bg-background text-muted-foreground hover:text-foreground"}`}
+            >
+              {item === "week" ? "This Week" : item === "month" ? "This Month" : item}
+            </button>
+          ))}
+        </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-[1.4fr_0.8fr_0.8fr_0.9fr_0.9fr]">
           <label className="flex min-h-12 items-center gap-3 rounded-2xl border border-border bg-background px-4">
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -250,8 +263,9 @@ function AdminOrders() {
             <input
               type="date"
               value={dateFilter}
+              disabled={datePreset !== "custom"}
               onChange={(event) => setDateFilter(event.target.value)}
-              className="min-w-0 flex-1 bg-transparent outline-none"
+              className="min-w-0 flex-1 bg-transparent outline-none disabled:opacity-50"
             />
           </label>
         </div>
@@ -1033,6 +1047,28 @@ function orderSortScore(order: Order) {
 
 function isDelayed(order: Order) {
   return ACTIVE_STATUSES.includes(order.status) && minutesSince(order.createdAt) > 30;
+}
+
+function matchesDatePreset(date: string, preset: DatePreset, customDate: string) {
+  const orderDate = new Date(date);
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  if (preset === "yesterday") {
+    start.setDate(start.getDate() - 1);
+    end.setDate(end.getDate() - 1);
+  } else if (preset === "week") {
+    const day = start.getDay() || 7;
+    start.setDate(start.getDate() - day + 1);
+  } else if (preset === "month") {
+    start.setDate(1);
+  } else if (preset === "custom") {
+    if (!customDate) return true;
+    return orderDate.toISOString().slice(0, 10) === customDate;
+  }
+  return orderDate >= start && orderDate <= end;
 }
 
 function minutesSince(date: string) {

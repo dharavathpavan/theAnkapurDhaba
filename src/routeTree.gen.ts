@@ -42,9 +42,14 @@ import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTablesRouteImport } from './routes/admin.tables'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminStoreRouteImport } from './routes/admin.store'
+import { Route as AdminSalaryRouteImport } from './routes/admin.salary'
+import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminMarketingRouteImport } from './routes/admin.marketing'
+import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
+import { Route as AdminExpensesRouteImport } from './routes/admin.expenses'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 import { Route as SupportChatTicketIdRouteImport } from './routes/support.chat.$ticketId'
 
@@ -214,6 +219,21 @@ const AdminStoreRoute = AdminStoreRouteImport.update({
   path: '/store',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSalaryRoute = AdminSalaryRouteImport.update({
+  id: '/salary',
+  path: '/salary',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
@@ -227,6 +247,16 @@ const AdminMenuRoute = AdminMenuRouteImport.update({
 const AdminMarketingRoute = AdminMarketingRouteImport.update({
   id: '/marketing',
   path: '/marketing',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInventoryRoute = AdminInventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminExpensesRoute = AdminExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminBillingRoute = AdminBillingRouteImport.update({
@@ -264,9 +294,14 @@ export interface FileRoutesByFullPath {
   '/waiter': typeof WaiterRoute
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/expenses': typeof AdminExpensesRoute
+  '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/salary': typeof AdminSalaryRoute
   '/admin/store': typeof AdminStoreRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/tables': typeof AdminTablesRoute
@@ -303,9 +338,14 @@ export interface FileRoutesByTo {
   '/waiter': typeof WaiterRoute
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/expenses': typeof AdminExpensesRoute
+  '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/salary': typeof AdminSalaryRoute
   '/admin/store': typeof AdminStoreRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/tables': typeof AdminTablesRoute
@@ -344,9 +384,14 @@ export interface FileRoutesById {
   '/waiter': typeof WaiterRoute
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/expenses': typeof AdminExpensesRoute
+  '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/salary': typeof AdminSalaryRoute
   '/admin/store': typeof AdminStoreRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/tables': typeof AdminTablesRoute
@@ -386,9 +431,14 @@ export interface FileRouteTypes {
     | '/waiter'
     | '/wallet'
     | '/admin/billing'
+    | '/admin/expenses'
+    | '/admin/inventory'
     | '/admin/marketing'
     | '/admin/menu'
     | '/admin/orders'
+    | '/admin/payments'
+    | '/admin/reports'
+    | '/admin/salary'
     | '/admin/store'
     | '/admin/support'
     | '/admin/tables'
@@ -425,9 +475,14 @@ export interface FileRouteTypes {
     | '/waiter'
     | '/wallet'
     | '/admin/billing'
+    | '/admin/expenses'
+    | '/admin/inventory'
     | '/admin/marketing'
     | '/admin/menu'
     | '/admin/orders'
+    | '/admin/payments'
+    | '/admin/reports'
+    | '/admin/salary'
     | '/admin/store'
     | '/admin/support'
     | '/admin/tables'
@@ -465,9 +520,14 @@ export interface FileRouteTypes {
     | '/waiter'
     | '/wallet'
     | '/admin/billing'
+    | '/admin/expenses'
+    | '/admin/inventory'
     | '/admin/marketing'
     | '/admin/menu'
     | '/admin/orders'
+    | '/admin/payments'
+    | '/admin/reports'
+    | '/admin/salary'
     | '/admin/store'
     | '/admin/support'
     | '/admin/tables'
@@ -743,6 +803,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStoreRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/salary': {
+      id: '/admin/salary'
+      path: '/salary'
+      fullPath: '/admin/salary'
+      preLoaderRoute: typeof AdminSalaryRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/orders': {
       id: '/admin/orders'
       path: '/orders'
@@ -764,6 +845,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMarketingRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/inventory': {
+      id: '/admin/inventory'
+      path: '/inventory'
+      fullPath: '/admin/inventory'
+      preLoaderRoute: typeof AdminInventoryRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/expenses': {
+      id: '/admin/expenses'
+      path: '/expenses'
+      fullPath: '/admin/expenses'
+      preLoaderRoute: typeof AdminExpensesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/billing': {
       id: '/admin/billing'
       path: '/billing'
@@ -783,9 +878,14 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminBillingRoute: typeof AdminBillingRoute
+  AdminExpensesRoute: typeof AdminExpensesRoute
+  AdminInventoryRoute: typeof AdminInventoryRoute
   AdminMarketingRoute: typeof AdminMarketingRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
+  AdminPaymentsRoute: typeof AdminPaymentsRoute
+  AdminReportsRoute: typeof AdminReportsRoute
+  AdminSalaryRoute: typeof AdminSalaryRoute
   AdminStoreRoute: typeof AdminStoreRoute
   AdminSupportRoute: typeof AdminSupportRoute
   AdminTablesRoute: typeof AdminTablesRoute
@@ -795,9 +895,14 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBillingRoute: AdminBillingRoute,
+  AdminExpensesRoute: AdminExpensesRoute,
+  AdminInventoryRoute: AdminInventoryRoute,
   AdminMarketingRoute: AdminMarketingRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminOrdersRoute: AdminOrdersRoute,
+  AdminPaymentsRoute: AdminPaymentsRoute,
+  AdminReportsRoute: AdminReportsRoute,
+  AdminSalaryRoute: AdminSalaryRoute,
   AdminStoreRoute: AdminStoreRoute,
   AdminSupportRoute: AdminSupportRoute,
   AdminTablesRoute: AdminTablesRoute,
