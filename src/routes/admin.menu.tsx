@@ -101,6 +101,9 @@ const EMPTY_ITEM: Partial<CatalogItem> = {
   displayOrder: 0,
   visibility: {
     website: true,
+    delivery: true,
+    pickup: true,
+    dineIn: true,
     qrMenu: true,
     mobileApp: true,
     pos: true,
@@ -115,9 +118,22 @@ const EMPTY_ITEM: Partial<CatalogItem> = {
   seo: {},
 };
 
+const QUICK_CATEGORIES = [
+  "All",
+  "Biryani",
+  "Chicken",
+  "Mutton",
+  "Meals",
+  "Starters",
+  "Chinese",
+  "Desserts",
+  "Drinks",
+  "Combos",
+];
+
 function AdminMenu() {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<Tab>("dashboard");
+  const [tab, setTab] = useState<Tab>("items");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -290,50 +306,59 @@ function AdminMenu() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 md:px-6">
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-4xl tracking-wide">Menu & Catalog</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Restaurant catalog, pricing, stock, channels, import/export, AI tools, and audit
-            history.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setEditingItem({ ...EMPTY_ITEM })}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 font-display text-xs tracking-widest text-primary-foreground hover:bg-primary-glow"
-          >
-            <Plus className="h-4 w-4" /> ADD ITEM
-          </button>
-          <button
-            onClick={() =>
-              setEditingCategory({
-                name: "",
-                seoUrl: "",
-                active: true,
-                displayPriority: categories.length + 1,
-              })
-            }
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 font-display text-xs tracking-widest hover:bg-background"
-          >
-            <Layers3 className="h-4 w-4" /> ADD CATEGORY
-          </button>
-          <button
-            onClick={() => downloadCatalogExport("excel").catch(() => toast.error("Export failed"))}
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 font-display text-xs tracking-widest hover:bg-background"
-          >
-            <Download className="h-4 w-4" /> EXPORT EXCEL
-          </button>
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 font-display text-xs tracking-widest hover:bg-background">
-            <Upload className="h-4 w-4" /> IMPORT EXCEL
-            <input
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={(event) => event.target.files?.[0] && importExcel(event.target.files[0])}
-            />
-          </label>
+    <div className="mx-auto max-w-7xl px-3 py-4 md:px-6 md:py-6">
+      <header className="mb-5 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/20 via-surface to-background p-4 shadow-2xl shadow-black/20 md:p-6">
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div>
+            <p className="font-display text-xs tracking-[0.35em] text-primary">
+              THE ANKAPURE DHABA
+            </p>
+            <h1 className="mt-2 font-display text-3xl tracking-wide md:text-5xl">
+              Menu Management
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+              Quick add dishes, manage categories, control stock, and publish changes live to the
+              website, waiter portal, kitchen and delivery app.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
+            <button
+              onClick={() => setEditingItem({ ...EMPTY_ITEM })}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-display text-xs tracking-widest text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary-glow"
+            >
+              <Plus className="h-4 w-4" /> QUICK ADD
+            </button>
+            <button
+              onClick={() =>
+                setEditingCategory({
+                  name: "",
+                  seoUrl: "",
+                  active: true,
+                  displayPriority: categories.length + 1,
+                })
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface/90 px-4 py-3 font-display text-xs tracking-widest hover:bg-background"
+            >
+              <Layers3 className="h-4 w-4" /> CATEGORY
+            </button>
+            <button
+              onClick={() =>
+                downloadCatalogExport("excel").catch(() => toast.error("Export failed"))
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface/90 px-4 py-3 font-display text-xs tracking-widest hover:bg-background"
+            >
+              <Download className="h-4 w-4" /> EXPORT
+            </button>
+            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-surface/90 px-4 py-3 font-display text-xs tracking-widest hover:bg-background">
+              <Upload className="h-4 w-4" /> BULK UPLOAD
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(event) => event.target.files?.[0] && importExcel(event.target.files[0])}
+              />
+            </label>
+          </div>
         </div>
       </header>
 
@@ -482,123 +507,94 @@ function AdminMenu() {
             setStatus={setStatusFilter}
             categories={categories}
           />
-          <section className="overflow-x-auto rounded-lg border border-border bg-surface">
-            <table className="w-full min-w-[1040px] text-left text-sm">
-              <thead className="border-b border-border bg-background/40 font-display text-xs tracking-widest text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Select</th>
-                  <th className="px-4 py-3">Item</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Price</th>
-                  <th className="px-4 py-3">Stock/Prep</th>
-                  <th className="px-4 py-3">Channels</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {items.map((item) => (
-                  <tr key={item.id} className="hover:bg-background/30">
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(item.id)}
-                        onChange={(event) =>
-                          setSelectedIds((ids) =>
-                            event.target.checked
-                              ? [...ids, item.id]
-                              : ids.filter((id) => id !== item.id),
-                          )
-                        }
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={item.thumbnail || item.image}
-                          alt={item.name}
-                          className="h-12 w-12 rounded object-cover"
-                        />
-                        <div>
-                          <div className="font-display text-base tracking-wide">
-                            {item.displayName || item.name}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {item.sku || "No SKU"} - {item.dietType} -{" "}
-                            {item.tags.slice(0, 3).join(", ") || "no tags"}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.category}</td>
-                    <td className="px-4 py-3">
-                      <div className="font-display">Rs {item.offerPrice ?? item.basePrice}</div>
-                      <div className="text-xs text-muted-foreground">Cost Rs {item.costPrice}</div>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      <div>
-                        {item.prepTimeMinutes} min - {item.kitchenStation}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {item.inventoryLinks.length} linked ingredients
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {Object.entries(item.visibility)
-                        .filter(([, on]) => on)
-                        .map(([key]) => key)
-                        .slice(0, 4)
-                        .join(", ")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => toggleItem(item, { available: !item.available })}
-                        className={`rounded-full border px-2 py-1 font-display text-[10px] tracking-widest ${item.available ? "border-veg/40 text-veg" : "border-destructive/40 text-destructive"}`}
-                      >
-                        {item.available ? "AVAILABLE" : "OFF"}
-                      </button>
-                      {item.hidden && (
-                        <span className="ml-2 rounded-full border border-border px-2 py-1 font-display text-[10px] text-muted-foreground">
-                          HIDDEN
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => setEditingItem(item)}
-                          className="rounded-md border border-border px-3 py-1 text-xs hover:bg-background"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={async () => {
-                            await duplicateCatalogItem(item.id);
-                            await refreshCatalog();
-                            toast.success("Item duplicated");
-                          }}
-                          className="rounded-md border border-border px-2 py-1 hover:bg-background"
-                          title="Duplicate"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={async () => {
-                            await deleteCatalogItem(item.id);
-                            await refreshCatalog();
-                            toast.success("Item deleted");
-                          }}
-                          className="rounded-md border border-destructive/40 px-2 py-1 text-destructive hover:bg-destructive/10"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 md:mx-0 md:px-0">
+            {QUICK_CATEGORIES.map((category) => (
+              <button
+                key={category}
+                onClick={() => setCategoryFilter(category === "All" ? "" : category)}
+                className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  (category === "All" && !categoryFilter) || categoryFilter === category
+                    ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                    : "border-border bg-surface text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+          {selectedIds.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-primary/30 bg-primary/10 p-3">
+              <span className="text-sm font-semibold">{selectedIds.length} selected</span>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => bulkSet({ available: true }, "Items enabled")}
+                  className="rounded-lg bg-surface px-3 py-2 text-xs font-bold"
+                >
+                  Enable
+                </button>
+                <button
+                  onClick={() => bulkSet({ available: false }, "Items disabled")}
+                  className="rounded-lg bg-surface px-3 py-2 text-xs font-bold"
+                >
+                  Disable
+                </button>
+                <button
+                  onClick={() => bulkSet({ hidden: true }, "Items hidden")}
+                  className="rounded-lg bg-surface px-3 py-2 text-xs font-bold"
+                >
+                  Hide
+                </button>
+                <button
+                  onClick={() => setSelectedIds([])}
+                  className="rounded-lg border border-border px-3 py-2 text-xs font-bold"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {items.map((item) => (
+              <MenuItemCard
+                key={item.id}
+                item={item}
+                selected={selectedIds.includes(item.id)}
+                onSelect={(selected) =>
+                  setSelectedIds((ids) =>
+                    selected ? [...ids, item.id] : ids.filter((id) => id !== item.id),
+                  )
+                }
+                onEdit={() => setEditingItem(item)}
+                onToggle={() => toggleItem(item, { available: !item.available })}
+                onHide={() => toggleItem(item, { hidden: !item.hidden })}
+                onPriority={() =>
+                  toggleItem(item, { pinned: !item.pinned, featured: !item.pinned })
+                }
+                onVisibility={(channel, value) =>
+                  toggleItem(item, {
+                    visibility: { ...(item.visibility || {}), [channel]: value },
+                  })
+                }
+                onDuplicate={async () => {
+                  await duplicateCatalogItem(item.id);
+                  await refreshCatalog();
+                  toast.success("Item duplicated");
+                }}
+                onDelete={async () => {
+                  await deleteCatalogItem(item.id);
+                  await refreshCatalog();
+                  toast.success("Item deleted");
+                }}
+              />
+            ))}
+            {!itemsQuery.isLoading && items.length === 0 && (
+              <div className="col-span-full rounded-2xl border border-dashed border-border bg-surface p-8 text-center">
+                <p className="font-display text-xl">No menu items found</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Use Quick Add to publish the first dish in this category.
+                </p>
+              </div>
+            )}
           </section>
         </div>
       )}
@@ -800,6 +796,174 @@ function AdminMenu() {
         />
       )}
     </div>
+  );
+}
+
+function MenuItemCard({
+  item,
+  selected,
+  onSelect,
+  onEdit,
+  onToggle,
+  onHide,
+  onPriority,
+  onVisibility,
+  onDuplicate,
+  onDelete,
+}: {
+  item: CatalogItem;
+  selected: boolean;
+  onSelect: (selected: boolean) => void;
+  onEdit: () => void;
+  onToggle: () => void;
+  onHide: () => void;
+  onPriority: () => void;
+  onVisibility: (channel: string, value: boolean) => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  const activeChannels = Object.entries(item.visibility || {})
+    .filter(([, on]) => on)
+    .map(([key]) => key)
+    .slice(0, 3);
+  return (
+    <article className="overflow-hidden rounded-2xl border border-border bg-surface shadow-xl shadow-black/10">
+      <div className="relative aspect-[16/10] bg-background">
+        <img
+          src={item.thumbnail || item.image || "/assets/hero-biryani.jpg"}
+          alt={item.name}
+          className="h-full w-full object-cover"
+        />
+        <label className="absolute left-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/70 backdrop-blur">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={(event) => onSelect(event.target.checked)}
+            className="h-4 w-4 accent-primary"
+            aria-label={`Select ${item.name}`}
+          />
+        </label>
+        <div className="absolute right-3 top-3 flex gap-2">
+          {item.bestseller && (
+            <span className="rounded-full bg-yellow-400 px-2 py-1 text-[10px] font-black text-black">
+              Bestseller
+            </span>
+          )}
+          <span
+            className={`rounded-full px-2 py-1 text-[10px] font-black ${
+              item.isVeg ? "bg-veg text-white" : "bg-primary text-primary-foreground"
+            }`}
+          >
+            {item.isVeg ? "Veg" : "Non Veg"}
+          </span>
+        </div>
+      </div>
+      <div className="space-y-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="truncate font-display text-xl tracking-wide">
+              {item.displayName || item.name}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {item.category} • {item.prepTimeMinutes} min
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="font-display text-2xl">Rs {item.offerPrice ?? item.basePrice}</div>
+            {item.offerPrice ? (
+              <div className="text-xs text-muted-foreground line-through">Rs {item.basePrice}</div>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+          <span className="rounded-full bg-background px-2 py-1">{item.kitchenStation}</span>
+          <span className="rounded-full bg-background px-2 py-1">
+            {item.inventoryLinks.length} stock links
+          </span>
+          {activeChannels.length > 0 && (
+            <span className="rounded-full bg-background px-2 py-1">
+              {activeChannels.join(", ")}
+            </span>
+          )}
+          {item.hidden && <span className="rounded-full bg-muted px-2 py-1">Hidden</span>}
+          {(item.pinned || item.featured) && (
+            <span className="rounded-full bg-yellow-400 px-2 py-1 text-black">Priority</span>
+          )}
+        </div>
+        <div className="rounded-2xl border border-border bg-background p-2">
+          <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+            Show item for
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              ["delivery", "Delivery"],
+              ["pickup", "Pickup"],
+              ["dineIn", "Dine-in"],
+            ].map(([channel, label]) => {
+              const active = item.visibility?.[channel] !== false;
+              return (
+                <button
+                  key={channel}
+                  type="button"
+                  onClick={() => onVisibility(channel, !active)}
+                  className={`rounded-xl px-2 py-2 text-[11px] font-black transition ${
+                    active
+                      ? "bg-veg/15 text-veg ring-1 ring-veg/25"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {active ? "On" : "Off"} {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={onToggle}
+            className={`rounded-xl px-3 py-3 text-sm font-black ${
+              item.available ? "bg-veg/15 text-veg" : "bg-destructive/15 text-destructive"
+            }`}
+          >
+            {item.available ? "Available" : "Unavailable"}
+          </button>
+          <button
+            onClick={onEdit}
+            className="rounded-xl bg-primary px-3 py-3 text-sm font-black text-primary-foreground"
+          >
+            Edit
+          </button>
+          <button
+            onClick={onDuplicate}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-3 text-sm font-bold"
+          >
+            <Copy className="h-4 w-4" /> Duplicate
+          </button>
+          <button
+            onClick={onPriority}
+            className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-bold ${
+              item.pinned || item.featured
+                ? "border-yellow-400 bg-yellow-400 text-black"
+                : "border-border"
+            }`}
+          >
+            <Tag className="h-4 w-4" /> Priority
+          </button>
+          <button
+            onClick={onHide}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-3 text-sm font-bold"
+          >
+            <EyeOff className="h-4 w-4" /> {item.hidden ? "Show" : "Hide"}
+          </button>
+        </div>
+        <button
+          onClick={onDelete}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/40 px-3 py-3 text-sm font-bold text-destructive hover:bg-destructive/10"
+        >
+          <Trash2 className="h-4 w-4" /> Delete
+        </button>
+      </div>
+    </article>
   );
 }
 
@@ -1295,7 +1459,19 @@ function ItemEditor({
           </EditorSection>
 
           <EditorSection title="Visibility & AI">
-            {["website", "qrMenu", "mobileApp", "pos", "swiggy", "zomato", "blinkit", "ondc"].map(
+            {[
+              "website",
+              "delivery",
+              "pickup",
+              "dineIn",
+              "qrMenu",
+              "mobileApp",
+              "pos",
+              "swiggy",
+              "zomato",
+              "blinkit",
+              "ondc",
+            ].map(
               (channel) => (
                 <Toggle
                   key={channel}

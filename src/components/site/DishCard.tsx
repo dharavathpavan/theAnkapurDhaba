@@ -3,6 +3,7 @@ import { useCart } from "@/stores/cart";
 import { VegDot, SpiceLevel } from "./VegDot";
 import { Plus, Minus } from "lucide-react";
 import { imageFallback, resolveMediaUrl } from "@/lib/media";
+import { FavoriteButton } from "./FavoriteButton";
 
 interface Props {
   item: MenuItem;
@@ -35,7 +36,13 @@ export function DishCard({ item, size = "md" }: Props) {
             ★ Bestseller
           </span>
         )}
-        <div className="absolute right-3 top-3">
+        <FavoriteButton
+          itemId={item.id}
+          itemName={item.name}
+          compact
+          className="absolute right-3 top-3"
+        />
+        <div className="absolute right-3 top-14">
           <VegDot isVeg={item.isVeg} />
         </div>
       </div>

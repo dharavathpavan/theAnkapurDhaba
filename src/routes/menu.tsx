@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import {
   Clock3,
   Flame,
-  Heart,
   Leaf,
   Minus,
   Plus,
@@ -13,11 +12,11 @@ import {
   Star,
   X,
 } from "lucide-react";
-import { addCustomerFavorite, getCustomerHome, getCustomerMenu } from "@/services/api";
+import { getCustomerHome, getCustomerMenu } from "@/services/api";
 import { useCart } from "@/stores/cart";
 import type { MenuItem } from "@/data/menu";
-import { toast } from "sonner";
 import { imageFallback, resolveMediaUrl } from "@/lib/media";
+import { FavoriteButton } from "@/components/site/FavoriteButton";
 
 export const Route = createFileRoute("/menu")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -37,6 +36,13 @@ export const Route = createFileRoute("/menu")({
 });
 
 type Diet = "all" | "veg" | "nonveg";
+type OrderMode = "delivery" | "pickup" | "dineIn";
+
+const ORDER_MODES: Array<{ id: OrderMode; label: string }> = [
+  { id: "delivery", label: "Delivery" },
+  { id: "pickup", label: "Pickup" },
+  { id: "dineIn", label: "Dine-in" },
+];
 
 function MenuPage() {
   const searchParams = Route.useSearch();
@@ -53,6 +59,7 @@ function MenuPage() {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState(searchParams.category || "All");
   const [diet, setDiet] = useState<Diet>("all");
+  const [orderMode, setOrderMode] = useState<OrderMode>("delivery");
   const [selected, setSelected] = useState<MenuItem | null>(null);
   const add = useCart((s) => s.add);
   const lines = useCart((s) => s.lines);
@@ -68,6 +75,7 @@ function MenuPage() {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
       if (activeCategory !== "All" && item.category !== activeCategory) return false;
+      if (item.visibility?.[orderMode] === false) return false;
       if (diet === "veg" && !item.isVeg) return false;
       if (diet === "nonveg" && item.isVeg) return false;
       if (
@@ -80,7 +88,7 @@ function MenuPage() {
         return false;
       return true;
     });
-  }, [items, activeCategory, diet, query]);
+  }, [items, activeCategory, diet, orderMode, query]);
 
   return (
     <div className="mx-auto max-w-6xl px-3 py-3 sm:px-4 md:px-6 md:py-8">
@@ -108,6 +116,19 @@ function MenuPage() {
               className={`whitespace-nowrap rounded-2xl px-3.5 py-2 text-xs font-black sm:text-sm ${activeCategory === category ? "bg-red-600 text-white" : "bg-white text-zinc-600 ring-1 ring-zinc-100"}`}
             >
               {category}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2.5 flex gap-2 md:mt-3">
+          {ORDER_MODES.map((mode) => (
+            <button
+              key={mode.id}
+              onClick={() => setOrderMode(mode.id)}
+              className={`rounded-2xl px-4 py-2 text-xs font-black ${
+                orderMode === mode.id ? "bg-zinc-950 text-white" : "bg-white text-zinc-600"
+              }`}
+            >
+              {mode.label}
             </button>
           ))}
         </div>
@@ -217,6 +238,12 @@ function MenuCard({
             className="h-full w-full object-cover"
           />
         </button>
+        <FavoriteButton
+          itemId={item.id}
+          itemName={item.name}
+          compact
+          className="absolute right-2 top-2"
+        />
         <button
           onClick={onAdd}
           disabled={!item.available}
@@ -263,15 +290,6 @@ function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
     onClose();
   }
 
-  async function saveFavorite() {
-    try {
-      await addCustomerFavorite(item.id);
-      toast.success("Added to favorites");
-    } catch {
-      toast.error("Sign in to save favorites");
-    }
-  }
-
   return (
     <div className="fixed inset-0 z-[70] bg-black/45 backdrop-blur-sm">
       <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-[32px] bg-[#F8F9FB] shadow-2xl md:left-1/2 md:top-1/2 md:max-h-[88vh] md:max-w-2xl md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[32px]">
@@ -288,12 +306,7 @@ function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
           >
             <X className="h-5 w-5" />
           </button>
-          <button
-            onClick={saveFavorite}
-            className="absolute left-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/90 text-red-600"
-          >
-            <Heart className="h-5 w-5" />
-          </button>
+          <FavoriteButton itemId={item.id} itemName={item.name} className="absolute left-4 top-4" />
         </div>
         <div className="space-y-5 p-5">
           <div>

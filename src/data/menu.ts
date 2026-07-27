@@ -68,6 +68,7 @@ export interface MenuItem {
   pinned?: boolean;
   recentlyAdded?: boolean;
   kitchenStation?: string;
+  visibility?: Record<string, boolean>;
 }
 
 export const CATEGORIES: MenuCategory[] = [

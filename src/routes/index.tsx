@@ -15,6 +15,7 @@ import { getCustomerHome, type CustomerBanner } from "@/services/api";
 import { useCart } from "@/stores/cart";
 import type { MenuItem } from "@/data/menu";
 import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
+import { FavoriteButton } from "@/components/site/FavoriteButton";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -280,6 +281,12 @@ function FoodTile({ item, onAdd }: { item: MenuItem; onAdd: () => void }) {
               BEST
             </span>
           ) : null}
+          <FavoriteButton
+            itemId={item.id}
+            itemName={item.name}
+            compact
+            className="absolute right-3 bottom-3"
+          />
         </div>
       </Link>
       <div className="p-4">
