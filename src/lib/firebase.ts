@@ -7,6 +7,14 @@ import {
   type Auth,
   type ConfirmationResult,
 } from "firebase/auth";
+import {
+  getMessaging,
+  getToken,
+  isSupported as isMessagingSupported,
+  onMessage,
+  type Messaging,
+  type MessagePayload,
+} from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAnCHV-N16e-Ok9bLPd0PN5lOrdJSXgZpg",
@@ -20,8 +28,10 @@ const firebaseConfig = {
 
 export const firebaseApp: FirebaseApp = getApps()[0] ?? initializeApp(firebaseConfig);
 export const firebaseAuth: Auth = getAuth(firebaseApp);
+export const firebasePublicConfig = firebaseConfig;
 
 let analyticsPromise: Promise<Analytics | null> | null = null;
+let messagingPromise: Promise<Messaging | null> | null = null;
 let recaptchaVerifier: RecaptchaVerifier | null = null;
 let confirmationResult: ConfirmationResult | null = null;
 
@@ -33,6 +43,42 @@ export function getFirebaseAnalytics() {
     .catch(() => null);
 
   return analyticsPromise;
+}
+
+export function getFirebaseMessaging() {
+  if (typeof window === "undefined") return Promise.resolve(null);
+
+  messagingPromise ??= isMessagingSupported()
+    .then((supported) => (supported ? getMessaging(firebaseApp) : null))
+    .catch(() => null);
+
+  return messagingPromise;
+}
+
+export async function getFirebasePushToken() {
+  if (typeof window === "undefined") return null;
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) return null;
+
+  const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+  if (!vapidKey) {
+    throw new Error("Firebase Web Push key is missing. Add VITE_FIREBASE_VAPID_KEY in Vercel.");
+  }
+
+  const messaging = await getFirebaseMessaging();
+  if (!messaging) return null;
+
+  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+  registration.active?.postMessage({ type: "FIREBASE_CONFIG", config: firebaseConfig });
+  registration.waiting?.postMessage({ type: "FIREBASE_CONFIG", config: firebaseConfig });
+  registration.installing?.postMessage({ type: "FIREBASE_CONFIG", config: firebaseConfig });
+
+  return getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
+}
+
+export async function onFirebaseForegroundMessage(callback: (payload: MessagePayload) => void) {
+  const messaging = await getFirebaseMessaging();
+  if (!messaging) return () => undefined;
+  return onMessage(messaging, callback);
 }
 
 function formatPhoneForFirebase(phone: string) {

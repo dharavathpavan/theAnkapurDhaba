@@ -25,9 +25,11 @@ import { useActiveOrderTracking } from "@/stores/active-order";
 import {
   getCustomerHome,
   listCustomerAddresses,
+  registerCustomerPushToken,
   subscribeToCustomerContent,
   subscribeToOrderEvents,
 } from "@/services/api";
+import { getFirebasePushToken, onFirebaseForegroundMessage } from "@/lib/firebase";
 import { useSelectedLocation } from "@/stores/location";
 import { AddressBottomSheet } from "@/components/site/AddressBottomSheet";
 import {
@@ -438,6 +440,7 @@ function NotificationBell({
 }
 
 function useLocalNotifications() {
+  const { isAuthenticated } = useAuth();
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return "unsupported";
     return Notification.permission;
@@ -468,8 +471,26 @@ function useLocalNotifications() {
       "Notification" in window &&
       Notification.permission === "granted"
     ) {
-      new Notification(notice.title, { body: notice.body, icon: "/favicon.ico" });
+      new Notification(notice.title, {
+        body: notice.body,
+        icon: "/the-ankapure-dhaba-logo.png",
+        badge: "/pwa-icon.svg",
+      });
     }
+  }
+
+  async function registerPushDevice() {
+    if (!isAuthenticated()) return;
+    const token = await getFirebasePushToken();
+    if (!token) {
+      toast.error("Firebase notifications are not supported on this browser");
+      return;
+    }
+    await registerCustomerPushToken({
+      token,
+      platform: "web",
+      userAgent: window.navigator.userAgent,
+    });
   }
 
   async function requestPermission() {
@@ -481,12 +502,19 @@ function useLocalNotifications() {
     const next = await Notification.requestPermission();
     setPermission(next);
     if (next === "granted") {
-      toast.success("Notifications enabled on this device");
-      pushNotice({
-        title: "Notifications enabled",
-        body: "You will see local offer and order updates here.",
-        tone: "system",
-      });
+      try {
+        await registerPushDevice();
+        toast.success("Realtime notifications enabled");
+        pushNotice({
+          title: "Notifications enabled",
+          body: "You will receive live order, offer, and support updates on this device.",
+          tone: "system",
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not enable Firebase notifications";
+        toast.error(message);
+      }
     } else {
       toast.error("Notification permission was not granted");
     }
@@ -535,6 +563,27 @@ function useLocalNotifications() {
     return () => {
       unsubscribeContent();
       unsubscribeOrders();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (permission !== "granted") return;
+    registerPushDevice().catch(() => undefined);
+  }, [permission, isAuthenticated]);
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    onFirebaseForegroundMessage((payload) => {
+      pushNotice({
+        title: payload.notification?.title || payload.data?.title || "The Ankapure Dhaba",
+        body: payload.notification?.body || payload.data?.body || "You have a new update.",
+        tone: (payload.data?.tone as LocalNotice["tone"]) || "system",
+      });
+    }).then((next) => {
+      unsubscribe = next;
+    });
+    return () => {
+      unsubscribe?.();
     };
   }, []);
 

@@ -526,6 +526,20 @@ export async function markAllCustomerNotificationsRead(): Promise<{ success: boo
   return res.json();
 }
 
+export async function registerCustomerPushToken(input: {
+  token: string;
+  platform?: string;
+  userAgent?: string;
+}): Promise<{ success: boolean }> {
+  const res = await apiFetch(`${API_BASE}/customer/notifications/push-token`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to register notification device");
+  return json;
+}
+
 export async function listCustomerFavorites(): Promise<Array<{ id: string; itemId: string }>> {
   const res = await apiFetch(`${API_BASE}/customer/favorites`);
   if (!res.ok) throw new Error("Failed to fetch favorites");
