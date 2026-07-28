@@ -35,6 +35,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 import { Route as TTableIdRouteImport } from './routes/t.$tableId'
 import { Route as SupportTicketIdRouteImport } from './routes/support.$ticketId'
+import { Route as ReviewOrderIdRouteImport } from './routes/review.$orderId'
 import { Route as RestaurantWaiterRouteImport } from './routes/restaurant.waiter'
 import { Route as RestaurantDeliveryRouteImport } from './routes/restaurant.delivery'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders.$orderId'
@@ -43,6 +44,7 @@ import { Route as AdminTablesRouteImport } from './routes/admin.tables'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminStoreRouteImport } from './routes/admin.store'
 import { Route as AdminSalaryRouteImport } from './routes/admin.salary'
+import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
@@ -186,6 +188,11 @@ const SupportTicketIdRoute = SupportTicketIdRouteImport.update({
   path: '/$ticketId',
   getParentRoute: () => SupportRoute,
 } as any)
+const ReviewOrderIdRoute = ReviewOrderIdRouteImport.update({
+  id: '/review/$orderId',
+  path: '/review/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RestaurantWaiterRoute = RestaurantWaiterRouteImport.update({
   id: '/restaurant/waiter',
   path: '/restaurant/waiter',
@@ -224,6 +231,11 @@ const AdminStoreRoute = AdminStoreRouteImport.update({
 const AdminSalaryRoute = AdminSalaryRouteImport.update({
   id: '/salary',
   path: '/salary',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReviewsRoute = AdminReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminReportsRoute = AdminReportsRouteImport.update({
@@ -314,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
   '/admin/salary': typeof AdminSalaryRoute
   '/admin/store': typeof AdminStoreRoute
   '/admin/support': typeof AdminSupportRoute
@@ -322,6 +335,7 @@ export interface FileRoutesByFullPath {
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
   '/restaurant/waiter': typeof RestaurantWaiterRoute
+  '/review/$orderId': typeof ReviewOrderIdRoute
   '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
@@ -360,6 +374,7 @@ export interface FileRoutesByTo {
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
   '/admin/salary': typeof AdminSalaryRoute
   '/admin/store': typeof AdminStoreRoute
   '/admin/support': typeof AdminSupportRoute
@@ -368,6 +383,7 @@ export interface FileRoutesByTo {
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
   '/restaurant/waiter': typeof RestaurantWaiterRoute
+  '/review/$orderId': typeof ReviewOrderIdRoute
   '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
@@ -408,6 +424,7 @@ export interface FileRoutesById {
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
   '/admin/salary': typeof AdminSalaryRoute
   '/admin/store': typeof AdminStoreRoute
   '/admin/support': typeof AdminSupportRoute
@@ -416,6 +433,7 @@ export interface FileRoutesById {
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
   '/restaurant/waiter': typeof RestaurantWaiterRoute
+  '/review/$orderId': typeof ReviewOrderIdRoute
   '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
@@ -457,6 +475,7 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/payments'
     | '/admin/reports'
+    | '/admin/reviews'
     | '/admin/salary'
     | '/admin/store'
     | '/admin/support'
@@ -465,6 +484,7 @@ export interface FileRouteTypes {
     | '/orders/$orderId'
     | '/restaurant/delivery'
     | '/restaurant/waiter'
+    | '/review/$orderId'
     | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
@@ -503,6 +523,7 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/payments'
     | '/admin/reports'
+    | '/admin/reviews'
     | '/admin/salary'
     | '/admin/store'
     | '/admin/support'
@@ -511,6 +532,7 @@ export interface FileRouteTypes {
     | '/orders/$orderId'
     | '/restaurant/delivery'
     | '/restaurant/waiter'
+    | '/review/$orderId'
     | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
@@ -550,6 +572,7 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/payments'
     | '/admin/reports'
+    | '/admin/reviews'
     | '/admin/salary'
     | '/admin/store'
     | '/admin/support'
@@ -558,6 +581,7 @@ export interface FileRouteTypes {
     | '/orders/$orderId'
     | '/restaurant/delivery'
     | '/restaurant/waiter'
+    | '/review/$orderId'
     | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
@@ -591,6 +615,7 @@ export interface RootRouteChildren {
   WalletRoute: typeof WalletRoute
   RestaurantDeliveryRoute: typeof RestaurantDeliveryRoute
   RestaurantWaiterRoute: typeof RestaurantWaiterRoute
+  ReviewOrderIdRoute: typeof ReviewOrderIdRoute
   TTableIdRoute: typeof TTableIdRoute
 }
 
@@ -778,6 +803,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportTicketIdRouteImport
       parentRoute: typeof SupportRoute
     }
+    '/review/$orderId': {
+      id: '/review/$orderId'
+      path: '/review/$orderId'
+      fullPath: '/review/$orderId'
+      preLoaderRoute: typeof ReviewOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/restaurant/waiter': {
       id: '/restaurant/waiter'
       path: '/restaurant/waiter'
@@ -832,6 +864,13 @@ declare module '@tanstack/react-router' {
       path: '/salary'
       fullPath: '/admin/salary'
       preLoaderRoute: typeof AdminSalaryRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reviews': {
+      id: '/admin/reviews'
+      path: '/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AdminReviewsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/reports': {
@@ -936,6 +975,7 @@ interface AdminRouteChildren {
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminReportsRoute: typeof AdminReportsRoute
+  AdminReviewsRoute: typeof AdminReviewsRoute
   AdminSalaryRoute: typeof AdminSalaryRoute
   AdminStoreRoute: typeof AdminStoreRoute
   AdminSupportRoute: typeof AdminSupportRoute
@@ -954,6 +994,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOrdersRoute: AdminOrdersRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminReportsRoute: AdminReportsRoute,
+  AdminReviewsRoute: AdminReviewsRoute,
   AdminSalaryRoute: AdminSalaryRoute,
   AdminStoreRoute: AdminStoreRoute,
   AdminSupportRoute: AdminSupportRoute,
@@ -1023,6 +1064,7 @@ const rootRouteChildren: RootRouteChildren = {
   WalletRoute: WalletRoute,
   RestaurantDeliveryRoute: RestaurantDeliveryRoute,
   RestaurantWaiterRoute: RestaurantWaiterRoute,
+  ReviewOrderIdRoute: ReviewOrderIdRoute,
   TTableIdRoute: TTableIdRoute,
 }
 export const routeTree = rootRouteImport

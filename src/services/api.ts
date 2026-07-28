@@ -351,6 +351,7 @@ export interface CustomerHome {
   collections: Array<{ id: string; title: string; items: MenuItem[] }>;
   recommended: MenuItem[];
   coupons: CustomerCoupon[];
+  reviews: CustomerReview[];
 }
 
 export interface CustomerAddress {
@@ -401,7 +402,52 @@ export async function getCustomerHome(): Promise<CustomerHome> {
     collections: data.collections ?? [],
     recommended: data.recommended ?? [],
     coupons: data.coupons ?? [],
+    reviews: data.reviews ?? [],
   };
+}
+
+export interface CustomerReview {
+  id: string;
+  userId: string;
+  userName?: string | null;
+  userPhone?: string | null;
+  itemId?: string | null;
+  orderId?: string | null;
+  foodRating: number;
+  deliveryRating: number;
+  packagingRating: number;
+  comment: string;
+  photos: string[];
+  helpfulCount: number;
+  published?: boolean;
+  adminNote?: string | null;
+  publishedAt?: string | null;
+  createdAt: string;
+  order?: Order | null;
+}
+
+export async function createCustomerReview(input: {
+  itemId?: string | null;
+  orderId?: string | null;
+  foodRating: number;
+  deliveryRating: number;
+  packagingRating: number;
+  comment: string;
+  photos?: string[];
+}): Promise<CustomerReview> {
+  const res = await apiFetch(`${API_BASE}/customer/reviews`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to save review");
+  return json;
+}
+
+export async function listMyCustomerReviews(): Promise<CustomerReview[]> {
+  const res = await apiFetch(`${API_BASE}/customer/reviews`);
+  if (!res.ok) throw new Error("Failed to fetch reviews");
+  return res.json();
 }
 
 function defaultCustomerStore(): CustomerStore {
@@ -1262,6 +1308,26 @@ export async function updateAdminCoupon(
 export async function deleteAdminCoupon(id: string): Promise<void> {
   const res = await apiFetch(`${API_BASE}/customer/admin/coupons/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete coupon");
+}
+
+export async function listAdminReviews(status: "all" | "published" | "pending" = "all"): Promise<CustomerReview[]> {
+  const qs = status === "all" ? "" : `?status=${encodeURIComponent(status)}`;
+  const res = await apiFetch(`${API_BASE}/customer/admin/reviews${qs}`);
+  if (!res.ok) throw new Error("Failed to fetch reviews");
+  return res.json();
+}
+
+export async function updateAdminReview(
+  id: string,
+  patch: { published?: boolean; adminNote?: string | null },
+): Promise<CustomerReview> {
+  const res = await apiFetch(`${API_BASE}/customer/admin/reviews/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to update review");
+  return json;
 }
 
 export async function updateMenuItem(id: string, patch: Partial<MenuItem>): Promise<MenuItem> {

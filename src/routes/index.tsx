@@ -11,7 +11,7 @@ import {
   Truck,
   UtensilsCrossed,
 } from "lucide-react";
-import { getCustomerHome, type CustomerBanner } from "@/services/api";
+import { getCustomerHome, type CustomerBanner, type CustomerReview } from "@/services/api";
 import { useCart } from "@/stores/cart";
 import type { MenuItem } from "@/data/menu";
 import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
@@ -252,9 +252,71 @@ function Home() {
           items={chefSpecials}
           onAdd={add}
         />
+        <PublishedReviews reviews={data.reviews ?? []} />
       </div>
     </div>
   );
+}
+
+function PublishedReviews({ reviews }: { reviews: CustomerReview[] }) {
+  const visible = reviews.filter((review) => review.comment?.trim()).slice(0, 12);
+  if (!visible.length) return null;
+  const loop = [...visible, ...visible];
+  return (
+    <section className="mt-8 overflow-hidden rounded-[30px] bg-zinc-950 p-5 text-white shadow-xl md:p-7">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="font-display text-xs tracking-[0.24em] text-red-300">OUR REVIEWS</p>
+          <h2 className="mt-1 text-2xl font-black md:text-3xl">Loved by foodies</h2>
+        </div>
+        <div className="hidden rounded-full bg-white/10 px-4 py-2 text-sm font-black text-yellow-100 sm:flex">
+          {averageReviews(visible)} ★
+        </div>
+      </div>
+      <div className="relative mt-5 h-[330px] overflow-hidden">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-12 bg-gradient-to-b from-zinc-950 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-zinc-950 to-transparent" />
+        <div className="animate-[reviews-scroll_28s_linear_infinite] space-y-3">
+          {loop.map((review, index) => (
+            <ReviewTile key={`${review.id}-${index}`} review={review} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReviewTile({ review }: { review: CustomerReview }) {
+  const rating = ((review.foodRating || 0) + (review.deliveryRating || 0) + (review.packagingRating || 0)) / 3;
+  return (
+    <article className="rounded-[22px] border border-white/10 bg-white/8 p-4 backdrop-blur">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-black">{review.userName || "Happy customer"}</div>
+          <div className="mt-0.5 text-xs font-semibold text-white/45">
+            Order #{review.orderId || "The Ankapure Dhaba"}
+          </div>
+        </div>
+        <span className="shrink-0 rounded-full bg-yellow-400/15 px-2.5 py-1 text-xs font-black text-yellow-200">
+          {rating.toFixed(1)} ★
+        </span>
+      </div>
+      <p className="mt-3 line-clamp-3 text-sm font-medium leading-6 text-white/72">
+        “{review.comment}”
+      </p>
+    </article>
+  );
+}
+
+function averageReviews(reviews: CustomerReview[]) {
+  if (!reviews.length) return "5.0";
+  const avg =
+    reviews.reduce(
+      (sum, review) =>
+        sum + ((review.foodRating || 0) + (review.deliveryRating || 0) + (review.packagingRating || 0)) / 3,
+      0,
+    ) / reviews.length;
+  return avg.toFixed(1);
 }
 
 function FoodSection({

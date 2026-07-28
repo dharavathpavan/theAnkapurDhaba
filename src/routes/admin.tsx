@@ -19,6 +19,7 @@ import {
   LogOut,
   PanelLeft,
   ShieldCheck,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/stores/auth";
 import { subscribeToCustomerContent, subscribeToOrderEvents } from "@/services/api";
@@ -41,6 +42,7 @@ const NAV = [
   { to: "/waiter", label: "Waiters", icon: HandPlatter },
   { to: "/delivery", label: "Delivery", icon: Bike },
   { to: "/admin/users", label: "Customers", icon: Users },
+  { to: "/admin/reviews", label: "Reviews", icon: Star },
   { to: "/admin/inventory", label: "Inventory", icon: PackageSearch },
   { to: "/admin/expenses", label: "Expenses", icon: ReceiptText },
   { to: "/admin/salary", label: "Staff Salary", icon: BadgeIndianRupee },

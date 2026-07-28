@@ -114,7 +114,7 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
           <ProgressCard order={order} />
           <ItemsOrderedCard order={order} />
           <WhileYouWaitAd banners={homeContent?.banners ?? []} />
-          {order.status === "delivered" && <CompletionCard />}
+          {order.status === "delivered" && <CompletionCard orderId={order.id} />}
           {order.status === "cancelled" && <CancelledCard />}
         </div>
       </main>
@@ -431,7 +431,7 @@ function WhileYouWaitAd({ banners }: { banners: CustomerBanner[] }) {
   );
 }
 
-function CompletionCard() {
+function CompletionCard({ orderId }: { orderId: string }) {
   return (
     <section className="rounded-[22px] bg-green-50 p-6 text-center">
       <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
@@ -441,9 +441,13 @@ function CompletionCard() {
         <Link to="/menu" className="rounded-2xl bg-green-600 px-4 py-3 font-black text-white">
           <RotateCcw className="mr-2 inline h-4 w-4" /> Reorder
         </Link>
-        <button className="rounded-2xl bg-white px-4 py-3 font-black text-green-700">
+        <Link
+          to="/review/$orderId"
+          params={{ orderId }}
+          className="rounded-2xl bg-white px-4 py-3 font-black text-green-700"
+        >
           <Star className="mr-2 inline h-4 w-4" /> Review
-        </button>
+        </Link>
       </div>
     </section>
   );

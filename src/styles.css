@@ -213,6 +213,14 @@
     transform: translateX(-100%);
   }
 }
+@keyframes reviews-scroll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
 .paper-bill {
   background: repeating-linear-gradient(0deg, #fafaf3 0 22px, #f3f1e6 22px 23px), #fafaf3;
   color: #1a1a1a;
