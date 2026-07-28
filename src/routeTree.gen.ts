@@ -52,6 +52,7 @@ import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminExpensesRouteImport } from './routes/admin.expenses'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 import { Route as SupportChatTicketIdRouteImport } from './routes/support.chat.$ticketId'
+import { Route as AdminMenuItemRouteImport } from './routes/admin.menu.item'
 
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
@@ -269,6 +270,11 @@ const SupportChatTicketIdRoute = SupportChatTicketIdRouteImport.update({
   path: '/chat/$ticketId',
   getParentRoute: () => SupportRoute,
 } as any)
+const AdminMenuItemRoute = AdminMenuItemRouteImport.update({
+  id: '/item',
+  path: '/item',
+  getParentRoute: () => AdminMenuRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -297,7 +303,7 @@ export interface FileRoutesByFullPath {
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
-  '/admin/menu': typeof AdminMenuRoute
+  '/admin/menu': typeof AdminMenuRouteWithChildren
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -313,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/menu/item': typeof AdminMenuItemRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
 }
 export interface FileRoutesByTo {
@@ -341,7 +348,7 @@ export interface FileRoutesByTo {
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
-  '/admin/menu': typeof AdminMenuRoute
+  '/admin/menu': typeof AdminMenuRouteWithChildren
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -357,6 +364,7 @@ export interface FileRoutesByTo {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/menu/item': typeof AdminMenuItemRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
 }
 export interface FileRoutesById {
@@ -387,7 +395,7 @@ export interface FileRoutesById {
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
-  '/admin/menu': typeof AdminMenuRoute
+  '/admin/menu': typeof AdminMenuRouteWithChildren
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -403,6 +411,7 @@ export interface FileRoutesById {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/menu/item': typeof AdminMenuItemRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
 }
 export interface FileRouteTypes {
@@ -450,6 +459,7 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
+    | '/admin/menu/item'
     | '/support/chat/$ticketId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -494,6 +504,7 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin'
+    | '/admin/menu/item'
     | '/support/chat/$ticketId'
   id:
     | '__root__'
@@ -539,6 +550,7 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
+    | '/admin/menu/item'
     | '/support/chat/$ticketId'
   fileRoutesById: FileRoutesById
 }
@@ -873,15 +885,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportChatTicketIdRouteImport
       parentRoute: typeof SupportRoute
     }
+    '/admin/menu/item': {
+      id: '/admin/menu/item'
+      path: '/item'
+      fullPath: '/admin/menu/item'
+      preLoaderRoute: typeof AdminMenuItemRouteImport
+      parentRoute: typeof AdminMenuRoute
+    }
   }
 }
+
+interface AdminMenuRouteChildren {
+  AdminMenuItemRoute: typeof AdminMenuItemRoute
+}
+
+const AdminMenuRouteChildren: AdminMenuRouteChildren = {
+  AdminMenuItemRoute: AdminMenuItemRoute,
+}
+
+const AdminMenuRouteWithChildren = AdminMenuRoute._addFileChildren(
+  AdminMenuRouteChildren,
+)
 
 interface AdminRouteChildren {
   AdminBillingRoute: typeof AdminBillingRoute
   AdminExpensesRoute: typeof AdminExpensesRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminMarketingRoute: typeof AdminMarketingRoute
-  AdminMenuRoute: typeof AdminMenuRoute
+  AdminMenuRoute: typeof AdminMenuRouteWithChildren
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminReportsRoute: typeof AdminReportsRoute
@@ -898,7 +929,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminExpensesRoute: AdminExpensesRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminMarketingRoute: AdminMarketingRoute,
-  AdminMenuRoute: AdminMenuRoute,
+  AdminMenuRoute: AdminMenuRouteWithChildren,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminReportsRoute: AdminReportsRoute,
@@ -977,8 +1008,8 @@ export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from '../../../../../../pavan/Downloads/theankapurdhaba-main/frontend-production/src/router.tsx'
-import type { startInstance } from '../../../../../../pavan/Downloads/theankapurdhaba-main/frontend-production/src/start.ts'
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true

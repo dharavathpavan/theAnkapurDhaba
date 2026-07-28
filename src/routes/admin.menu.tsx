@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -133,6 +133,7 @@ const QUICK_CATEGORIES = [
 
 function AdminMenu() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("items");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -323,7 +324,7 @@ function AdminMenu() {
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
             <button
-              onClick={() => setEditingItem({ ...EMPTY_ITEM })}
+              onClick={() => navigate({ to: "/admin/menu/item" })}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-display text-xs tracking-widest text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary-glow"
             >
               <Plus className="h-4 w-4" /> QUICK ADD
@@ -414,7 +415,7 @@ function AdminMenu() {
               <QuickAction
                 icon={Plus}
                 label="Add Item"
-                onClick={() => setEditingItem({ ...EMPTY_ITEM })}
+                onClick={() => navigate({ to: "/admin/menu/item" })}
               />
               <QuickAction
                 icon={Layers3}
@@ -429,7 +430,7 @@ function AdminMenu() {
               <QuickAction
                 icon={Bot}
                 label="AI Generate Description"
-                onClick={() => setEditingItem({ ...EMPTY_ITEM })}
+                onClick={() => navigate({ to: "/admin/menu/item" })}
               />
             </div>
           </section>
@@ -564,7 +565,9 @@ function AdminMenu() {
                     selected ? [...ids, item.id] : ids.filter((id) => id !== item.id),
                   )
                 }
-                onEdit={() => setEditingItem(item)}
+                onEdit={() =>
+                  navigate({ to: "/admin/menu/item", search: { itemId: item.id } })
+                }
                 onToggle={() => toggleItem(item, { available: !item.available })}
                 onHide={() => toggleItem(item, { hidden: !item.hidden })}
                 onPriority={() =>
