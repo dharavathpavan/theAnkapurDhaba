@@ -50,6 +50,7 @@ import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminMarketingRouteImport } from './routes/admin.marketing'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminExpensesRouteImport } from './routes/admin.expenses'
+import { Route as AdminBusinessRouteImport } from './routes/admin.business'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 import { Route as SupportChatTicketIdRouteImport } from './routes/support.chat.$ticketId'
 import { Route as AdminMenuItemRouteImport } from './routes/admin.menu.item'
@@ -260,6 +261,11 @@ const AdminExpensesRoute = AdminExpensesRouteImport.update({
   path: '/expenses',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBusinessRoute = AdminBusinessRouteImport.update({
+  id: '/business',
+  path: '/business',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBillingRoute = AdminBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -300,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/waiter': typeof WaiterRoute
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/business': typeof AdminBusinessRoute
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -345,6 +352,7 @@ export interface FileRoutesByTo {
   '/waiter': typeof WaiterRoute
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/business': typeof AdminBusinessRoute
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -392,6 +400,7 @@ export interface FileRoutesById {
   '/waiter': typeof WaiterRoute
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
+  '/admin/business': typeof AdminBusinessRoute
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -440,6 +449,7 @@ export interface FileRouteTypes {
     | '/waiter'
     | '/wallet'
     | '/admin/billing'
+    | '/admin/business'
     | '/admin/expenses'
     | '/admin/inventory'
     | '/admin/marketing'
@@ -485,6 +495,7 @@ export interface FileRouteTypes {
     | '/waiter'
     | '/wallet'
     | '/admin/billing'
+    | '/admin/business'
     | '/admin/expenses'
     | '/admin/inventory'
     | '/admin/marketing'
@@ -531,6 +542,7 @@ export interface FileRouteTypes {
     | '/waiter'
     | '/wallet'
     | '/admin/billing'
+    | '/admin/business'
     | '/admin/expenses'
     | '/admin/inventory'
     | '/admin/marketing'
@@ -871,6 +883,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminExpensesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/business': {
+      id: '/admin/business'
+      path: '/business'
+      fullPath: '/admin/business'
+      preLoaderRoute: typeof AdminBusinessRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/billing': {
       id: '/admin/billing'
       path: '/billing'
@@ -909,6 +928,7 @@ const AdminMenuRouteWithChildren = AdminMenuRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminBillingRoute: typeof AdminBillingRoute
+  AdminBusinessRoute: typeof AdminBusinessRoute
   AdminExpensesRoute: typeof AdminExpensesRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminMarketingRoute: typeof AdminMarketingRoute
@@ -926,6 +946,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBillingRoute: AdminBillingRoute,
+  AdminBusinessRoute: AdminBusinessRoute,
   AdminExpensesRoute: AdminExpensesRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminMarketingRoute: AdminMarketingRoute,

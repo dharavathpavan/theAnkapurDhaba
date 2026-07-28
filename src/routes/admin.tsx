@@ -46,6 +46,7 @@ const NAV = [
   { to: "/admin/salary", label: "Staff Salary", icon: BadgeIndianRupee },
   { to: "/admin/payments", label: "Payments", icon: WalletCards },
   { to: "/admin/reports", label: "Reports", icon: BarChart3 },
+  { to: "/admin/business", label: "Business", icon: Store },
   { to: "/admin/store", label: "Settings", icon: Store },
 ];
 

@@ -16,6 +16,7 @@ import { useCart } from "@/stores/cart";
 import type { MenuItem } from "@/data/menu";
 import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
 import { FavoriteButton } from "@/components/site/FavoriteButton";
+import { isCategoryAvailableNow, isMenuItemAvailableNow } from "@/lib/menu-availability";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -61,6 +62,10 @@ function Home() {
   const banner = visibleBanners[bannerIndex % Math.max(visibleBanners.length, 1)];
   const heroHeight = banner ? heroHeightClasses(banner) : "";
   const categories = useMemo(() => data?.categories.slice(0, 10) ?? [], [data]);
+  const availableItems = useMemo(
+    () => (data?.recommended ?? []).filter((item) => isMenuItemAvailableNow(item, data?.categories ?? []).available),
+    [data?.recommended, data?.categories],
+  );
 
   useEffect(() => {
     if (!heroBanners.length) return;
@@ -75,11 +80,13 @@ function Home() {
 
   if (isLoading || !data) return <HomeSkeleton />;
 
-  const bestSellers =
-    data.collections.find((item) => /best/i.test(item.title))?.items ?? data.recommended;
-  const chefSpecials =
-    data.collections.find((item) => /chef/i.test(item.title))?.items ?? data.recommended;
-  const fastDelivery = data.recommended
+  const bestSellers = (
+    data.collections.find((item) => /best/i.test(item.title))?.items ?? data.recommended
+  ).filter((item) => isMenuItemAvailableNow(item, data.categories).available);
+  const chefSpecials = (
+    data.collections.find((item) => /chef/i.test(item.title))?.items ?? data.recommended
+  ).filter((item) => isMenuItemAvailableNow(item, data.categories).available);
+  const fastDelivery = availableItems
     .filter((item) => (item.prepTimeMinutes || 30) <= 25)
     .slice(0, 8);
 
@@ -164,12 +171,27 @@ function Home() {
                 category.icon ||
                 Object.entries(categoryIcons).find(([k]) => key.includes(k))?.[1] ||
                 "AD";
+              const availability = isCategoryAvailableNow(category);
+              const className = `min-w-[104px] rounded-[26px] border border-white/80 bg-white/88 p-3 text-center shadow-sm backdrop-blur-xl transition ${
+                availability.available ? "hover:-translate-y-0.5 hover:shadow-lg" : "opacity-60"
+              }`;
+              if (!availability.available) {
+                return (
+                  <div key={category.id} title={availability.message} className={className}>
+                    <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-zinc-100 text-lg font-black text-zinc-400">
+                      {icon}
+                    </div>
+                    <div className="mt-2 line-clamp-1 text-sm font-black">{category.name}</div>
+                    <div className="mt-1 text-[10px] font-black uppercase text-zinc-400">Closed</div>
+                  </div>
+                );
+              }
               return (
                 <Link
                   key={category.id}
                   to="/menu"
                   search={{ category: category.name } as never}
-                  className="min-w-[104px] rounded-[26px] border border-white/80 bg-white/88 p-3 text-center shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 hover:shadow-lg"
+                  className={className}
                 >
                   <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-red-50 text-lg font-black text-red-600">
                     {icon}
@@ -209,7 +231,7 @@ function Home() {
         <FoodSection
           title="Top picks for you"
           subtitle="Recommended from today's menu"
-          items={data.recommended}
+          items={availableItems}
           onAdd={add}
         />
         <FoodSection
@@ -221,7 +243,7 @@ function Home() {
         <FoodSection
           title="Fast delivery"
           subtitle="Fresh plates that reach quickly"
-          items={fastDelivery.length ? fastDelivery : data.recommended}
+          items={fastDelivery.length ? fastDelivery : availableItems}
           onAdd={add}
         />
         <FoodSection

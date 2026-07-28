@@ -17,6 +17,7 @@ import { useCart } from "@/stores/cart";
 import type { MenuItem } from "@/data/menu";
 import { imageFallback, resolveMediaUrl } from "@/lib/media";
 import { FavoriteButton } from "@/components/site/FavoriteButton";
+import { isCategoryAvailableNow, isMenuItemAvailableNow } from "@/lib/menu-availability";
 
 export const Route = createFileRoute("/menu")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -73,9 +74,11 @@ function MenuPage() {
   );
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const categoryData = home?.categories ?? [];
     return items.filter((item) => {
       if (activeCategory !== "All" && item.category !== activeCategory) return false;
       if (item.visibility?.[orderMode] === false) return false;
+      if (!isMenuItemAvailableNow(item, categoryData).available) return false;
       if (diet === "veg" && !item.isVeg) return false;
       if (diet === "nonveg" && item.isVeg) return false;
       if (
@@ -88,7 +91,7 @@ function MenuPage() {
         return false;
       return true;
     });
-  }, [items, activeCategory, diet, orderMode, query]);
+  }, [items, home?.categories, activeCategory, diet, orderMode, query]);
 
   return (
     <div className="mx-auto max-w-6xl px-3 py-3 sm:px-4 md:px-6 md:py-8">
@@ -109,15 +112,31 @@ function MenuPage() {
           <SlidersHorizontal className="h-5 w-5 text-zinc-400" />
         </div>
         <div className="mt-2.5 flex gap-2 overflow-x-auto pb-1 md:mt-3">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`whitespace-nowrap rounded-2xl px-3.5 py-2 text-xs font-black sm:text-sm ${activeCategory === category ? "bg-red-600 text-white" : "bg-white text-zinc-600 ring-1 ring-zinc-100"}`}
-            >
-              {category}
-            </button>
-          ))}
+          {categories.map((category) => {
+            const categoryData = home?.categories.find((entry) => entry.name === category);
+            const availability =
+              category === "All" ? { available: true, message: "", windowLabel: "" } : isCategoryAvailableNow(categoryData);
+            return (
+              <button
+                key={category}
+                onClick={() => availability.available && setActiveCategory(category)}
+                disabled={!availability.available}
+                title={availability.message}
+                className={`whitespace-nowrap rounded-2xl px-3.5 py-2 text-xs font-black sm:text-sm ${
+                  activeCategory === category
+                    ? "bg-red-600 text-white"
+                    : availability.available
+                      ? "bg-white text-zinc-600 ring-1 ring-zinc-100"
+                      : "bg-zinc-100 text-zinc-400 ring-1 ring-zinc-100"
+                }`}
+              >
+                {category}
+                {!availability.available ? (
+                  <span className="ml-2 text-[10px] uppercase">Closed</span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
         <div className="mt-2.5 flex gap-2 md:mt-3">
           {ORDER_MODES.map((mode) => (
@@ -152,7 +171,9 @@ function MenuPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="py-20 text-center text-zinc-500">No dishes match your filters.</div>
+        <div className="py-20 text-center text-zinc-500">
+          No dishes match your filters. Scheduled categories may reopen at their menu time.
+        </div>
       ) : (
         <div className="mt-4 grid gap-3 md:mt-5 md:grid-cols-2 md:gap-4">
           {filtered.map((item) => {

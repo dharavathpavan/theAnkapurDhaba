@@ -8,6 +8,7 @@ import {
   createOrder,
   getCustomerHome,
   getCustomerLoyalty,
+  getCustomerMenu,
   getCustomerWallet,
   listCustomerAddresses,
   listCustomerCoupons,
@@ -29,6 +30,7 @@ import {
   zoneFallback,
   type DeliveryEta,
 } from "@/lib/delivery-location";
+import { isMenuItemAvailableNow } from "@/lib/menu-availability";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout - Ankapur Dhaba" }] }),
@@ -57,6 +59,11 @@ function CheckoutPage() {
   const { data: home } = useQuery({
     queryKey: ["customer-home"],
     queryFn: getCustomerHome,
+    staleTime: 30_000,
+  });
+  const { data: menuItems = [] } = useQuery({
+    queryKey: ["customer-menu"],
+    queryFn: getCustomerMenu,
     staleTime: 30_000,
   });
   const { data: addresses = [] } = useQuery({
@@ -98,10 +105,25 @@ function CheckoutPage() {
   const deliveryCodDisabled = type === "delivery" && home?.store.allowDeliveryCod !== true;
   const deliveryAddressReady = type !== "delivery" || Boolean(address);
   const deliveryOutOfZone = type === "delivery" && deliveryEta?.inZone === false;
+  const menuById = useMemo(() => new Map(menuItems.map((item) => [item.id, item])), [menuItems]);
+  const unavailableCartLines = useMemo(
+    () =>
+      lines
+        .map((line) => {
+          const item = menuById.get(line.id);
+          if (!item) return null;
+          const availability = isMenuItemAvailableNow(item, home?.categories ?? []);
+          return availability.available ? null : { line, message: availability.message };
+        })
+        .filter(Boolean) as Array<{ line: (typeof lines)[number]; message: string }>,
+    [lines, menuById, home?.categories],
+  );
   const checkoutBlockedReason = !lines.length
     ? "Add items to your cart first."
     : home?.store.status === "offline"
       ? home.store.statusMessage || "Store is closed right now."
+      : unavailableCartLines.length
+        ? `${unavailableCartLines[0].line.name} is not available right now. ${unavailableCartLines[0].message}`
       : type === "delivery" && subtotal < minimumOrder
         ? `Minimum delivery order is Rs ${minimumOrder}.`
         : deliveryOutOfZone
@@ -188,6 +210,10 @@ function CheckoutPage() {
     if (!lines.length) return navigate({ to: "/menu" });
     if (home?.store.status === "offline")
       return toast.error(home.store.statusMessage || "Store is closed");
+    if (unavailableCartLines.length)
+      return toast.error(
+        `${unavailableCartLines[0].line.name} is not available right now. ${unavailableCartLines[0].message}`,
+      );
     if (!isAuthenticated()) {
       toast.error("Please login to place your order");
       return navigate({ to: "/login" });

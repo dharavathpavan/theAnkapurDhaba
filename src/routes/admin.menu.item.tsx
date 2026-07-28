@@ -12,6 +12,8 @@ import {
   type CatalogItem,
 } from "@/services/api";
 import { imageFallback, resolveMediaUrl } from "@/lib/media";
+import { TimeScheduleEditor } from "@/components/admin/TimeScheduleEditor";
+import { isRuleAvailableNow } from "@/lib/menu-availability";
 
 export const Route = createFileRoute("/admin/menu/item")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -53,6 +55,7 @@ const NEW_ITEM: Partial<CatalogItem> = {
     mobileApp: true,
     pos: true,
   },
+  availabilityRules: {},
 };
 
 function MenuItemBuilderPage() {
@@ -128,6 +131,7 @@ function MenuItemBuilderPage() {
 
   const categories = categoriesQuery.data || [];
   const currentPrice = Number(item.offerPrice || item.basePrice || item.price || 0);
+  const schedulePreview = isRuleAvailableNow(item.availabilityRules);
   const steps = ["Details", "Price", "Display"];
 
   return (
@@ -305,6 +309,12 @@ function MenuItemBuilderPage() {
                   checked={Boolean(item.bestseller)}
                   onChange={(value) => setItem({ ...item, bestseller: value })}
                 />
+                <div className="md:col-span-2">
+                  <TimeScheduleEditor
+                    value={item.availabilityRules}
+                    onChange={(availabilityRules) => setItem({ ...item, availabilityRules })}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -403,6 +413,19 @@ function MenuItemBuilderPage() {
                 </div>
               ))}
             </div>
+            {item.availabilityRules && Object.keys(item.availabilityRules).length > 0 ? (
+              <div
+                className={`mt-3 rounded-2xl px-3 py-2 text-xs font-black ${
+                  schedulePreview.available
+                    ? "bg-green-50 text-green-700"
+                    : "bg-yellow-50 text-yellow-800"
+                }`}
+              >
+                {schedulePreview.available
+                  ? `Available now - ${schedulePreview.windowLabel}`
+                  : schedulePreview.message}
+              </div>
+            ) : null}
             <p className="mt-4 text-xs text-muted-foreground">
               Preview updates instantly as you type. Save publishes the item to the customer menu.
             </p>
@@ -434,6 +457,7 @@ function normalizePayload(item: Partial<CatalogItem>) {
       pos: true,
       ...(item.visibility || {}),
     },
+    availabilityRules: item.availabilityRules || {},
   };
 }
 

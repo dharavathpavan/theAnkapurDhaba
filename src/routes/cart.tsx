@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { Minus, Plus, ShoppingBag, Tag, Trash2, Truck } from "lucide-react";
-import { getCustomerHome } from "@/services/api";
+import { getCustomerHome, getCustomerMenu } from "@/services/api";
 import { useCart, selectCartSubtotal } from "@/stores/cart";
 import { imageFallback, resolveMediaUrl } from "@/lib/media";
+import { isMenuItemAvailableNow } from "@/lib/menu-availability";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Cart - Ankapur Dhaba" }] }),
@@ -20,7 +22,22 @@ function CartPage() {
     queryFn: getCustomerHome,
     staleTime: 30_000,
   });
+  const { data: menuItems = [] } = useQuery({
+    queryKey: ["customer-menu"],
+    queryFn: getCustomerMenu,
+    staleTime: 30_000,
+  });
   const store = data?.store;
+  const menuById = useMemo(() => new Map(menuItems.map((item) => [item.id, item])), [menuItems]);
+  const unavailableLines = lines
+    .map((line) => {
+      const item = menuById.get(line.id);
+      if (!item) return null;
+      const availability = isMenuItemAvailableNow(item, data?.categories ?? []);
+      return availability.available ? null : { line, message: availability.message };
+    })
+    .filter(Boolean) as Array<{ line: (typeof lines)[number]; message: string }>;
+  const canCheckout = unavailableLines.length === 0;
   const deliveryFee =
     subtotal >= (store?.freeDeliveryAbove ?? 499) ? 0 : (store?.deliveryCharge ?? 40);
   const packing = lines.length ? (store?.packingCharge ?? 10) : 0;
@@ -72,6 +89,19 @@ function CartPage() {
               Free delivery unlocked
             </div>
           )}
+
+          {unavailableLines.length > 0 ? (
+            <div className="rounded-3xl bg-yellow-50 p-4 text-yellow-900 ring-1 ring-yellow-200">
+              <div className="font-black">Some items are not available right now</div>
+              <div className="mt-1 text-sm">
+                {unavailableLines.slice(0, 3).map(({ line, message }) => (
+                  <div key={line.lineId || line.id}>
+                    {line.name}: {message}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {lines.map((line) => (
             <article
@@ -145,23 +175,41 @@ function CartPage() {
             <span className="text-lg font-black">Grand total</span>
             <span className="text-3xl font-black text-red-600">Rs {total}</span>
           </div>
-          <Link
-            to="/checkout"
-            className="mt-5 hidden min-h-14 w-full items-center justify-center rounded-3xl bg-red-600 font-black text-white md:flex"
-          >
-            Proceed to checkout
-          </Link>
+          {canCheckout ? (
+            <Link
+              to="/checkout"
+              className="mt-5 hidden min-h-14 w-full items-center justify-center rounded-3xl bg-red-600 font-black text-white md:flex"
+            >
+              Proceed to checkout
+            </Link>
+          ) : (
+            <button
+              disabled
+              className="mt-5 hidden min-h-14 w-full items-center justify-center rounded-3xl bg-zinc-200 font-black text-zinc-500 md:flex"
+            >
+              Checkout unavailable
+            </button>
+          )}
           <Link to="/menu" className="mt-3 block text-center text-sm font-bold text-zinc-500">
             Add more items
           </Link>
         </aside>
       </div>
-      <Link
-        to="/checkout"
-        className="fixed bottom-24 left-4 right-4 z-40 mx-auto flex min-h-14 max-w-md items-center justify-center rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 md:hidden"
-      >
-        Proceed to checkout - Rs {total}
-      </Link>
+      {canCheckout ? (
+        <Link
+          to="/checkout"
+          className="fixed bottom-24 left-4 right-4 z-40 mx-auto flex min-h-14 max-w-md items-center justify-center rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 md:hidden"
+        >
+          Proceed to checkout - Rs {total}
+        </Link>
+      ) : (
+        <button
+          disabled
+          className="fixed bottom-24 left-4 right-4 z-40 mx-auto flex min-h-14 max-w-md items-center justify-center rounded-3xl bg-zinc-300 font-black text-zinc-600 shadow-2xl md:hidden"
+        >
+          Remove unavailable items
+        </button>
+      )}
     </div>
   );
 }

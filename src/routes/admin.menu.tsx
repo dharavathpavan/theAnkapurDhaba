@@ -48,6 +48,7 @@ import {
   type CatalogItem,
   type InventoryIngredient,
 } from "@/services/api";
+import { TimeScheduleEditor } from "@/components/admin/TimeScheduleEditor";
 
 export const Route = createFileRoute("/admin/menu")({
   component: AdminMenu,
@@ -1138,6 +1139,10 @@ function CategoryPanel({
           label="Active"
           checked={category.active ?? true}
           onChange={(value) => onChange({ ...category, active: value })}
+        />
+        <TimeScheduleEditor
+          value={category.availabilityRules}
+          onChange={(availabilityRules) => onChange({ ...category, availabilityRules })}
         />
         <button
           onClick={onSave}

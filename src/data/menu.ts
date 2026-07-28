@@ -69,6 +69,7 @@ export interface MenuItem {
   recentlyAdded?: boolean;
   kitchenStation?: string;
   visibility?: Record<string, boolean>;
+  availabilityRules?: Record<string, unknown>;
 }
 
 export const CATEGORIES: MenuCategory[] = [
