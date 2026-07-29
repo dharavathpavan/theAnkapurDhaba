@@ -1,15 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
   Clock3,
+  Facebook,
+  Instagram,
   MapPin,
+  Quote,
   Search,
+  Share2,
   Sparkles,
   Star,
   Ticket,
   Truck,
   UtensilsCrossed,
+  Youtube,
 } from "lucide-react";
 import { getCustomerHome, type CustomerBanner, type CustomerReview } from "@/services/api";
 import { useCart } from "@/stores/cart";
@@ -263,19 +269,27 @@ function PublishedReviews({ reviews }: { reviews: CustomerReview[] }) {
   if (!visible.length) return null;
   const loop = [...visible, ...visible];
   return (
-    <section className="mt-8 overflow-hidden rounded-[30px] bg-zinc-950 p-5 text-white shadow-xl md:p-7">
-      <div className="flex items-end justify-between gap-4">
+    <section className="mt-8 overflow-hidden rounded-[32px] bg-[radial-gradient(circle_at_top_left,#ef4444_0,#18181b_36%,#050505_100%)] p-5 text-white shadow-2xl shadow-zinc-950/20 ring-1 ring-white/10 md:p-7">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-display text-xs tracking-[0.24em] text-red-300">OUR REVIEWS</p>
-          <h2 className="mt-1 text-2xl font-black md:text-3xl">Loved by foodies</h2>
+          <p className="font-display text-xs tracking-[0.24em] text-red-200">OUR REVIEWS</p>
+          <h2 className="mt-1 text-2xl font-black md:text-3xl">Foodies are talking</h2>
+          <p className="mt-1 text-sm font-semibold text-white/55">
+            Real customer love, approved by The Ankapure Dhaba team.
+          </p>
         </div>
-        <div className="hidden rounded-full bg-white/10 px-4 py-2 text-sm font-black text-yellow-100 sm:flex">
-          {averageReviews(visible)} ★
+        <div className="flex items-center gap-2">
+          <SocialPill icon={Instagram} label="Instagram" />
+          <SocialPill icon={Youtube} label="YouTube" />
+          <SocialPill icon={Facebook} label="Facebook" />
+          <div className="rounded-full bg-yellow-400 px-4 py-2 text-sm font-black text-zinc-950">
+            {averageReviews(visible)} / 5
+          </div>
         </div>
       </div>
       <div className="relative mt-5 h-[330px] overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-12 bg-gradient-to-b from-zinc-950 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-zinc-950 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-12 bg-gradient-to-b from-zinc-950/95 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-zinc-950/95 to-transparent" />
         <div className="animate-[reviews-scroll_28s_linear_infinite] space-y-3">
           {loop.map((review, index) => (
             <ReviewTile key={`${review.id}-${index}`} review={review} />
@@ -286,25 +300,55 @@ function PublishedReviews({ reviews }: { reviews: CustomerReview[] }) {
   );
 }
 
+function SocialPill({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
+  return (
+    <span className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:bg-white/15">
+      <Icon className="h-4 w-4" aria-label={label} />
+    </span>
+  );
+}
+
 function ReviewTile({ review }: { review: CustomerReview }) {
   const rating = ((review.foodRating || 0) + (review.deliveryRating || 0) + (review.packagingRating || 0)) / 3;
   return (
-    <article className="rounded-[22px] border border-white/10 bg-white/8 p-4 backdrop-blur">
+    <article className="group rounded-[24px] border border-white/10 bg-white/10 p-4 shadow-lg shadow-black/10 backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white/14">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="truncate text-sm font-black">{review.userName || "Happy customer"}</div>
-          <div className="mt-0.5 text-xs font-semibold text-white/45">
-            Order #{review.orderId || "The Ankapure Dhaba"}
+        <div className="flex min-w-0 items-center gap-3">
+          <CustomerAvatar name={review.userName || "Happy customer"} />
+          <div className="min-w-0">
+            <div className="truncate text-sm font-black">{review.userName || "Happy customer"}</div>
+            <div className="mt-0.5 text-xs font-semibold text-white/45">
+              Order #{review.orderId || "The Ankapure Dhaba"}
+            </div>
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-yellow-400/15 px-2.5 py-1 text-xs font-black text-yellow-200">
-          {rating.toFixed(1)} ★
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="rounded-full bg-yellow-400/15 px-2.5 py-1 text-xs font-black text-yellow-200">
+            {rating.toFixed(1)}
+          </span>
+          <Share2 className="h-4 w-4 text-white/35 transition group-hover:text-white/70" />
+        </div>
       </div>
-      <p className="mt-3 line-clamp-3 text-sm font-medium leading-6 text-white/72">
-        “{review.comment}”
+      <p className="mt-3 flex gap-2 line-clamp-3 text-sm font-medium leading-6 text-white/72">
+        <Quote className="mt-1 h-4 w-4 shrink-0 text-red-200" />
+        <span>"{review.comment}"</span>
       </p>
     </article>
+  );
+}
+
+function CustomerAvatar({ name }: { name: string }) {
+  const initials =
+    name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "AD";
+  return (
+    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-red-500 to-yellow-400 text-sm font-black text-white shadow-lg shadow-red-950/25 ring-2 ring-white/20">
+      {initials}
+    </span>
   );
 }
 
@@ -318,7 +362,6 @@ function averageReviews(reviews: CustomerReview[]) {
     ) / reviews.length;
   return avg.toFixed(1);
 }
-
 function FoodSection({
   title,
   subtitle,
