@@ -45,17 +45,30 @@ export function loadGoogleMaps(): Promise<any> {
       reject(error);
     };
 
+    const loadMissingLibraries = async () => {
+      const importLibrary = window.google?.maps?.importLibrary;
+      if (typeof importLibrary !== "function") return;
+      const tasks: Promise<unknown>[] = [];
+      if (!window.google?.maps?.places) tasks.push(importLibrary("places"));
+      if (!window.google?.maps?.geometry) tasks.push(importLibrary("geometry"));
+      if (tasks.length) await Promise.all(tasks);
+    };
+
     const resolveWhenReady = () => {
       if (window.google?.maps?.places && window.google?.maps?.geometry) {
         resolve(window.google);
         return;
       }
       window.setTimeout(() => {
-        if (window.google?.maps?.places && window.google?.maps?.geometry) {
-          resolve(window.google);
-        } else {
-          cleanupAndReject(new Error("Google Maps loaded without required Places or Geometry libraries"));
-        }
+        loadMissingLibraries()
+          .then(() => {
+            if (window.google?.maps?.places && window.google?.maps?.geometry) {
+              resolve(window.google);
+            } else {
+              cleanupAndReject(new Error("Google Maps loaded without required Places or Geometry libraries"));
+            }
+          })
+          .catch(() => cleanupAndReject(new Error("Google Maps loaded without required Places or Geometry libraries")));
       }, 250);
     };
 
