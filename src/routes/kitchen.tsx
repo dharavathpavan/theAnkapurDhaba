@@ -33,14 +33,20 @@ import { toast } from "sonner";
 import { useAuth } from "@/stores/auth";
 import {
   bulkUpdateOrderKds,
+  createPrinterHistory,
+  getPrinters,
   listOrders,
   subscribeToOrderEvents,
+  updatePrinterHistory,
   updateOrderKds,
   type DeliveryDetails,
   type Order,
   type OrderStatus,
+  type PrinterRecord,
+  type PrinterSettings,
 } from "@/services/api";
 import { KotBill } from "@/components/site/KotBill";
+import { kotFingerprint } from "@/lib/printer/escpos";
 
 export const Route = createFileRoute("/kitchen")({
   head: () => ({
@@ -67,7 +73,7 @@ const DELAY_TIMES = [5, 10, 15, 20];
 const ACTIVE_STATUSES: OrderStatus[] = ["received", "accepted", "preparing", "ready"];
 
 type KdsColumn = "new" | "preparing" | "ready";
-type PrintJob = { key: string; order: Order; kind: "kot" | "bill" };
+type PrintJob = { key: string; order: Order; kind: "kot" | "bill"; historyId?: string | null };
 type SoundKind = "school" | "kitchen" | "restaurant" | "alarm" | "custom";
 type Language = "en-US" | "hi-IN" | "te-IN";
 
@@ -113,6 +119,16 @@ function KitchenDisplaySystem() {
     refetchOnReconnect: true,
     refetchOnWindowFocus: true,
   });
+  const { data: printerBundle } = useQuery({
+    queryKey: ["printers"],
+    queryFn: getPrinters,
+    staleTime: 20_000,
+  });
+  const printerSettings = printerBundle?.settings;
+  const defaultPrinter =
+    printerBundle?.printers.find((printer) => printer.isDefault) ||
+    printerBundle?.printers[0] ||
+    null;
 
   const [settings, setSettings] = usePersistentSettings();
   const [now, setNow] = useState(Date.now());
@@ -234,7 +250,7 @@ function KitchenDisplaySystem() {
     );
     setFlash(true);
     window.setTimeout(() => setFlash(false), 1000);
-    enqueuePrint(order, "kot");
+    void enqueuePrint(order, "kot", false);
   }
 
   async function acceptOrder(order: Order) {
@@ -306,16 +322,44 @@ function KitchenDisplaySystem() {
     toast.success("Bulk action complete");
   }
 
-  function enqueuePrint(order: Order, kind: "kot" | "bill") {
-    const key = `${order.id}:${kind}:${order.status}:${Date.now()}`;
+  async function enqueuePrint(order: Order, kind: "kot" | "bill", force = true) {
+    if (!force && !printerSettings?.autoPrint) return;
+    const key = force ? `${order.id}:${kind}:${Date.now()}` : kotFingerprint(order, kind);
     if (printedRef.current.has(key)) return;
-    setPrintQueue((q) => [...q, { key, order, kind }]);
+    let historyId: string | null = null;
+    try {
+      const history = await createPrinterHistory({
+        printerId: defaultPrinter?.id,
+        orderId: order.id,
+        orderNumber: order.id,
+        jobType: kind,
+        station: meta(order).station || inferStation(order),
+        copies: printerSettings?.copies || 1,
+        paperSize: printerSettings?.paperSize || "58mm",
+        status: "printing",
+        attempts: 1,
+        fingerprint: key,
+        message: force ? "Manual KOT print started" : "Auto-print started for new KOT",
+      });
+      historyId = history.id;
+    } catch {
+      historyId = null;
+    }
+    setPrintQueue((q) => [...q, { key, order, kind, historyId }]);
   }
 
-  function markPrinted(key: string) {
-    printedRef.current.add(key);
+  async function markPrinted(job: PrintJob) {
+    printedRef.current.add(job.key);
     savePrinted(printedRef.current);
-    setPrintQueue((q) => q.filter((job) => job.key !== key));
+    if (job.historyId) {
+      await updatePrinterHistory(job.historyId, {
+        status: "success",
+        message: "Browser print dialog opened. Confirm printer output at the device.",
+        printedAt: new Date().toISOString(),
+      }).catch(() => undefined);
+      qc.invalidateQueries({ queryKey: ["printer-history"] });
+    }
+    setPrintQueue((q) => q.filter((queued) => queued.key !== job.key));
   }
 
   return (
@@ -375,7 +419,7 @@ function KitchenDisplaySystem() {
           onBulkPrint={() =>
             selectedIds.forEach((id) => {
               const order = orders.find((o) => o.id === id);
-              if (order) enqueuePrint(order, "kot");
+              if (order) void enqueuePrint(order, "kot");
             })
           }
         />
@@ -476,7 +520,12 @@ function KitchenDisplaySystem() {
         />
       )}
       {currentPrint && (
-        <PrintOverlay job={currentPrint} onDone={() => markPrinted(currentPrint.key)} />
+        <PrintOverlay
+          job={currentPrint}
+          settings={printerSettings}
+          printer={defaultPrinter}
+          onDone={() => void markPrinted(currentPrint)}
+        />
       )}
     </div>
   );
@@ -1348,7 +1397,17 @@ function OrderDetails({
   );
 }
 
-function PrintOverlay({ job, onDone }: { job: PrintJob; onDone: () => void }) {
+function PrintOverlay({
+  job,
+  settings,
+  printer,
+  onDone,
+}: {
+  job: PrintJob;
+  settings?: PrinterSettings;
+  printer?: PrinterRecord | null;
+  onDone: () => void;
+}) {
   const triggered = useRef(false);
   useEffect(() => {
     if (triggered.current) return;
@@ -1359,6 +1418,9 @@ function PrintOverlay({ job, onDone }: { job: PrintJob; onDone: () => void }) {
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center bg-black/80 p-4">
       <div className="no-print absolute right-4 top-4 flex gap-2">
+        <div className="hidden rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-bold text-zinc-300 md:block">
+          {printer?.name || "Browser print"} • {settings?.paperSize || "58mm"} • {settings?.copies || 1} copy
+        </div>
         <button
           onClick={() => window.print()}
           className="rounded-2xl bg-red-600 px-5 py-3 font-display text-xl"

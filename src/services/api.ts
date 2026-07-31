@@ -200,6 +200,99 @@ export type CustomerContentEvent = {
   at: string;
 };
 
+export type PrinterStatus =
+  | "connected"
+  | "disconnected"
+  | "searching"
+  | "printing"
+  | "offline"
+  | "unsupported"
+  | "bridge_required"
+  | "error"
+  | string;
+
+export type PrinterConnectionType =
+  | "browser-print"
+  | "web-serial"
+  | "web-bluetooth"
+  | "android-bridge"
+  | "local-bridge"
+  | "bridge";
+
+export interface PrinterRecord {
+  id: string;
+  name: string;
+  model: string;
+  macAddress?: string | null;
+  connectionType: PrinterConnectionType;
+  paperWidth: "58mm" | "80mm";
+  isDefault: boolean;
+  status: PrinterStatus;
+  lastConnectedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PrinterDevice {
+  id: string;
+  name: string;
+  model?: string | null;
+  macAddress?: string | null;
+  connectionType: PrinterConnectionType;
+  status: PrinterStatus;
+  signalStrength?: number | null;
+  batteryLevel?: number | null;
+  lastSeenAt?: string | null;
+}
+
+export interface PrinterSettings {
+  id: string;
+  autoPrint: boolean;
+  autoReconnect: boolean;
+  copies: number;
+  paperSize: "58mm" | "80mm";
+  showLogo: boolean;
+  showQr: boolean;
+  showBarcode: boolean;
+  sound: boolean;
+  footerText?: string | null;
+}
+
+export interface KitchenStationPrinter {
+  id: string;
+  station: string;
+  printerId?: string | null;
+  printerName?: string | null;
+  active: boolean;
+}
+
+export interface PrinterHistoryEntry {
+  id: string;
+  printerId?: string | null;
+  orderId?: string | null;
+  orderNumber: string;
+  jobType: string;
+  station?: string | null;
+  copies: number;
+  paperSize: "58mm" | "80mm";
+  status: "queued" | "printing" | "success" | "failed" | "retrying" | "cancelled" | string;
+  attempts: number;
+  message?: string | null;
+  fingerprint?: string | null;
+  payload?: Record<string, unknown> | string | null;
+  printedByName?: string | null;
+  printedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PrinterBundle {
+  printers: PrinterRecord[];
+  devices: PrinterDevice[];
+  stations: KitchenStationPrinter[];
+  settings: PrinterSettings;
+}
+
 export function subscribeToOrderEvents(callback: (event: OrderRealtimeEvent) => void) {
   if (socket) {
     const listener = (event: OrderRealtimeEvent) => callback(event);
@@ -1878,6 +1971,116 @@ export async function closeTableOrders(input: {
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to close table");
   return json;
+}
+
+/* ---------------- Kitchen Printer API ---------------- */
+async function printerRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await apiFetch(`${API_BASE}/printers${path}`, init);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Printer request failed");
+  return json;
+}
+
+export async function getPrinters(): Promise<PrinterBundle> {
+  return printerRequest<PrinterBundle>("");
+}
+
+export async function getPrinterSettings(): Promise<PrinterSettings> {
+  return printerRequest<PrinterSettings>("/settings");
+}
+
+export async function savePrinterSettings(input: Partial<PrinterSettings>): Promise<PrinterSettings> {
+  return printerRequest<PrinterSettings>("/settings", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function savePrinter(input: Partial<PrinterRecord> & { name: string }): Promise<PrinterRecord> {
+  return printerRequest<PrinterRecord>("/save", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function setDefaultPrinter(printerId: string): Promise<PrinterRecord> {
+  return printerRequest<PrinterRecord>("/default", {
+    method: "PUT",
+    body: JSON.stringify({ printerId }),
+  });
+}
+
+export async function logPrinterConnection(input: {
+  printerId?: string | null;
+  message?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<{ ok: boolean; status: string }> {
+  return printerRequest<{ ok: boolean; status: string }>("/connect-log", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function logPrinterDisconnect(input: {
+  printerId?: string | null;
+  message?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<{ ok: boolean; status: string }> {
+  return printerRequest<{ ok: boolean; status: string }>("/disconnect-log", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function listPrinterHistory(params?: {
+  status?: string;
+  orderId?: string;
+}): Promise<PrinterHistoryEntry[]> {
+  const search = new URLSearchParams();
+  if (params?.status) search.set("status", params.status);
+  if (params?.orderId) search.set("orderId", params.orderId);
+  const suffix = search.toString() ? `/history?${search}` : "/history";
+  return printerRequest<PrinterHistoryEntry[]>(suffix);
+}
+
+export async function createPrinterHistory(
+  input: Partial<PrinterHistoryEntry> & { orderNumber: string },
+): Promise<PrinterHistoryEntry> {
+  return printerRequest<PrinterHistoryEntry>("/history", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updatePrinterHistory(
+  id: string,
+  input: Partial<PrinterHistoryEntry>,
+): Promise<PrinterHistoryEntry> {
+  return printerRequest<PrinterHistoryEntry>(`/history/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function listStationPrinters(): Promise<KitchenStationPrinter[]> {
+  return printerRequest<KitchenStationPrinter[]>("/stations");
+}
+
+export async function saveStationPrinter(
+  input: Partial<KitchenStationPrinter> & { station: string },
+): Promise<KitchenStationPrinter> {
+  return printerRequest<KitchenStationPrinter>("/stations", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateStationPrinter(
+  id: string,
+  input: Partial<KitchenStationPrinter>,
+): Promise<KitchenStationPrinter> {
+  return printerRequest<KitchenStationPrinter>(`/stations/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteStationPrinter(id: string): Promise<void> {
+  await printerRequest<{ ok: boolean }>(`/stations/${id}`, { method: "DELETE" });
 }
 
 /* ---------------- Auth Staff API (Admin only) ---------------- */

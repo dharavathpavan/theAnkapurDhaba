@@ -56,6 +56,8 @@ import { Route as AdminBusinessRouteImport } from './routes/admin.business'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 import { Route as SupportChatTicketIdRouteImport } from './routes/support.chat.$ticketId'
 import { Route as AdminMenuItemRouteImport } from './routes/admin.menu.item'
+import { Route as AdminKitchenPrinterRouteImport } from './routes/admin.kitchen.printer'
+import { Route as AdminKitchenPrintHistoryRouteImport } from './routes/admin.kitchen.print-history'
 
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
@@ -293,6 +295,17 @@ const AdminMenuItemRoute = AdminMenuItemRouteImport.update({
   path: '/item',
   getParentRoute: () => AdminMenuRoute,
 } as any)
+const AdminKitchenPrinterRoute = AdminKitchenPrinterRouteImport.update({
+  id: '/kitchen/printer',
+  path: '/kitchen/printer',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminKitchenPrintHistoryRoute =
+  AdminKitchenPrintHistoryRouteImport.update({
+    id: '/kitchen/print-history',
+    path: '/kitchen/print-history',
+    getParentRoute: () => AdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -340,6 +353,8 @@ export interface FileRoutesByFullPath {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
+  '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
 }
@@ -388,6 +403,8 @@ export interface FileRoutesByTo {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
+  '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
 }
@@ -438,6 +455,8 @@ export interface FileRoutesById {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
+  '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
 }
@@ -489,6 +508,8 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
+    | '/admin/kitchen/print-history'
+    | '/admin/kitchen/printer'
     | '/admin/menu/item'
     | '/support/chat/$ticketId'
   fileRoutesByTo: FileRoutesByTo
@@ -537,6 +558,8 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin'
+    | '/admin/kitchen/print-history'
+    | '/admin/kitchen/printer'
     | '/admin/menu/item'
     | '/support/chat/$ticketId'
   id:
@@ -586,6 +609,8 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
+    | '/admin/kitchen/print-history'
+    | '/admin/kitchen/printer'
     | '/admin/menu/item'
     | '/support/chat/$ticketId'
   fileRoutesById: FileRoutesById
@@ -950,6 +975,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMenuItemRouteImport
       parentRoute: typeof AdminMenuRoute
     }
+    '/admin/kitchen/printer': {
+      id: '/admin/kitchen/printer'
+      path: '/kitchen/printer'
+      fullPath: '/admin/kitchen/printer'
+      preLoaderRoute: typeof AdminKitchenPrinterRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/kitchen/print-history': {
+      id: '/admin/kitchen/print-history'
+      path: '/kitchen/print-history'
+      fullPath: '/admin/kitchen/print-history'
+      preLoaderRoute: typeof AdminKitchenPrintHistoryRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -982,6 +1021,8 @@ interface AdminRouteChildren {
   AdminTablesRoute: typeof AdminTablesRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminKitchenPrintHistoryRoute: typeof AdminKitchenPrintHistoryRoute
+  AdminKitchenPrinterRoute: typeof AdminKitchenPrinterRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -1001,6 +1042,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminTablesRoute: AdminTablesRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminKitchenPrintHistoryRoute: AdminKitchenPrintHistoryRoute,
+  AdminKitchenPrinterRoute: AdminKitchenPrinterRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

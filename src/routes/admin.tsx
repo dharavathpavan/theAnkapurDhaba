@@ -18,8 +18,10 @@ import {
   Bell,
   LogOut,
   PanelLeft,
+  Printer,
   ShieldCheck,
   Star,
+  History,
 } from "lucide-react";
 import { useAuth } from "@/stores/auth";
 import { subscribeToCustomerContent, subscribeToOrderEvents } from "@/services/api";
@@ -52,6 +54,12 @@ const NAV = [
   { to: "/admin/store", label: "Settings", icon: Store },
 ];
 
+const KITCHEN_NAV = [
+  { to: "/kitchen", label: "Kitchen Dashboard", icon: ChefHat },
+  { to: "/admin/kitchen/printer", label: "Printer Settings", icon: Printer },
+  { to: "/admin/kitchen/print-history", label: "Print History", icon: History },
+];
+
 function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { hasRole, isAuthenticated, user, logout } = useAuth();
@@ -59,6 +67,9 @@ function AdminLayout() {
   const qc = useQueryClient();
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isKitchenAdminPath = pathname.startsWith("/admin/kitchen");
+  const canAccess = hasRole("ADMIN") || (isKitchenAdminPath && hasRole("KITCHEN"));
+  const navItems = hasRole("ADMIN") ? NAV : KITCHEN_NAV;
 
   useEffect(() => {
     setMounted(true);
@@ -66,13 +77,13 @@ function AdminLayout() {
 
   useEffect(() => {
     if (!mounted) return;
-    if (!isAuthenticated() || !hasRole("ADMIN")) {
+    if (!isAuthenticated() || !canAccess) {
       navigate({ to: "/login" });
     }
-  }, [mounted, isAuthenticated, hasRole, navigate]);
+  }, [mounted, isAuthenticated, canAccess, navigate]);
 
   useEffect(() => {
-    if (!mounted || !isAuthenticated() || !hasRole("ADMIN")) return;
+    if (!mounted || !isAuthenticated() || !canAccess) return;
 
     const notify = (title: string, body: string) => {
       toast.info(body);
@@ -109,9 +120,9 @@ function AdminLayout() {
       unsubscribeOrders();
       unsubscribeContent();
     };
-  }, [mounted, isAuthenticated, hasRole, qc]);
+  }, [mounted, isAuthenticated, canAccess, qc]);
 
-  if (!mounted || !isAuthenticated() || !hasRole("ADMIN")) {
+  if (!mounted || !isAuthenticated() || !canAccess) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-muted-foreground font-display tracking-widest">REDIRECTING...</p>
@@ -119,7 +130,7 @@ function AdminLayout() {
     );
   }
 
-  const current = NAV.find((n) => (n.exact ? pathname === n.to : pathname.startsWith(n.to)));
+  const current = navItems.find((n) => ("exact" in n && n.exact ? pathname === n.to : pathname.startsWith(n.to)));
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -151,8 +162,8 @@ function AdminLayout() {
           </div>
 
           <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-            {NAV.map((n) => {
-              const active = n.exact ? pathname === n.to : pathname.startsWith(n.to);
+            {navItems.map((n) => {
+              const active = "exact" in n && n.exact ? pathname === n.to : pathname.startsWith(n.to);
               return (
                 <Link
                   key={n.to}
