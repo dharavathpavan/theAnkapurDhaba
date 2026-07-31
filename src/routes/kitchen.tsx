@@ -383,6 +383,22 @@ function KitchenDisplaySystem() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
+              type="button"
+              onClick={() => navigate({ to: "/admin/kitchen/printer" })}
+              className="inline-flex min-h-14 items-center gap-2 rounded-2xl bg-red-600 px-5 font-display text-xl tracking-widest text-white shadow-lg shadow-red-950/30"
+            >
+              <Printer className="h-6 w-6" />
+              PRINTER SETUP
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/admin/kitchen/print-history" })}
+              className="hidden min-h-14 items-center gap-2 rounded-2xl bg-zinc-800 px-5 font-display text-xl tracking-widest text-zinc-100 md:inline-flex"
+            >
+              <TimerReset className="h-6 w-6" />
+              PRINT HISTORY
+            </button>
+            <button
               onClick={() => setSettings({ ...settings, soundOn: !settings.soundOn })}
               className={`inline-flex min-h-14 items-center gap-2 rounded-2xl px-5 font-display text-xl tracking-widest ${settings.soundOn ? "bg-emerald-500 text-black" : "bg-zinc-800 text-zinc-200"}`}
             >
