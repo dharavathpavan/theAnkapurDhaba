@@ -24,7 +24,7 @@ import {
   type PrinterRecord,
   type PrinterSettings,
 } from "@/services/api";
-import { compatibilityMessage, getPrinterRuntimeSupport, printTestJob } from "@/lib/printer/manager";
+import { compatibilityMessage, getPrinterRuntimeSupport, printTestJob, scanPrinterDevices, type DetectedPrinterDevice } from "@/lib/printer/manager";
 import { useAuth } from "@/stores/auth";
 import { useEffect, useState } from "react";
 
@@ -43,6 +43,7 @@ function KitchenPrinterPage() {
   const canManage = hasRole("ADMIN");
   const support = getPrinterRuntimeSupport();
   const [savingStation, setSavingStation] = useState<string | null>(null);
+  const [detectedDevices, setDetectedDevices] = useState<DetectedPrinterDevice[]>([]);
   const { data, isLoading } = useQuery({ queryKey: ["printers"], queryFn: getPrinters });
   const settings = data?.settings;
   const defaultPrinter = data?.printers.find((printer) => printer.isDefault) || data?.printers[0] || null;
@@ -64,6 +65,22 @@ function KitchenPrinterPage() {
       qc.invalidateQueries({ queryKey: ["printers"] });
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Could not save printer"),
+  });
+
+  const scanMutation = useMutation({
+    mutationFn: scanPrinterDevices,
+    onSuccess: (devices) => {
+      setDetectedDevices(devices);
+      if (devices.length) {
+        toast.success(`${devices.length} printer device${devices.length > 1 ? "s" : ""} found`);
+      } else {
+        toast.warning("No printer devices found");
+      }
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : "Printer scan failed";
+      toast.error(message.includes("User cancelled") ? "Bluetooth scan cancelled" : message);
+    },
   });
 
   const testPrintMutation = useMutation({
@@ -178,7 +195,7 @@ function KitchenPrinterPage() {
           {!support.directEscPos ? (
             <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4 text-sm text-amber-100">
               <AlertTriangle className="mb-2 h-5 w-5" />
-              EZO 58D may use Bluetooth Classic/SPP. Use the Android app bridge or a local desktop bridge for reliable thermal printing.
+              EZO 58D usually uses Bluetooth Classic/SPP. Browser Web Bluetooth cannot print to Classic/SPP devices directly, so use the Android app bridge or local desktop bridge for reliable thermal printing.
             </div>
           ) : null}
         </div>
@@ -204,6 +221,67 @@ function KitchenPrinterPage() {
               .finally(() => setSavingStation(null));
           }}
         />
+      </section>
+
+      <section className="mt-5 rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-black">Device Scan & Connection</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-white/55">
+              Browser scanning opens the system Bluetooth picker and can only discover Web Bluetooth compatible BLE devices. Bluetooth Classic printers need the Android/local bridge to show realtime devices and print.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={scanMutation.isPending}
+            onClick={() => scanMutation.mutate()}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-5 text-sm font-black text-slate-950 disabled:opacity-50"
+          >
+            <Bluetooth className="h-5 w-5" /> {scanMutation.isPending ? "Scanning..." : "Scan Printers"}
+          </button>
+        </div>
+        <div className="mt-5 grid gap-3 lg:grid-cols-2">
+          {[...(data?.devices || []), ...detectedDevices].length ? (
+            [...(data?.devices || []), ...detectedDevices].map((device) => (
+              <div key={`${device.connectionType}-${device.id}`} className="rounded-3xl border border-white/10 bg-black/25 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-base font-black">{device.name || "Thermal Printer"}</div>
+                    <p className="mt-1 text-xs text-white/45">
+                      {device.model || "Printer"} • {device.connectionType.replace(/-/g, " ")}
+                    </p>
+                    {"message" in device && device.message ? <p className="mt-2 text-xs leading-5 text-amber-100">{device.message}</p> : null}
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-white/70">
+                    {String(device.status || "available").replace(/_/g, " ")}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  disabled={!canManage || savePrinterMutation.isPending}
+                  onClick={() =>
+                    savePrinterMutation.mutate({
+                      name: device.name || "EZO 58D",
+                      model: device.model || "EZO 58D",
+                      macAddress: device.macAddress || device.id,
+                      connectionType: device.connectionType === "web-bluetooth" ? "bridge" : device.connectionType,
+                      paperWidth: settings?.paperSize || "58mm",
+                      isDefault: true,
+                      status: device.status === "available" ? "disconnected" : "bridge_required",
+                    })
+                  }
+                  className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-white/10 bg-red-600 text-sm font-black text-white disabled:opacity-50"
+                >
+                  Save as Default Printer
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-3xl border border-dashed border-white/15 bg-black/20 p-6 text-sm leading-6 text-white/55 lg:col-span-2">
+              No devices scanned yet. Click scan from a user gesture, or connect through the Android/local bridge for realtime Classic Bluetooth printer discovery.
+            </div>
+          )}
+        </div>
       </section>
     </main>
   );

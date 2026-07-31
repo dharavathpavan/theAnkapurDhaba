@@ -6,9 +6,11 @@ declare global {
   interface Window {
     AndroidPrinterBridge?: {
       printEscPos?: (payload: BridgePayload) => Promise<BridgeResult> | BridgeResult;
+      scanPrinters?: () => Promise<DetectedPrinterDevice[]> | DetectedPrinterDevice[];
     };
     localPrinterBridge?: {
       printEscPos?: (payload: BridgePayload) => Promise<BridgeResult> | BridgeResult;
+      scanPrinters?: () => Promise<DetectedPrinterDevice[]> | DetectedPrinterDevice[];
     };
   }
 }
@@ -37,6 +39,18 @@ export interface RuntimeSupport {
   directEscPos: boolean;
 }
 
+export interface DetectedPrinterDevice {
+  id: string;
+  name: string;
+  model?: string | null;
+  macAddress?: string | null;
+  connectionType: "web-bluetooth" | "android-bridge" | "local-bridge" | "web-serial" | "bridge";
+  status: "available" | "saved" | "unsupported" | "bridge_required" | string;
+  signalStrength?: number | null;
+  batteryLevel?: number | null;
+  message?: string;
+}
+
 export function getPrinterRuntimeSupport(): RuntimeSupport {
   if (typeof window === "undefined") {
     return {
@@ -60,7 +74,7 @@ export function getPrinterRuntimeSupport(): RuntimeSupport {
     webBluetooth,
     androidBridge,
     localBridge,
-    directEscPos: androidBridge || localBridge || webSerial || webBluetooth,
+    directEscPos: androidBridge || localBridge || webSerial,
   };
 }
 
@@ -71,6 +85,62 @@ export function compatibilityMessage() {
   if (support.webSerial) return "Web Serial is available for compatible USB serial ESC/POS printers.";
   if (support.webBluetooth) return "Web Bluetooth is available, but many 58mm printers use Bluetooth Classic and need a bridge.";
   return "Direct ESC/POS printing is not supported in this browser. Use Android app bridge or local print bridge.";
+}
+
+export async function scanPrinterDevices(): Promise<DetectedPrinterDevice[]> {
+  if (typeof window === "undefined") return [];
+
+  const nativeScanner = window.AndroidPrinterBridge?.scanPrinters || window.localPrinterBridge?.scanPrinters;
+  if (nativeScanner) {
+    const devices = await nativeScanner();
+    return (devices || []).map((device) => ({
+      ...device,
+      id: device.id || device.macAddress || device.name,
+      name: device.name || "Thermal Printer",
+      model: device.model || "EZO 58D",
+      connectionType: device.connectionType || (window.AndroidPrinterBridge ? "android-bridge" : "local-bridge"),
+      status: device.status || "available",
+    }));
+  }
+
+  const bluetooth = navigator.bluetooth as
+    | {
+        requestDevice?: (options: {
+          acceptAllDevices?: boolean;
+          filters?: Array<{ namePrefix?: string; services?: string[] }>;
+          optionalServices?: string[];
+        }) => Promise<{ id: string; name?: string | null }>;
+      }
+    | undefined;
+
+  if (bluetooth?.requestDevice) {
+    const device = await bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: ["battery_service", "device_information"],
+    });
+    return [
+      {
+        id: device.id,
+        name: device.name || "Bluetooth device",
+        model: device.name?.toLowerCase().includes("ezo") ? "EZO 58D" : "Unknown Bluetooth printer",
+        connectionType: "web-bluetooth",
+        status: "bridge_required",
+        message:
+          "Device selected through Web Bluetooth. If this printer uses Bluetooth Classic/SPP, use the Android or local print bridge to print ESC/POS tickets.",
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "bridge-required",
+      name: "EZO 58D",
+      model: "EZO 58D",
+      connectionType: "bridge",
+      status: "bridge_required",
+      message: "This browser cannot scan thermal printers. Open in Chrome/Android or install the local/Android print bridge.",
+    },
+  ];
 }
 
 async function sendBridge(payload: BridgePayload): Promise<BridgeResult> {
