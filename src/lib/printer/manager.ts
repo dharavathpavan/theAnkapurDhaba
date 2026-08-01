@@ -1,16 +1,21 @@
-import type { PrinterRecord, PrinterSettings } from "@/services/api";
-import { buildKotPrint, buildTestPrint, escPosToBase64 } from "./escpos";
-import type { Order } from "@/services/api";
+import type { Order, PrinterRecord, PrinterSettings } from "@/services/api";
+import { buildKotPrint, buildKotPrintHtml, buildTestPrint, buildTestPrintHtml, escPosToBase64, triggerBrowserPrint } from "./escpos";
+import {
+  connectWebBluetoothPrinter,
+  getActiveBluetoothDevice,
+  isWebBluetoothSupported,
+  sendWebBluetoothEscPos,
+} from "./web-bluetooth";
 
 declare global {
   interface Window {
     AndroidPrinterBridge?: {
-      printEscPos?: (payload: BridgePayload) => Promise<BridgeResult> | BridgeResult;
-      scanPrinters?: () => Promise<DetectedPrinterDevice[]> | DetectedPrinterDevice[];
+      printEscPos?: (payload: BridgePayload | string) => Promise<BridgeResult | string> | BridgeResult | string;
+      scanPrinters?: () => Promise<DetectedPrinterDevice[] | string> | DetectedPrinterDevice[] | string;
     };
     localPrinterBridge?: {
-      printEscPos?: (payload: BridgePayload) => Promise<BridgeResult> | BridgeResult;
-      scanPrinters?: () => Promise<DetectedPrinterDevice[]> | DetectedPrinterDevice[];
+      printEscPos?: (payload: BridgePayload | string) => Promise<BridgeResult | string> | BridgeResult | string;
+      scanPrinters?: () => Promise<DetectedPrinterDevice[] | string> | DetectedPrinterDevice[] | string;
     };
   }
 }
@@ -64,9 +69,10 @@ export function getPrinterRuntimeSupport(): RuntimeSupport {
   }
 
   const webSerial = "serial" in navigator;
-  const webBluetooth = "bluetooth" in navigator;
+  const webBluetooth = isWebBluetoothSupported();
   const androidBridge = Boolean(window.AndroidPrinterBridge?.printEscPos);
   const localBridge = Boolean(window.localPrinterBridge?.printEscPos);
+  const activeBtDevice = Boolean(getActiveBluetoothDevice());
 
   return {
     browserPrint: typeof window.print === "function",
@@ -74,17 +80,18 @@ export function getPrinterRuntimeSupport(): RuntimeSupport {
     webBluetooth,
     androidBridge,
     localBridge,
-    directEscPos: androidBridge || localBridge || webSerial,
+    directEscPos: androidBridge || localBridge || webSerial || activeBtDevice,
   };
 }
 
-export function compatibilityMessage() {
+export function compatibilityMessage(): string {
   const support = getPrinterRuntimeSupport();
-  if (support.androidBridge) return "Android bridge detected. ESC/POS Bluetooth printing can run from the app.";
-  if (support.localBridge) return "Local desktop bridge detected. USB/Bluetooth printing can run from this computer.";
-  if (support.webSerial) return "Web Serial is available for compatible USB serial ESC/POS printers.";
-  if (support.webBluetooth) return "Web Bluetooth is available, but many 58mm printers use Bluetooth Classic and need a bridge.";
-  return "Direct ESC/POS printing is not supported in this browser. Use Android app bridge or local print bridge.";
+  if (support.androidBridge) return "Android native bridge detected. Direct Bluetooth ESC/POS printing ready.";
+  if (support.localBridge) return "Local desktop bridge detected. USB/Bluetooth printing ready.";
+  if (getActiveBluetoothDevice()) return `Web Bluetooth printer connected (${getActiveBluetoothDevice()?.name}).`;
+  if (support.webBluetooth) return "Web Bluetooth available. You can pair BLE thermal printers directly in browser.";
+  if (support.webSerial) return "Web Serial available for USB thermal printers.";
+  return "Standard browser print available (will trigger system print dialog for installed printers).";
 }
 
 export async function scanPrinterDevices(): Promise<DetectedPrinterDevice[]> {
@@ -92,70 +99,107 @@ export async function scanPrinterDevices(): Promise<DetectedPrinterDevice[]> {
 
   const nativeScanner = window.AndroidPrinterBridge?.scanPrinters || window.localPrinterBridge?.scanPrinters;
   if (nativeScanner) {
-    const devices = await nativeScanner();
-    return (devices || []).map((device) => ({
-      ...device,
-      id: device.id || device.macAddress || device.name,
-      name: device.name || "Thermal Printer",
-      model: device.model || "EZO 58D",
-      connectionType: device.connectionType || (window.AndroidPrinterBridge ? "android-bridge" : "local-bridge"),
-      status: device.status || "available",
-    }));
+    try {
+      const raw = await nativeScanner();
+      const devices: DetectedPrinterDevice[] = typeof raw === "string" ? JSON.parse(raw) : raw;
+      return (devices || []).map((device) => ({
+        ...device,
+        id: device.id || device.macAddress || device.name,
+        name: device.name || "Thermal Printer",
+        model: device.model || "EZO 58D",
+        connectionType: device.connectionType || (window.AndroidPrinterBridge ? "android-bridge" : "local-bridge"),
+        status: device.status || "available",
+      }));
+    } catch (err) {
+      console.warn("[PrinterScan] Native scanner parse error:", err);
+    }
   }
 
-  const bluetooth = navigator.bluetooth as
-    | {
-        requestDevice?: (options: {
-          acceptAllDevices?: boolean;
-          filters?: Array<{ namePrefix?: string; services?: string[] }>;
-          optionalServices?: string[];
-        }) => Promise<{ id: string; name?: string | null }>;
+  if (isWebBluetoothSupported()) {
+    try {
+      const connected = await connectWebBluetoothPrinter();
+      return [
+        {
+          id: connected.id,
+          name: connected.name,
+          model: "Web Bluetooth Printer",
+          connectionType: "web-bluetooth",
+          status: "available",
+          message: "Connected via Web Bluetooth GATT. Ready to print ESC/POS.",
+        },
+      ];
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("cancelled")) {
+        throw err;
       }
-    | undefined;
-
-  if (bluetooth?.requestDevice) {
-    const device = await bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: ["battery_service", "device_information"],
-    });
-    return [
-      {
-        id: device.id,
-        name: device.name || "Bluetooth device",
-        model: device.name?.toLowerCase().includes("ezo") ? "EZO 58D" : "Unknown Bluetooth printer",
-        connectionType: "web-bluetooth",
-        status: "bridge_required",
-        message:
-          "Device selected through Web Bluetooth. If this printer uses Bluetooth Classic/SPP, use the Android or local print bridge to print ESC/POS tickets.",
-      },
-    ];
+    }
   }
 
   return [
     {
-      id: "bridge-required",
-      name: "EZO 58D",
-      model: "EZO 58D",
+      id: "browser-print-fallback",
+      name: "System / Thermal Printer (Browser Print)",
+      model: "Standard Thermal / POS Printer",
       connectionType: "bridge",
-      status: "bridge_required",
-      message: "This browser cannot scan thermal printers. Open in Chrome/Android or install the local/Android print bridge.",
+      status: "available",
+      message: "Direct print via System Print dialog is ready.",
     },
   ];
 }
 
 async function sendBridge(payload: BridgePayload): Promise<BridgeResult> {
+  // 1. Try Native Android / Desktop Bridge first
   const bridge = window.AndroidPrinterBridge?.printEscPos || window.localPrinterBridge?.printEscPos;
-  if (!bridge) return { jobId: payload.jobId, status: "failed", message: "Printer bridge is not available." };
-  try {
-    const result = await bridge(payload);
-    return result || { jobId: payload.jobId, status: "success", printedAt: new Date().toISOString() };
-  } catch (error) {
-    return {
-      jobId: payload.jobId,
-      status: "failed",
-      message: error instanceof Error ? error.message : "Bridge print failed.",
-    };
+  if (bridge) {
+    try {
+      const payloadArg = window.AndroidPrinterBridge ? JSON.stringify(payload) : payload;
+      const rawResult = await bridge(payloadArg as unknown as BridgePayload);
+      const result: BridgeResult = typeof rawResult === "string" ? JSON.parse(rawResult) : rawResult;
+      return result || { jobId: payload.jobId, status: "success", printedAt: new Date().toISOString() };
+    } catch (error) {
+      return {
+        jobId: payload.jobId,
+        status: "failed",
+        message: error instanceof Error ? error.message : "Native bridge print failed.",
+      };
+    }
   }
+
+  // 2. Try Active Web Bluetooth Connection
+  if (getActiveBluetoothDevice()) {
+    try {
+      const rawData = base64ToUint8Array(payload.payloadBase64);
+      await sendWebBluetoothEscPos(rawData, payload.copies);
+      return {
+        jobId: payload.jobId,
+        status: "success",
+        printedAt: new Date().toISOString(),
+        message: "Printed via Web Bluetooth",
+      };
+    } catch (error) {
+      return {
+        jobId: payload.jobId,
+        status: "failed",
+        message: error instanceof Error ? error.message : "Web Bluetooth print failed",
+      };
+    }
+  }
+
+  return {
+    jobId: payload.jobId,
+    status: "failed",
+    message: "NO_BRIDGE",
+  };
+}
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
 }
 
 export async function printTestJob(
@@ -163,13 +207,31 @@ export async function printTestJob(
   settings: PrinterSettings,
 ): Promise<BridgeResult> {
   const payloadBase64 = escPosToBase64(buildTestPrint(settings));
-  return sendBridge({
+  const bridgeResult = await sendBridge({
     jobId: crypto.randomUUID(),
     printerId: printer?.id,
     paperSize: settings.paperSize,
     copies: settings.copies,
     payloadBase64,
   });
+
+  if (bridgeResult.status === "success") {
+    return bridgeResult;
+  }
+
+  // Fallback to Browser Print if no native bridge/Web Bluetooth was available or bridge failed
+  const html = buildTestPrintHtml(settings);
+  const printed = await triggerBrowserPrint(html);
+  if (printed) {
+    return {
+      jobId: bridgeResult.jobId,
+      status: "success",
+      message: "Test print launched via system print dialog",
+      printedAt: new Date().toISOString(),
+    };
+  }
+
+  return bridgeResult;
 }
 
 export async function printKotJob(
@@ -179,11 +241,29 @@ export async function printKotJob(
   mode: "kot" | "kitchen-copy" = "kot",
 ): Promise<BridgeResult> {
   const payloadBase64 = escPosToBase64(buildKotPrint(order, settings, mode));
-  return sendBridge({
+  const bridgeResult = await sendBridge({
     jobId: crypto.randomUUID(),
     printerId: printer?.id,
     paperSize: settings.paperSize,
     copies: settings.copies,
     payloadBase64,
   });
+
+  if (bridgeResult.status === "success") {
+    return bridgeResult;
+  }
+
+  // Fallback to Browser Print if no native bridge/Web Bluetooth was available or bridge failed
+  const html = buildKotPrintHtml(order, settings, mode);
+  const printed = await triggerBrowserPrint(html);
+  if (printed) {
+    return {
+      jobId: bridgeResult.jobId,
+      status: "success",
+      message: "KOT printed via system print dialog",
+      printedAt: new Date().toISOString(),
+    };
+  }
+
+  return bridgeResult;
 }
