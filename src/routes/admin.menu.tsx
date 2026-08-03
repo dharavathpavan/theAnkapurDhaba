@@ -325,7 +325,7 @@ function AdminMenu() {
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
             <button
-              onClick={() => navigate({ to: "/admin/menu/item" })}
+              onClick={() => navigate({ to: "/admin/menu/item", search: {} })}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-display text-xs tracking-widest text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary-glow"
             >
               <Plus className="h-4 w-4" /> QUICK ADD
@@ -416,7 +416,7 @@ function AdminMenu() {
               <QuickAction
                 icon={Plus}
                 label="Add Item"
-                onClick={() => navigate({ to: "/admin/menu/item" })}
+                onClick={() => navigate({ to: "/admin/menu/item", search: {} })}
               />
               <QuickAction
                 icon={Layers3}
@@ -431,7 +431,7 @@ function AdminMenu() {
               <QuickAction
                 icon={Bot}
                 label="AI Generate Description"
-                onClick={() => navigate({ to: "/admin/menu/item" })}
+                onClick={() => navigate({ to: "/admin/menu/item", search: {} })}
               />
             </div>
           </section>

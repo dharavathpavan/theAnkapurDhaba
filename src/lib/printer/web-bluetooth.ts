@@ -1,3 +1,35 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Web Bluetooth API types (not in standard DOM lib)
+declare global {
+  interface BluetoothDevice extends EventTarget {
+    id: string;
+    name?: string;
+    gatt?: BluetoothRemoteGATTServer;
+    addEventListener(type: "gattserverdisconnected", listener: (event: Event) => void): void;
+  }
+  interface BluetoothRemoteGATTServer {
+    connected: boolean;
+    connect(): Promise<BluetoothRemoteGATTServer>;
+    disconnect(): void;
+    getPrimaryService(service: string): Promise<BluetoothRemoteGATTService>;
+    getPrimaryServices(): Promise<BluetoothRemoteGATTService[]>;
+  }
+  interface BluetoothRemoteGATTService {
+    getCharacteristic(characteristic: string): Promise<BluetoothRemoteGATTCharacteristic>;
+    getCharacteristics(): Promise<BluetoothRemoteGATTCharacteristic[]>;
+  }
+  interface BluetoothRemoteGATTCharacteristic {
+    properties: { write: boolean; writeWithoutResponse: boolean };
+    writeValueWithoutResponse(value: BufferSource): Promise<void>;
+    writeValueWithResponse(value: BufferSource): Promise<void>;
+  }
+  interface Navigator {
+    bluetooth: {
+      requestDevice(options: { acceptAllDevices: boolean; optionalServices?: string[] }): Promise<BluetoothDevice>;
+    };
+  }
+}
+
 export interface BluetoothPrinterDevice {
   device: BluetoothDevice;
   server?: BluetoothRemoteGATTServer;
@@ -63,7 +95,7 @@ export async function connectWebBluetoothPrinter(): Promise<{ name: string; id: 
       if (writeCharacteristic) break;
 
       const characteristics = await service.getCharacteristics();
-      writeCharacteristic = characteristics.find((c) => c.properties.write || c.properties.writeWithoutResponse);
+      writeCharacteristic = characteristics.find((c: BluetoothRemoteGATTCharacteristic) => c.properties.write || c.properties.writeWithoutResponse);
       if (writeCharacteristic) break;
     } catch {
       // Service not offered by this device, try next
@@ -76,7 +108,7 @@ export async function connectWebBluetoothPrinter(): Promise<{ name: string; id: 
       const services = await server.getPrimaryServices();
       for (const service of services) {
         const characteristics = await service.getCharacteristics();
-        writeCharacteristic = characteristics.find((c) => c.properties.write || c.properties.writeWithoutResponse);
+        writeCharacteristic = characteristics.find((c: BluetoothRemoteGATTCharacteristic) => c.properties.write || c.properties.writeWithoutResponse);
         if (writeCharacteristic) break;
       }
     } catch (error) {

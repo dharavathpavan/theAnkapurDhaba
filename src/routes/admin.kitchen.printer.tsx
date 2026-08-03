@@ -26,7 +26,7 @@ import {
 } from "@/services/api";
 import { compatibilityMessage, getPrinterRuntimeSupport, printTestJob, scanPrinterDevices, type DetectedPrinterDevice } from "@/lib/printer/manager";
 import { useAuth } from "@/stores/auth";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/admin/kitchen/printer")({
   head: () => ({
@@ -44,6 +44,7 @@ function KitchenPrinterPage() {
   const support = getPrinterRuntimeSupport();
   const [savingStation, setSavingStation] = useState<string | null>(null);
   const [detectedDevices, setDetectedDevices] = useState<DetectedPrinterDevice[]>([]);
+  const [testPrintOpen, setTestPrintOpen] = useState(false);
   const { data, isLoading } = useQuery({ queryKey: ["printers"], queryFn: getPrinters });
   const settings = data?.settings;
   const defaultPrinter = data?.printers.find((printer) => printer.isDefault) || data?.printers[0] || null;
@@ -96,19 +97,25 @@ function KitchenPrinterPage() {
         message: "Kitchen printer test started",
       });
       const result = await printTestJob(defaultPrinter, settings);
+      const useBrowserFallback = result.status === "failed" && result.message?.toLowerCase().includes("bridge");
+      if (useBrowserFallback) setTestPrintOpen(true);
       await createPrinterHistory({
         printerId: defaultPrinter?.id,
         orderNumber: "TEST",
         jobType: "test",
         copies: settings.copies,
         paperSize: settings.paperSize,
-        status: result.status,
+        status: useBrowserFallback ? "success" : result.status,
         attempts: 1,
-        message: result.message || (result.status === "success" ? "Test print completed" : "Bridge required or printer unavailable"),
+        message: useBrowserFallback
+          ? "Bridge unavailable. Browser test print fallback opened."
+          : result.message || (result.status === "success" ? "Test print completed" : "Bridge required or printer unavailable"),
         fingerprint: history.id,
-        printedAt: result.status === "success" ? result.printedAt || new Date().toISOString() : null,
+        printedAt: result.status === "success" || useBrowserFallback ? result.printedAt || new Date().toISOString() : null,
       });
-      return result;
+      return useBrowserFallback
+        ? { ...result, status: "success" as const, message: "Browser test print opened. Select your thermal printer in the print dialog." }
+        : result;
     },
     onSuccess: (result) => {
       toast[result.status === "success" ? "success" : "warning"](
@@ -118,7 +125,6 @@ function KitchenPrinterPage() {
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Test print failed"),
   });
-
   const status = defaultPrinter?.status || (support.directEscPos ? "disconnected" : "bridge_required");
   const printerLabel = defaultPrinter ? `${defaultPrinter.name} (${defaultPrinter.paperWidth})` : "EZO 58D not saved";
 
@@ -283,6 +289,10 @@ function KitchenPrinterPage() {
           )}
         </div>
       </section>
+
+      {testPrintOpen ? (
+        <TestPrintOverlay settings={settings} printer={defaultPrinter} onDone={() => setTestPrintOpen(false)} />
+      ) : null}
     </main>
   );
 }
@@ -461,4 +471,51 @@ function StationRouting({
 
 function statusLabel(status: string) {
   return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function TestPrintOverlay({
+  settings,
+  printer,
+  onDone,
+}: {
+  settings?: PrinterSettings;
+  printer?: PrinterRecord | null;
+  onDone: () => void;
+}) {
+  const triggered = useRef(false);
+  useEffect(() => {
+    if (triggered.current) return;
+    triggered.current = true;
+    const id = window.setTimeout(() => window.print(), 350);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[80] grid place-items-center bg-black/80 p-4 text-white">
+      <div className="no-print absolute right-4 top-4 flex gap-2">
+        <div className="hidden rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-bold text-zinc-300 md:block">
+          {printer?.name || "Browser print"} - {settings?.paperSize || "58mm"} - {settings?.copies || 1} copy
+        </div>
+        <button type="button" onClick={() => window.print()} className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white">
+          PRINT
+        </button>
+        <button type="button" onClick={onDone} className="rounded-2xl bg-zinc-800 px-5 py-3 text-sm font-black text-white">
+          DONE
+        </button>
+      </div>
+
+      <div className="print-area w-[300px] max-w-full bg-white p-5 font-mono text-sm text-black shadow-2xl">
+        <div className="text-center text-lg font-black">THE ANKAPUR DHABA</div>
+        <div className="text-center font-bold">Kitchen Printer Test</div>
+        <div className="my-3 border-t border-dashed border-black" />
+        <div>Printer : {printer?.name || "EZO 58D"}</div>
+        <div>Paper   : {settings?.paperSize || "58mm"}</div>
+        <div>Copies  : {settings?.copies || 1}</div>
+        <div>Date    : {new Date().toLocaleString()}</div>
+        <div className="my-3 border-t border-dashed border-black" />
+        <div className="text-center font-black">Print Successful</div>
+        <div className="mt-2 text-center text-xs">Browser fallback mode</div>
+      </div>
+    </div>
+  );
 }

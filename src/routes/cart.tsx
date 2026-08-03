@@ -57,6 +57,7 @@ function CartPage() {
         </p>
         <Link
           to="/menu"
+          search={{}}
           className="mt-8 inline-flex min-h-14 items-center rounded-3xl bg-red-600 px-6 font-black text-white"
         >
           Browse menu
@@ -190,7 +191,7 @@ function CartPage() {
               Checkout unavailable
             </button>
           )}
-          <Link to="/menu" className="mt-3 block text-center text-sm font-bold text-zinc-500">
+          <Link to="/menu" search={{}} className="mt-3 block text-center text-sm font-bold text-zinc-500">
             Add more items
           </Link>
         </aside>

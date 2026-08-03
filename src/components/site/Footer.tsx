@@ -29,7 +29,7 @@ export function Footer() {
           <h4 className="font-display text-sm tracking-[0.3em] text-accent">Explore</h4>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
-              <Link to="/menu" className="hover:text-primary">
+              <Link to="/menu" search={{}} className="hover:text-primary">
                 Full menu
               </Link>
             </li>

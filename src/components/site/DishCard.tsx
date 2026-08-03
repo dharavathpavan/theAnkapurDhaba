@@ -50,7 +50,7 @@ export function DishCard({ item, size = "md" }: Props) {
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-display text-xl leading-tight tracking-wide">{item.name}</h3>
-          <SpiceLevel level={item.spiceLevel} />
+          <SpiceLevel level={(item.spiceLevel as 1 | 2 | 3) || 1} />
         </div>
         <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
         <div className="mt-auto flex items-center justify-between pt-3">

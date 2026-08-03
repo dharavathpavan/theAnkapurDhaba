@@ -32,6 +32,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as Admin1IndexRouteImport } from './routes/admin (1).index'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 import { Route as TTableIdRouteImport } from './routes/t.$tableId'
 import { Route as SupportTicketIdRouteImport } from './routes/support.$ticketId'
@@ -174,6 +175,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const Admin1IndexRoute = Admin1IndexRouteImport.update({
+  id: '/admin (1)/',
+  path: '/admin ',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const TrackOrderIdRoute = TrackOrderIdRouteImport.update({
   id: '/$orderId',
@@ -352,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
+  '/admin ': typeof Admin1IndexRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
@@ -402,6 +409,7 @@ export interface FileRoutesByTo {
   '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
+  '/admin ': typeof Admin1IndexRoute
   '/admin': typeof AdminIndexRoute
   '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
@@ -454,6 +462,7 @@ export interface FileRoutesById {
   '/support/$ticketId': typeof SupportTicketIdRoute
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
+  '/admin (1)/': typeof Admin1IndexRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
@@ -507,6 +516,7 @@ export interface FileRouteTypes {
     | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
+    | '/admin '
     | '/admin/'
     | '/admin/kitchen/print-history'
     | '/admin/kitchen/printer'
@@ -557,6 +567,7 @@ export interface FileRouteTypes {
     | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
+    | '/admin '
     | '/admin'
     | '/admin/kitchen/print-history'
     | '/admin/kitchen/printer'
@@ -608,6 +619,7 @@ export interface FileRouteTypes {
     | '/support/$ticketId'
     | '/t/$tableId'
     | '/track/$orderId'
+    | '/admin (1)/'
     | '/admin/'
     | '/admin/kitchen/print-history'
     | '/admin/kitchen/printer'
@@ -642,6 +654,7 @@ export interface RootRouteChildren {
   RestaurantWaiterRoute: typeof RestaurantWaiterRoute
   ReviewOrderIdRoute: typeof ReviewOrderIdRoute
   TTableIdRoute: typeof TTableIdRoute
+  Admin1IndexRoute: typeof Admin1IndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -806,6 +819,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/admin (1)/': {
+      id: '/admin (1)/'
+      path: '/admin '
+      fullPath: '/admin '
+      preLoaderRoute: typeof Admin1IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/track/$orderId': {
       id: '/track/$orderId'
@@ -1109,6 +1129,7 @@ const rootRouteChildren: RootRouteChildren = {
   RestaurantWaiterRoute: RestaurantWaiterRoute,
   ReviewOrderIdRoute: ReviewOrderIdRoute,
   TTableIdRoute: TTableIdRoute,
+  Admin1IndexRoute: Admin1IndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

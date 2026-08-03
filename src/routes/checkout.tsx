@@ -251,7 +251,7 @@ function CheckoutPage() {
           notes: String(fd.get("notes") || ""),
         },
         type,
-        tableNumber: tableNumber ?? undefined,
+        tableNumber: tableNumber || undefined,
         paymentMethod,
       };
       let order;

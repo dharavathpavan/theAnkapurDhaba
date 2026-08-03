@@ -281,7 +281,7 @@ export function DeliveryMap({
           )}
           <span className="min-w-0 break-words md:text-right">
             {location
-              ? `Updated ${new Date(order.delivery?.lastLocationAt || location.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              ? `Updated ${new Date((order.delivery?.lastLocationAt ?? location.updatedAt) as string).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
               : `Destination: ${destination}`}
           </span>
         </div>
