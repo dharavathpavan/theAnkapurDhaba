@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Minus, Plus, ShoppingBag, Tag, Trash2, Truck } from "lucide-react";
-import { getCustomerHome, getCustomerMenu } from "@/services/api";
+import { getCustomerHome, getCustomerMenu, itemTaxRate } from "@/services/api";
 import { useCart, selectCartSubtotal } from "@/stores/cart";
 import { imageFallback, resolveMediaUrl } from "@/lib/media";
 import { isMenuItemAvailableNow } from "@/lib/menu-availability";
@@ -41,7 +41,12 @@ function CartPage() {
   const deliveryFee =
     subtotal >= (store?.freeDeliveryAbove ?? 499) ? 0 : (store?.deliveryCharge ?? 40);
   const packing = lines.length ? (store?.packingCharge ?? 10) : 0;
-  const tax = Math.round(subtotal * 0.05);
+  const tax = Math.round(
+    lines.reduce(
+      (sum, line) => sum + (line.price * line.qty * itemTaxRate(menuById.get(line.id))) / 100,
+      0,
+    ),
+  );
   const total = subtotal + tax + deliveryFee + packing;
   const freeGap = Math.max(0, (store?.freeDeliveryAbove ?? 499) - subtotal);
 

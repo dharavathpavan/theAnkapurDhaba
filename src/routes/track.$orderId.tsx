@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Bike,
@@ -23,6 +23,7 @@ import {
 import {
   getCustomerHome,
   getOrder,
+  verifyCashfreePayment,
   type CustomerBanner,
   type Order,
   type OrderStatus,
@@ -78,6 +79,8 @@ function TrackRedirect() {
 
 export function OrderTrackingView({ orderId }: { orderId: string }) {
   const [mounted, setMounted] = useState(false);
+  const queryClient = useQueryClient();
+  const cashfreeVerifiedRef = useRef<string | null>(null);
   useOrderRealtime(orderId);
   const { data: order, isLoading } = useQuery({
     queryKey: ["order", orderId],
@@ -93,6 +96,26 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted || !order) return;
+    if (order.paymentMethod !== "cashfree" || order.paymentStatus !== "pending") return;
+    if (cashfreeVerifiedRef.current === order.id) return;
+    cashfreeVerifiedRef.current = order.id;
+    let cancelled = false;
+    verifyCashfreePayment(order.id)
+      .then(() => {
+        if (cancelled) return;
+        queryClient.invalidateQueries({ queryKey: ["order", order.id] });
+        queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      })
+      .catch(() => {
+        // Payment still pending — the Cashfree webhook will confirm it.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, order?.id, order?.paymentMethod, order?.paymentStatus, queryClient]);
 
   useEffect(() => {
     if (!order) return;

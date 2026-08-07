@@ -4,8 +4,7 @@ import { toast } from "sonner";
 import { UserPlus, UtensilsCrossed, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/stores/auth";
 import type { AuthUser } from "@/stores/auth";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+import { API_BASE } from "@/services/api";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Sign Up · Ankapur Dhaba" }] }),

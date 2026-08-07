@@ -5,8 +5,8 @@ import { Eye, EyeOff, KeyRound, LogIn, MessageSquareText, UtensilsCrossed } from
 import { resetFirebaseOtp, sendFirebasePhoneOtp, verifyFirebasePhoneOtp } from "@/lib/firebase";
 import { useAuth } from "@/stores/auth";
 import type { UserRole, AuthUser } from "@/stores/auth";
+import { API_BASE } from "@/services/api";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 
 type LoginMode = "otp" | "password";

@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import { useAuth } from "@/stores/auth";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
 const RAW_SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "";
 const SOCKET_URL = isValidSocketIoUrl(RAW_SOCKET_URL) ? RAW_SOCKET_URL : "";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
@@ -2119,10 +2119,37 @@ export async function deleteStaff(id: string): Promise<void> {
 }
 
 /* ---------------- Pricing ---------------- */
-export function computeTotals(items: OrderItem[], type: OrderType) {
+export function itemTaxRate(
+  item: { taxRate?: number | null; gstRate?: number | null } | null | undefined,
+  fallback = 5,
+) {
+  const rate = Number(item?.taxRate ?? item?.gstRate ?? fallback);
+  return Number.isFinite(rate) ? rate : fallback;
+}
+
+export interface PricedCartItem {
+  price: number;
+  qty: number;
+  taxRate?: number | null;
+  gstRate?: number | null;
+}
+
+export function computeTotals(
+  items: PricedCartItem[],
+  type: OrderType,
+  fallbackTaxRate = 5,
+  delivery?: { charge?: number; freeAbove?: number },
+) {
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-  const tax = Math.round(subtotal * 0.05);
-  const deliveryFee = type === "delivery" && subtotal > 0 ? (subtotal >= 500 ? 0 : 40) : 0;
+  const tax = Math.round(
+    items.reduce((s, i) => s + (i.price * i.qty * itemTaxRate(i, fallbackTaxRate)) / 100, 0),
+  );
+  const deliveryFee =
+    type === "delivery" && subtotal > 0
+      ? subtotal >= (delivery?.freeAbove ?? 500)
+        ? 0
+        : (delivery?.charge ?? 40)
+      : 0;
   const total = subtotal + tax + deliveryFee;
   return { subtotal, tax, deliveryFee, total };
 }

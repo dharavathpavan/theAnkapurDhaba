@@ -68,6 +68,8 @@ export interface MenuItem {
   pinned?: boolean;
   recentlyAdded?: boolean;
   kitchenStation?: string;
+  taxRate?: number;
+  gstRate?: number;
   visibility?: Record<string, boolean>;
   availabilityRules?: Record<string, unknown>;
 }

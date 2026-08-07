@@ -16,7 +16,7 @@ import { TimeScheduleEditor } from "@/components/admin/TimeScheduleEditor";
 import { isRuleAvailableNow } from "@/lib/menu-availability";
 
 export const Route = createFileRoute("/admin/menu/item")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { itemId?: string } => ({
     itemId: typeof search.itemId === "string" ? search.itemId : undefined,
   }),
   component: MenuItemBuilderPage,

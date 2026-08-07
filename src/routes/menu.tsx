@@ -20,7 +20,7 @@ import { FavoriteButton } from "@/components/site/FavoriteButton";
 import { isCategoryAvailableNow, isMenuItemAvailableNow } from "@/lib/menu-availability";
 
 export const Route = createFileRoute("/menu")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { category?: string } => ({
     category: typeof search.category === "string" ? search.category : undefined,
   }),
   head: () => ({

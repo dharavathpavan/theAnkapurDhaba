@@ -10,6 +10,7 @@ import {
   getCustomerLoyalty,
   getCustomerMenu,
   getCustomerWallet,
+  itemTaxRate,
   listCustomerAddresses,
   listCustomerCoupons,
   validateCustomerCoupon,
@@ -87,13 +88,20 @@ function CheckoutPage() {
     enabled: isAuthenticated(),
   });
 
+  const menuById = useMemo(() => new Map(menuItems.map((item) => [item.id, item])), [menuItems]);
+
   const subtotal = lines.reduce((sum, line) => sum + line.price * line.qty, 0);
   const deliveryFee =
     type === "delivery" && subtotal < (home?.store.freeDeliveryAbove ?? 499)
       ? (home?.store.deliveryCharge ?? 40)
       : 0;
-  const packing = lines.length ? (home?.store.packingCharge ?? 10) : 0;
-  const tax = Math.round(subtotal * 0.05);
+  const packing = type === "delivery" && lines.length ? (home?.store.packingCharge ?? 10) : 0;
+  const tax = Math.round(
+    lines.reduce(
+      (sum, line) => sum + (line.price * line.qty * itemTaxRate(menuById.get(line.id))) / 100,
+      0,
+    ),
+  );
   const total = Math.max(0, subtotal + tax + deliveryFee + packing - discount);
   const address =
     addresses.find((a) => a.id === selectedAddress) ||
@@ -105,7 +113,6 @@ function CheckoutPage() {
   const deliveryCodDisabled = type === "delivery" && home?.store.allowDeliveryCod !== true;
   const deliveryAddressReady = type !== "delivery" || Boolean(address);
   const deliveryOutOfZone = type === "delivery" && deliveryEta?.inZone === false;
-  const menuById = useMemo(() => new Map(menuItems.map((item) => [item.id, item])), [menuItems]);
   const unavailableCartLines = useMemo(
     () =>
       lines
@@ -192,17 +199,37 @@ function CheckoutPage() {
     [lines],
   );
 
+  const subtotalAtApply = useRef<number | null>(null);
+
   async function applyCoupon(code = couponCode) {
     if (!code.trim()) return;
     try {
       const result = await validateCustomerCoupon({ code, subtotal, phone: user?.phone });
       setCouponCode(result.coupon.code);
       setDiscount(result.discount);
+      subtotalAtApply.current = subtotal;
       toast.success(`Coupon applied: -₹${result.discount}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Invalid coupon");
     }
   }
+
+  useEffect(() => {
+    if (!couponCode || subtotalAtApply.current === null) return;
+    if (Math.abs(subtotalAtApply.current - subtotal) < 1) return;
+    const timer = setTimeout(async () => {
+      try {
+        const result = await validateCustomerCoupon({ code: couponCode, subtotal, phone: user?.phone });
+        subtotalAtApply.current = subtotal;
+        setDiscount(result.discount);
+      } catch {
+        subtotalAtApply.current = null;
+        setCouponCode("");
+        setDiscount(0);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [subtotal, couponCode, user?.phone]);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -247,7 +274,7 @@ function CheckoutPage() {
           address: type === "delivery" ? address?.address : undefined,
           lat: type === "delivery" ? address?.lat : undefined,
           lng: type === "delivery" ? address?.lng : undefined,
-          landmark: type === "delivery" ? address?.landmark : undefined,
+          landmark: type === "delivery" ? address?.landmark ?? undefined : undefined,
           notes: String(fd.get("notes") || ""),
         },
         type,
@@ -261,11 +288,22 @@ function CheckoutPage() {
           if (!session.paymentSessionId)
             throw new Error("Cashfree payment session was not created");
           const checkoutResult = await openCashfreeCheckout(session.paymentSessionId, session.mode);
-          if (checkoutResult !== "attempted") return;
+          if (checkoutResult.redirect) {
+            clear();
+            saveActiveOrder(session.orderId);
+            setSuccessId(session.orderId);
+            toast.info("Payment is pending. Complete it and confirm your order on the next page.");
+            navigate({ to: "/orders/$orderId", params: { orderId: session.orderId } });
+            return;
+          }
         }
         const verified = await verifyCashfreePayment(session.orderId, orderInput);
         if (String(verified.status).toUpperCase() !== "PAID") {
-          toast.error("Payment is not complete. Order was not placed.");
+          clear();
+          saveActiveOrder(session.orderId);
+          setSuccessId(session.orderId);
+          toast.info("Payment is pending. Confirm your order on the next page.");
+          navigate({ to: "/orders/$orderId", params: { orderId: session.orderId } });
           return;
         }
         if (!verified.order) throw new Error("Payment verified but order was not created");
@@ -497,7 +535,7 @@ function CheckoutPage() {
           <dl className="space-y-2 text-sm">
             <Row label="Subtotal" value={`Rs ${subtotal}`} />
             <Row label="GST" value={`Rs ${tax}`} />
-            <Row label="Packing" value={`Rs ${home?.store.packingCharge ?? 10}`} />
+            {type === "delivery" && <Row label="Packing" value={`Rs ${home?.store.packingCharge ?? 10}`} />}
             <Row label="Delivery" value={deliveryFee ? `Rs ${deliveryFee}` : "FREE"} />
             {discount > 0 && <Row label="Discount" value={`-Rs ${discount}`} />}
           </dl>
@@ -648,9 +686,6 @@ async function openCashfreeCheckout(paymentSessionId: string, mode: "sandbox" | 
   const cashfree = window.Cashfree?.({ mode });
   if (!cashfree) throw new Error("Cashfree checkout is unavailable");
   const result = await cashfree.checkout({ paymentSessionId, redirectTarget: "_modal" });
-  if (result.error) throw new Error("Payment was not completed. No order was placed.");
-  if (result.redirect)
-    throw new Error("Payment was redirected. Complete payment and return to confirm your order.");
-  if (!result.paymentDetails) throw new Error("Payment was not completed. No order was placed.");
-  return "attempted" as const;
+  if (result.error) throw new Error("Payment was not completed");
+  return result;
 }
