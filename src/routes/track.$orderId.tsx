@@ -32,6 +32,7 @@ import { useOrderRealtime } from "@/hooks/use-order-realtime";
 import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
 import { DeliveryMap } from "@/components/site/DeliveryMap";
 import { clearActiveOrder, saveActiveOrder } from "@/stores/active-order";
+import { useCart } from "@/stores/cart";
 
 export const Route = createFileRoute("/track/$orderId")({
   head: ({ params }) => ({ meta: [{ title: `Order ${params.orderId} - Ankapur Dhaba` }] }),
@@ -79,8 +80,11 @@ function TrackRedirect() {
 
 export function OrderTrackingView({ orderId }: { orderId: string }) {
   const [mounted, setMounted] = useState(false);
+  const [awaitingPayment, setAwaitingPayment] = useState(false);
   const queryClient = useQueryClient();
   const cashfreeVerifiedRef = useRef<string | null>(null);
+  const clearedCartRef = useRef<string | null>(null);
+  const clearCart = useCart((s) => s.clear);
   useOrderRealtime(orderId);
   const { data: order, isLoading } = useQuery({
     queryKey: ["order", orderId],
@@ -96,6 +100,42 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted || order) return;
+    if (cashfreeVerifiedRef.current === orderId) return;
+    cashfreeVerifiedRef.current = orderId;
+    let cancelled = false;
+    verifyCashfreePayment(orderId)
+      .then((verified) => {
+        if (cancelled) return;
+        if (verified.order) {
+          setAwaitingPayment(false);
+          queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+          queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+        } else {
+          setAwaitingPayment(true);
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        const message = String(error instanceof Error ? error.message : error);
+        setAwaitingPayment(!/expired|not found|does not exist/i.test(message));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, order, orderId, queryClient]);
+
+  useEffect(() => {
+    if (!order) return;
+    if (order.paymentMethod === "cashfree" && order.paymentStatus === "paid") {
+      if (clearedCartRef.current !== order.id) {
+        clearedCartRef.current = order.id;
+        clearCart();
+      }
+    }
+  }, [order, clearCart]);
 
   useEffect(() => {
     if (!mounted || !order) return;
@@ -124,7 +164,7 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
   }, [order]);
 
   if (!mounted || isLoading) return <TrackingSkeleton />;
-  if (!order) return <NotFound orderId={orderId} />;
+  if (!order) return awaitingPayment ? <ConfirmingPayment orderId={orderId} /> : <NotFound orderId={orderId} />;
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f5f3f3] text-[#1b1c1c]">
@@ -511,6 +551,25 @@ function NotFound({ orderId }: { orderId: string }) {
         className="mt-6 inline-flex rounded-3xl bg-red-600 px-6 py-4 font-black text-white"
       >
         View orders
+      </Link>
+    </div>
+  );
+}
+
+function ConfirmingPayment({ orderId }: { orderId: string }) {
+  return (
+    <div className="mx-auto max-w-md px-4 py-24 text-center">
+      <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-red-200 border-t-red-600" />
+      <h1 className="mt-6 text-2xl font-black text-zinc-900">Confirming your payment</h1>
+      <p className="mt-2 text-zinc-500">
+        Your order will be placed as soon as the payment for {orderId} is confirmed. This page
+        refreshes automatically.
+      </p>
+      <Link
+        to="/menu"
+        className="mt-8 inline-flex rounded-3xl bg-red-600 px-6 py-3.5 font-black text-white"
+      >
+        Continue shopping
       </Link>
     </div>
   );
