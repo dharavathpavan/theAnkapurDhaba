@@ -49,6 +49,19 @@ async function apiFetch(url: string, init?: ApiFetchInit): Promise<Response> {
   return res;
 }
 
+// Extract the server's real error message (e.g. `{ error: "..." }`) from a failed response.
+async function serverError(res: Response, fallback: string): Promise<Error> {
+  try {
+    const data = (await res.json()) as { error?: unknown; message?: unknown };
+    const detail =
+      typeof data?.error === "string" ? data.error : typeof data?.message === "string" ? data.message : "";
+    if (detail.trim()) return new Error(detail.trim());
+  } catch {
+    // body was not JSON
+  }
+  return new Error(`${fallback} (${res.status})`);
+}
+
 export type OrderStatus =
   "received" | "accepted" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "cancelled";
 
@@ -1599,7 +1612,7 @@ export async function createCatalogCategory(
     method: "POST",
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw new Error("Failed to create category");
+  if (!res.ok) throw await serverError(res, "Failed to create category");
   return res.json();
 }
 
@@ -1611,13 +1624,13 @@ export async function updateCatalogCategory(
     method: "PATCH",
     body: JSON.stringify(patch),
   });
-  if (!res.ok) throw new Error("Failed to update category");
+  if (!res.ok) throw await serverError(res, "Failed to update category");
   return res.json();
 }
 
 export async function deleteCatalogCategory(id: string): Promise<void> {
   const res = await apiFetch(`${API_BASE}/catalog/categories/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete category");
+  if (!res.ok) throw await serverError(res, "Failed to delete category");
 }
 
 export async function listCatalogItems(
@@ -1639,7 +1652,7 @@ export async function createCatalogItem(
     method: "POST",
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw new Error("Failed to create item");
+  if (!res.ok) throw await serverError(res, "Failed to create item");
   return res.json();
 }
 
@@ -1651,18 +1664,18 @@ export async function updateCatalogItem(
     method: "PATCH",
     body: JSON.stringify(patch),
   });
-  if (!res.ok) throw new Error("Failed to update item");
+  if (!res.ok) throw await serverError(res, "Failed to update item");
   return res.json();
 }
 
 export async function deleteCatalogItem(id: string): Promise<void> {
   const res = await apiFetch(`${API_BASE}/catalog/items/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete item");
+  if (!res.ok) throw await serverError(res, "Failed to delete item");
 }
 
 export async function duplicateCatalogItem(id: string): Promise<CatalogItem> {
   const res = await apiFetch(`${API_BASE}/catalog/items/${id}/duplicate`, { method: "POST" });
-  if (!res.ok) throw new Error("Failed to duplicate item");
+  if (!res.ok) throw await serverError(res, "Failed to duplicate item");
   return res.json();
 }
 

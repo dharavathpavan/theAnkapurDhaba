@@ -201,7 +201,7 @@ function AdminMenu() {
       setEditingItem(null);
       await refreshCatalog();
     } catch (error) {
-      toast.error("Could not save item");
+      toast.error(error instanceof Error ? error.message : "Could not save item");
     }
   }
 
