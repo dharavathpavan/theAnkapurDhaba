@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ImagePlus, Save, Sparkles, Star, UploadCloud } from "lucide-react";
+import { ArrowLeft, ChevronDown, ImagePlus, Save, Star, UploadCloud } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -58,15 +58,17 @@ const NEW_ITEM: Partial<CatalogItem> = {
   availabilityRules: {},
 };
 
+const KITCHEN_STATIONS = ["Main Course", "Biryani", "Tandoor", "Starter", "Dessert", "Juice", "Tea"];
+
 function MenuItemBuilderPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { itemId } = Route.useSearch();
   const isEdit = Boolean(itemId);
   const [item, setItem] = useState<Partial<CatalogItem>>(NEW_ITEM);
-  const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const categoriesQuery = useQuery({
     queryKey: ["catalog-categories"],
@@ -89,15 +91,19 @@ function MenuItemBuilderPage() {
     if (sourceItem) setItem({ ...NEW_ITEM, ...sourceItem });
   }, [sourceItem]);
 
+  function update(patch: Partial<CatalogItem>) {
+    setItem((current) => ({ ...current, ...patch }));
+  }
+
   async function saveItem() {
     if (!item.name?.trim()) {
       toast.error("Enter item name");
-      setStep(0);
+      document.getElementById("item-name")?.focus();
       return;
     }
     if (!Number(item.basePrice || item.price || 0)) {
       toast.error("Enter item price");
-      setStep(1);
+      document.getElementById("item-price")?.focus();
       return;
     }
     setSaving(true);
@@ -120,7 +126,7 @@ function MenuItemBuilderPage() {
     setUploading(true);
     try {
       const result = await uploadCatalogFile(file);
-      setItem((current) => ({ ...current, image: result.url, thumbnail: result.url }));
+      update({ image: result.url, thumbnail: result.url });
       toast.success("Image uploaded");
     } catch {
       toast.error("Image upload failed");
@@ -132,219 +138,258 @@ function MenuItemBuilderPage() {
   const categories = categoriesQuery.data || [];
   const currentPrice = Number(item.offerPrice || item.basePrice || item.price || 0);
   const schedulePreview = isRuleAvailableNow(item.availabilityRules);
-  const steps = ["Details", "Price", "Display"];
 
   return (
     <div className="min-h-screen bg-background px-3 py-4 text-foreground md:px-6">
       <header className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
-        <button
-          onClick={() => navigate({ to: "/admin/menu" })}
-          className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-black"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to menu
-        </button>
-        <div className="text-right">
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-primary">
-            The Ankapure Dhaba
-          </p>
-          <h1 className="text-2xl font-black md:text-4xl">{isEdit ? "Edit Item" : "Create Item"}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => navigate({ to: "/admin/menu" })}
+            className="inline-flex items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-black"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to menu
+          </button>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-primary">
+              The Ankapure Dhaba
+            </p>
+            <h1 className="text-2xl font-black md:text-4xl">{isEdit ? "Edit Item" : "Create Item"}</h1>
+          </div>
         </div>
+        <button
+          onClick={saveItem}
+          disabled={saving || uploading}
+          className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-primary-foreground disabled:opacity-60"
+        >
+          <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Item"}
+        </button>
       </header>
 
       <main className="mx-auto mt-4 grid max-w-7xl gap-4 lg:grid-cols-[1fr_390px]">
         <section className="rounded-[28px] border border-border bg-surface p-4 shadow-2xl shadow-black/10 md:p-5">
-          <div className="grid grid-cols-3 gap-2">
-            {steps.map((label, index) => (
-              <button
-                key={label}
-                onClick={() => setStep(index)}
-                className={`rounded-2xl px-3 py-3 text-xs font-black md:text-sm ${
-                  step === index ? "bg-primary text-primary-foreground" : "bg-background"
-                }`}
-              >
-                {index + 1}. {label}
-              </button>
-            ))}
-          </div>
+          <div className="space-y-6">
+            <Section step="1" title="Basics">
+              <Field
+                id="item-name"
+                label="Item name"
+                value={item.name || ""}
+                onChange={(value) => update({ name: value, displayName: item.displayName || value })}
+                placeholder="Chicken Biryani"
+              />
+              <Field
+                label="Display name"
+                value={item.displayName || ""}
+                onChange={(value) => update({ displayName: value })}
+                placeholder="Special Chicken Biryani"
+              />
+              <DietSelector
+                value={String(item.dietType || (item.isVeg ? "veg" : "non-veg"))}
+                onChange={(value) => update({ dietType: value, isVeg: value === "veg" })}
+              />
+              <TextArea
+                label="Description"
+                value={item.description || ""}
+                onChange={(value) => update({ description: value })}
+                placeholder="Write a simple customer-facing description"
+              />
+              <Field
+                label="Tags"
+                value={(item.tags || []).join(", ")}
+                onChange={(value) =>
+                  update({
+                    tags: value
+                      .split(",")
+                      .map((tag) => tag.trim())
+                      .filter(Boolean),
+                  })
+                }
+                placeholder="spicy, bestseller, family pack"
+              />
+            </Section>
 
-          <div className="mt-5">
-            {step === 0 && (
-              <div className="grid gap-4 md:grid-cols-[240px_1fr]">
-                <div>
-                  <label className="group flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[28px] border border-dashed border-primary/40 bg-background text-center">
-                    {item.image ? (
-                      <img
-                        src={resolveMediaUrl(item.image)}
-                        alt=""
-                        onError={imageFallback}
-                        className="h-full w-full object-cover transition group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="p-5">
-                        <ImagePlus className="mx-auto h-9 w-9 text-primary" />
-                        <p className="mt-2 text-sm font-black">Upload dish photo</p>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(event) => event.target.files?.[0] && uploadImage(event.target.files[0])}
+            <Section step="2" title="Photo">
+              <label className="flex cursor-pointer items-center gap-4">
+                <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-dashed border-primary/40 bg-background">
+                  {item.image ? (
+                    <img
+                      src={resolveMediaUrl(item.image)}
+                      alt=""
+                      onError={imageFallback}
+                      className="h-full w-full object-cover"
                     />
-                  </label>
-                  <p className="mt-2 inline-flex items-center gap-2 text-xs font-bold text-muted-foreground">
-                    <UploadCloud className="h-4 w-4" /> {uploading ? "Uploading..." : "Tap image to upload"}
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <ImagePlus className="h-8 w-8 text-primary" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="inline-flex items-center gap-2 text-sm font-black">
+                    <UploadCloud className="h-4 w-4" /> {uploading ? "Uploading..." : "Upload dish photo"}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Optional — a placeholder image is shown if left empty.
                   </p>
                 </div>
-                <div className="space-y-4">
-                  <Field
-                    label="Item name"
-                    value={item.name || ""}
-                    onChange={(value) => setItem({ ...item, name: value, displayName: item.displayName || value })}
-                    placeholder="Chicken Biryani"
-                  />
-                  <Field
-                    label="Short display name"
-                    value={item.displayName || ""}
-                    onChange={(value) => setItem({ ...item, displayName: value })}
-                    placeholder="Special Chicken Biryani"
-                  />
-                  <TextArea
-                    label="Description"
-                    value={item.description || ""}
-                    onChange={(value) => setItem({ ...item, description: value })}
-                    placeholder="Write a simple customer-facing description"
-                  />
-                  <Field
-                    label="Tags"
-                    value={(item.tags || []).join(", ")}
-                    onChange={(value) =>
-                      setItem({
-                        ...item,
-                        tags: value
-                          .split(",")
-                          .map((tag) => tag.trim())
-                          .filter(Boolean),
-                      })
-                    }
-                    placeholder="spicy, bestseller, family pack"
-                  />
-                </div>
-              </div>
-            )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => event.target.files?.[0] && uploadImage(event.target.files[0])}
+                />
+              </label>
+            </Section>
 
-            {step === 1 && (
+            <Section step="3" title="Category & Price">
               <div className="grid gap-4 md:grid-cols-2">
                 <SelectField
                   label="Category"
                   value={item.category || ""}
                   onChange={(value) =>
-                    setItem({
-                      ...item,
+                    update({
                       category: value,
                       categoryId: categories.find((category) => category.name === value)?.id,
                     })
                   }
                   options={["Uncategorized", ...categories.map((category) => category.name)]}
                 />
-                <SelectField
-                  label="Food type"
-                  value={item.dietType || "non-veg"}
-                  onChange={(value) => setItem({ ...item, dietType: value, isVeg: value === "veg" })}
-                  options={["veg", "non-veg", "egg"]}
-                />
                 <NumberField
-                  label="Base price"
+                  id="item-price"
+                  label="Base price (Rs)"
                   value={Number(item.basePrice || 0)}
-                  onChange={(value) => setItem({ ...item, basePrice: value, price: item.offerPrice || value })}
+                  onChange={(value) => update({ basePrice: value, price: item.offerPrice || value })}
                 />
                 <NumberField
-                  label="Offer price"
+                  label="Offer price (Rs)"
                   value={Number(item.offerPrice || 0)}
-                  onChange={(value) => setItem({ ...item, offerPrice: value || null, price: value || item.basePrice || 0 })}
+                  onChange={(value) =>
+                    update({ offerPrice: value || null, price: value || item.basePrice || 0 })
+                  }
                 />
                 <NumberField
-                  label="Preparation minutes"
+                  label="Preparation time (min)"
                   value={Number(item.prepTimeMinutes || 15)}
-                  onChange={(value) => setItem({ ...item, prepTimeMinutes: value })}
-                />
-                <SelectField
-                  label="Kitchen station"
-                  value={item.kitchenStation || "Main Course"}
-                  onChange={(value) => setItem({ ...item, kitchenStation: value })}
-                  options={["Main Course", "Biryani", "Tandoor", "Starter", "Dessert", "Juice", "Tea"]}
+                  onChange={(value) => update({ prepTimeMinutes: value })}
                 />
               </div>
-            )}
+            </Section>
 
-            {step === 2 && (
-              <div className="grid gap-4 md:grid-cols-2">
+            <Section step="4" title="Availability">
+              <div className="grid gap-2 sm:grid-cols-2">
                 <ToggleCard
                   label="Available for sale"
                   checked={item.available !== false}
-                  onChange={(value) => setItem({ ...item, available: value })}
-                />
-                <ToggleCard
-                  label="Priority display"
-                  checked={Boolean(item.pinned || item.featured)}
-                  onChange={(value) => setItem({ ...item, pinned: value, featured: value })}
+                  onChange={(value) => update({ available: value })}
                 />
                 <ToggleCard
                   label="Show in Delivery"
                   checked={item.visibility?.delivery !== false}
-                  onChange={(value) => setItem({ ...item, visibility: { ...(item.visibility || {}), delivery: value } })}
+                  onChange={(value) => update({ visibility: { ...(item.visibility || {}), delivery: value } })}
                 />
                 <ToggleCard
                   label="Show in Pickup"
                   checked={item.visibility?.pickup !== false}
-                  onChange={(value) => setItem({ ...item, visibility: { ...(item.visibility || {}), pickup: value } })}
+                  onChange={(value) => update({ visibility: { ...(item.visibility || {}), pickup: value } })}
                 />
                 <ToggleCard
                   label="Show in Dine-in"
                   checked={item.visibility?.dineIn !== false}
-                  onChange={(value) => setItem({ ...item, visibility: { ...(item.visibility || {}), dineIn: value } })}
+                  onChange={(value) => update({ visibility: { ...(item.visibility || {}), dineIn: value } })}
                 />
-                <ToggleCard
-                  label="Bestseller badge"
-                  checked={Boolean(item.bestseller)}
-                  onChange={(value) => setItem({ ...item, bestseller: value })}
-                />
-                <div className="md:col-span-2">
-                  <TimeScheduleEditor
-                    value={item.availabilityRules}
-                    onChange={(availabilityRules) => setItem({ ...item, availabilityRules })}
-                  />
-                </div>
               </div>
-            )}
+            </Section>
+
+            <section>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced((current) => !current)}
+                className="flex w-full items-center justify-between rounded-2xl border border-border bg-background px-4 py-3"
+              >
+                <span className="text-sm font-black">Advanced settings</span>
+                <ChevronDown
+                  className={`h-5 w-5 text-muted-foreground transition-transform ${showAdvanced ? "rotate-180" : ""}`}
+                />
+              </button>
+              {showAdvanced && (
+                <div className="mt-4 space-y-4">
+                  <SelectField
+                    label="Kitchen station"
+                    value={item.kitchenStation || "Main Course"}
+                    onChange={(value) => update({ kitchenStation: value })}
+                    options={KITCHEN_STATIONS}
+                  />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <ToggleCard
+                      label="Bestseller badge"
+                      checked={Boolean(item.bestseller)}
+                      onChange={(value) => update({ bestseller: value })}
+                    />
+                    <ToggleCard
+                      label="Priority display"
+                      checked={Boolean(item.pinned || item.featured)}
+                      onChange={(value) => update({ pinned: value, featured: value })}
+                    />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <NumberField
+                      label="Cost price (Rs)"
+                      value={Number(item.costPrice || 0)}
+                      onChange={(value) => update({ costPrice: value })}
+                    />
+                    <NumberField
+                      label="Tax (%)"
+                      value={Number(item.taxRate || item.gstRate || 5)}
+                      onChange={(value) => update({ taxRate: value, gstRate: value })}
+                    />
+                    <NumberField
+                      label="GST (%)"
+                      value={Number(item.gstRate || item.taxRate || 5)}
+                      onChange={(value) => update({ gstRate: value })}
+                    />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Field
+                      label="Short name"
+                      value={item.shortName || ""}
+                      onChange={(value) => update({ shortName: value })}
+                    />
+                    <Field
+                      label="SKU"
+                      value={item.sku || ""}
+                      onChange={(value) => update({ sku: value })}
+                    />
+                    <Field
+                      label="Barcode"
+                      value={item.barcode || ""}
+                      onChange={(value) => update({ barcode: value })}
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-2 text-sm font-black">Serving schedule</p>
+                    <TimeScheduleEditor
+                      value={item.availabilityRules}
+                      onChange={(availabilityRules) => update({ availabilityRules })}
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
           </div>
 
-          <footer className="sticky bottom-3 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-border bg-background/95 p-3 backdrop-blur">
+          <footer className="sticky bottom-3 mt-6 flex items-center justify-end gap-3 rounded-3xl border border-border bg-background/95 p-3 backdrop-blur">
             <button
-              onClick={() => setStep(Math.max(0, step - 1))}
-              disabled={step === 0}
-              className="rounded-2xl border border-border px-5 py-3 text-sm font-black disabled:opacity-40"
+              onClick={() => navigate({ to: "/admin/menu" })}
+              className="rounded-2xl border border-border px-5 py-3 text-sm font-black"
             >
-              Previous
+              Cancel
             </button>
-            <div className="flex gap-2">
-              {step < steps.length - 1 ? (
-                <button
-                  onClick={() => setStep(step + 1)}
-                  className="rounded-2xl bg-primary px-5 py-3 text-sm font-black text-primary-foreground"
-                >
-                  Next step
-                </button>
-              ) : (
-                <button
-                  onClick={saveItem}
-                  disabled={saving || uploading}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-primary-foreground disabled:opacity-60"
-                >
-                  <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Item"}
-                </button>
-              )}
-            </div>
+            <button
+              onClick={saveItem}
+              disabled={saving || uploading}
+              className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-primary-foreground disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Item"}
+            </button>
           </footer>
         </section>
 
@@ -436,6 +481,49 @@ function MenuItemBuilderPage() {
   );
 }
 
+function Section(props: { step?: string; title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h2 className="flex items-center gap-2 font-display text-xl tracking-widest">
+        {props.step ? (
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary">
+            {props.step}
+          </span>
+        ) : null}
+        {props.title}
+      </h2>
+      <div className="mt-4 space-y-4">{props.children}</div>
+    </section>
+  );
+}
+
+function DietSelector(props: { value: string; onChange: (value: "veg" | "non-veg" | "egg") => void }) {
+  const options: Array<{ value: "veg" | "non-veg" | "egg"; label: string }> = [
+    { value: "veg", label: "Veg" },
+    { value: "non-veg", label: "Non Veg" },
+    { value: "egg", label: "Egg" },
+  ];
+  return (
+    <div>
+      <span className="text-sm font-black">Food type</span>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => props.onChange(option.value)}
+            className={`rounded-2xl px-3 py-3 text-sm font-black ${
+              props.value === option.value ? "bg-primary text-primary-foreground" : "bg-background"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function normalizePayload(item: Partial<CatalogItem>) {
   return {
     ...item,
@@ -462,6 +550,7 @@ function normalizePayload(item: Partial<CatalogItem>) {
 }
 
 function Field(props: {
+  id?: string;
   label: string;
   value: string;
   placeholder?: string;
@@ -471,6 +560,7 @@ function Field(props: {
     <label className="block">
       <span className="text-sm font-black">{props.label}</span>
       <input
+        id={props.id}
         value={props.value}
         placeholder={props.placeholder}
         onChange={(event) => props.onChange(event.target.value)}
@@ -500,11 +590,17 @@ function TextArea(props: {
   );
 }
 
-function NumberField(props: { label: string; value: number; onChange: (value: number) => void }) {
+function NumberField(props: {
+  id?: string;
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
   return (
     <label className="block">
       <span className="text-sm font-black">{props.label}</span>
       <input
+        id={props.id}
         type="number"
         value={props.value}
         onChange={(event) => props.onChange(Number(event.target.value || 0))}
