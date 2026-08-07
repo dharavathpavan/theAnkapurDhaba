@@ -284,16 +284,14 @@ function CheckoutPage() {
       let order;
       if (paymentMethod === "cashfree") {
         const session = await createCashfreePaymentSession(orderInput);
-        if (!session.alreadyPaid) {
-          if (!session.paymentSessionId)
-            throw new Error("Cashfree payment session was not created");
-          const checkoutResult = await openCashfreeCheckout(session.paymentSessionId, session.mode);
-          if (checkoutResult.redirect) {
-            saveActiveOrder(session.orderId);
-            toast.info("Payment is pending. Confirm your order on the next page.");
-            navigate({ to: "/orders/$orderId", params: { orderId: session.orderId } });
-            return;
-          }
+        if (!session.paymentSessionId)
+          throw new Error("Cashfree payment session was not created");
+        const checkoutResult = await openCashfreeCheckout(session.paymentSessionId, session.mode);
+        if (checkoutResult.redirect) {
+          saveActiveOrder(session.orderId);
+          toast.info("Payment is pending. Confirm your order on the next page.");
+          navigate({ to: "/orders/$orderId", params: { orderId: session.orderId } });
+          return;
         }
         const verified = await verifyCashfreePayment(session.orderId);
         if (String(verified.status).toUpperCase() !== "PAID") {

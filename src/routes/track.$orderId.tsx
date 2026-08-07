@@ -82,8 +82,9 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
   const [mounted, setMounted] = useState(false);
   const [awaitingPayment, setAwaitingPayment] = useState(false);
   const queryClient = useQueryClient();
-  const cashfreeVerifiedRef = useRef<string | null>(null);
+  const settledNotFoundRef = useRef<string | null>(null);
   const clearedCartRef = useRef<string | null>(null);
+  const pendingVerifyRef = useRef<string | null>(null);
   const clearCart = useCart((s) => s.clear);
   useOrderRealtime(orderId);
   const { data: order, isLoading } = useQuery({
@@ -103,27 +104,42 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
 
   useEffect(() => {
     if (!mounted || order) return;
-    if (cashfreeVerifiedRef.current === orderId) return;
-    cashfreeVerifiedRef.current = orderId;
     let cancelled = false;
-    verifyCashfreePayment(orderId)
-      .then((verified) => {
-        if (cancelled) return;
-        if (verified.order) {
-          setAwaitingPayment(false);
-          queryClient.invalidateQueries({ queryKey: ["order", orderId] });
-          queryClient.invalidateQueries({ queryKey: ["my-orders"] });
-        } else {
-          setAwaitingPayment(true);
-        }
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        const message = String(error instanceof Error ? error.message : error);
-        setAwaitingPayment(!/expired|not found|does not exist/i.test(message));
-      });
+    let running = false;
+    const attempt = () => {
+      if (running) return;
+      if (settledNotFoundRef.current === orderId) return;
+      running = true;
+      verifyCashfreePayment(orderId)
+        .then((verified) => {
+          if (cancelled) return;
+          if (verified.order) {
+            setAwaitingPayment(false);
+            queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+            queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+          } else {
+            setAwaitingPayment(true);
+          }
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          const message = String(error instanceof Error ? error.message : error);
+          if (/expired|not found|does not exist/i.test(message)) {
+            settledNotFoundRef.current = orderId;
+            setAwaitingPayment(false);
+          } else {
+            setAwaitingPayment(true);
+          }
+        })
+        .finally(() => {
+          running = false;
+        });
+    };
+    attempt();
+    const interval = setInterval(attempt, 5000);
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
   }, [mounted, order, orderId, queryClient]);
 
@@ -140,8 +156,8 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
   useEffect(() => {
     if (!mounted || !order) return;
     if (order.paymentMethod !== "cashfree" || order.paymentStatus !== "pending") return;
-    if (cashfreeVerifiedRef.current === order.id) return;
-    cashfreeVerifiedRef.current = order.id;
+    if (pendingVerifyRef.current === order.id) return;
+    pendingVerifyRef.current = order.id;
     let cancelled = false;
     verifyCashfreePayment(order.id)
       .then(() => {

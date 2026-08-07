@@ -1826,8 +1826,6 @@ export async function createCashfreePaymentSession(order: CreateOrderInput): Pro
   orderId: string;
   paymentSessionId?: string;
   mode: "sandbox" | "production";
-  alreadyPaid?: boolean;
-  order?: Order;
 }> {
   const res = await apiFetch(`${API_BASE}/payments/cashfree/session`, {
     method: "POST",
@@ -1840,11 +1838,9 @@ export async function createCashfreePaymentSession(order: CreateOrderInput): Pro
 
 export async function verifyCashfreePayment(
   orderId: string,
-  order?: CreateOrderInput,
-): Promise<{ status: string; order: Order | null }> {
+): Promise<{ status: string; order: Order | null; draftId?: string }> {
   const res = await apiFetch(`${API_BASE}/payments/cashfree/verify/${orderId}`, {
     method: "POST",
-    body: JSON.stringify({ order }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to verify Cashfree payment");
