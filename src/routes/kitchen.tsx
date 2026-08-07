@@ -47,6 +47,7 @@ import {
 } from "@/services/api";
 import { KotBill } from "@/components/site/KotBill";
 import { kotFingerprint } from "@/lib/printer/escpos";
+import { isPrinterLive, printKotJob } from "@/lib/printer/manager";
 
 export const Route = createFileRoute("/kitchen")({
   head: () => ({
@@ -322,6 +323,13 @@ function KitchenDisplaySystem() {
     toast.success("Bulk action complete");
   }
 
+  function printerFor(order: Order): PrinterRecord | null {
+    const station = meta(order).station || inferStation(order);
+    const mapping = printerBundle?.stations.find((stationEntry) => stationEntry.station === station);
+    const routed = printerBundle?.printers.find((printer) => printer.id === mapping?.printerId);
+    return routed || defaultPrinter;
+  }
+
   async function enqueuePrint(order: Order, kind: "kot" | "bill", force = true) {
     if (!force && !printerSettings?.autoPrint) return;
     const key = force ? `${order.id}:${kind}:${Date.now()}` : kotFingerprint(order, kind);
@@ -345,6 +353,26 @@ function KitchenDisplaySystem() {
     } catch {
       historyId = null;
     }
+
+    const printer = printerFor(order);
+    if (printerSettings && isPrinterLive()) {
+      const result = await printKotJob(order, printer, printerSettings, "kot");
+      if (result.status === "success") {
+        printedRef.current.add(key);
+        savePrinted(printedRef.current);
+        if (historyId) {
+          await updatePrinterHistory(historyId, {
+            status: "success",
+            message: result.message || `${kind === "bill" ? "Bill" : "KOT"} printed to thermal printer`,
+            printedAt: result.printedAt || new Date().toISOString(),
+          }).catch(() => undefined);
+          qc.invalidateQueries({ queryKey: ["printer-history"] });
+        }
+        toast.success(kind === "bill" ? "Bill sent to printer" : "KOT sent to printer");
+        return;
+      }
+    }
+
     setPrintQueue((q) => [...q, { key, order, kind, historyId }]);
   }
 

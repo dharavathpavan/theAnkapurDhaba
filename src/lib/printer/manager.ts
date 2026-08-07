@@ -80,8 +80,36 @@ export function getPrinterRuntimeSupport(): RuntimeSupport {
     webBluetooth,
     androidBridge,
     localBridge,
-    directEscPos: androidBridge || localBridge || webSerial || activeBtDevice,
+    directEscPos: androidBridge || localBridge || activeBtDevice,
   };
+}
+
+export interface ActivePrinterConnection {
+  id: string;
+  name: string;
+  connectionType: DetectedPrinterDevice["connectionType"];
+  online: true;
+}
+
+export function getPrinterActiveConnection(): ActivePrinterConnection | null {
+  if (typeof window === "undefined") return null;
+  const btDevice = getActiveBluetoothDevice();
+  if (btDevice) return { id: btDevice.id, name: btDevice.name || "Bluetooth Printer", connectionType: "web-bluetooth", online: true };
+  if (window.AndroidPrinterBridge?.printEscPos) return { id: "android-bridge", name: "Android Bridge", connectionType: "android-bridge", online: true };
+  if (window.localPrinterBridge?.printEscPos) return { id: "local-bridge", name: "Local Bridge", connectionType: "local-bridge", online: true };
+  return null;
+}
+
+export function isPrinterLive(): boolean {
+  return getPrinterActiveConnection() !== null;
+}
+
+export function isDeviceConnectionLive(connectionType: DetectedPrinterDevice["connectionType"] | string): boolean {
+  if (typeof window === "undefined") return false;
+  if (connectionType === "web-bluetooth") return Boolean(getActiveBluetoothDevice());
+  if (connectionType === "android-bridge") return Boolean(window.AndroidPrinterBridge?.printEscPos);
+  if (connectionType === "local-bridge") return Boolean(window.localPrinterBridge?.printEscPos);
+  return false;
 }
 
 export function compatibilityMessage(): string {
@@ -135,16 +163,7 @@ export async function scanPrinterDevices(): Promise<DetectedPrinterDevice[]> {
     }
   }
 
-  return [
-    {
-      id: "browser-print-fallback",
-      name: "System / Thermal Printer (Browser Print)",
-      model: "Standard Thermal / POS Printer",
-      connectionType: "bridge",
-      status: "available",
-      message: "Direct print via System Print dialog is ready.",
-    },
-  ];
+  return [];
 }
 
 async function sendBridge(payload: BridgePayload): Promise<BridgeResult> {
