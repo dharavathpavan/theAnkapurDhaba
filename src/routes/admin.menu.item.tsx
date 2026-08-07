@@ -438,8 +438,12 @@ function MenuItemBuilderPage() {
                       <div className="text-sm text-zinc-400 line-through">Rs {item.basePrice || 0}</div>
                     ) : null}
                   </div>
-                  <button className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white">
-                    ADD
+                  <button
+                    onClick={saveItem}
+                    disabled={saving || uploading}
+                    className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white disabled:opacity-60"
+                  >
+                    {saving ? "Saving..." : "ADD"}
                   </button>
                 </div>
               </div>
