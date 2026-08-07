@@ -47,7 +47,7 @@ import {
 } from "@/services/api";
 import { KotBill } from "@/components/site/KotBill";
 import { kotFingerprint } from "@/lib/printer/escpos";
-import { isPrinterLive, printKotJob } from "@/lib/printer/manager";
+import { getPrinterActiveConnection, isPrinterLive, printKotJob } from "@/lib/printer/manager";
 
 export const Route = createFileRoute("/kitchen")({
   head: () => ({
@@ -371,6 +371,7 @@ function KitchenDisplaySystem() {
         toast.success(kind === "bill" ? "Bill sent to printer" : "KOT sent to printer");
         return;
       }
+      toast.warning(result.message || "Thermal print failed — opening system print dialog instead");
     }
 
     setPrintQueue((q) => [...q, { key, order, kind, historyId }]);
@@ -410,6 +411,10 @@ function KitchenDisplaySystem() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <PrinterStatusBadge
+              defaultPrinter={defaultPrinter}
+              onOpen={() => navigate({ to: "/admin/kitchen/printer" })}
+            />
             <button
               type="button"
               onClick={() => navigate({ to: "/admin/kitchen/printer" })}
@@ -1479,6 +1484,45 @@ function PrintOverlay({
         <KotBill order={job.order} kind={job.kind} />
       </div>
     </div>
+  );
+}
+
+function PrinterStatusBadge({
+  defaultPrinter,
+  onOpen,
+}: {
+  defaultPrinter: PrinterRecord | null;
+  onOpen: () => void;
+}) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), 4000);
+    return () => window.clearInterval(id);
+  }, []);
+  void tick;
+  const connection = getPrinterActiveConnection();
+  const live = Boolean(connection);
+  const label = live
+    ? `${connection!.name} • ${connection!.connectionType.replace(/-/g, " ")}`
+    : defaultPrinter
+      ? "Printer configured but offline"
+      : "No printer configured";
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      title={`${label}. Click to open printer settings. Note: the thermal connection lives in this browser tab — connect the printer on the same device where this KDS is open.`}
+      className={`inline-flex min-h-14 items-center gap-2.5 rounded-2xl border px-4 text-left ${
+        live
+          ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-100"
+          : "border-white/10 bg-black/30 text-white/60"
+      }`}
+    >
+      <span className={`h-2.5 w-2.5 rounded-full ${live ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.8)]" : "bg-red-400"}`} />
+      <span className="text-sm font-black tracking-wide">
+        {live ? "Thermal Online" : defaultPrinter ? "Printer Offline" : "No Printer"}
+      </span>
+    </button>
   );
 }
 
