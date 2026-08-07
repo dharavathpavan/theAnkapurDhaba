@@ -54,6 +54,7 @@ import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminExpensesRouteImport } from './routes/admin.expenses'
 import { Route as AdminBusinessRouteImport } from './routes/admin.business'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
+import { Route as AdminMenuIndexRouteImport } from './routes/admin.menu.index'
 import { Route as SupportChatTicketIdRouteImport } from './routes/support.chat.$ticketId'
 import { Route as AdminMenuItemRouteImport } from './routes/admin.menu.item'
 import { Route as AdminKitchenPrinterRouteImport } from './routes/admin.kitchen.printer'
@@ -285,6 +286,11 @@ const AdminBillingRoute = AdminBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMenuIndexRoute = AdminMenuIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminMenuRoute,
+} as any)
 const SupportChatTicketIdRoute = SupportChatTicketIdRouteImport.update({
   id: '/chat/$ticketId',
   path: '/chat/$ticketId',
@@ -357,6 +363,7 @@ export interface FileRoutesByFullPath {
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
+  '/admin/menu/': typeof AdminMenuIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -385,7 +392,6 @@ export interface FileRoutesByTo {
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
-  '/admin/menu': typeof AdminMenuRouteWithChildren
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -407,6 +413,7 @@ export interface FileRoutesByTo {
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
+  '/admin/menu': typeof AdminMenuIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -459,6 +466,7 @@ export interface FileRoutesById {
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
+  '/admin/menu/': typeof AdminMenuIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -512,6 +520,7 @@ export interface FileRouteTypes {
     | '/admin/kitchen/printer'
     | '/admin/menu/item'
     | '/support/chat/$ticketId'
+    | '/admin/menu/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -540,7 +549,6 @@ export interface FileRouteTypes {
     | '/admin/expenses'
     | '/admin/inventory'
     | '/admin/marketing'
-    | '/admin/menu'
     | '/admin/orders'
     | '/admin/payments'
     | '/admin/reports'
@@ -562,6 +570,7 @@ export interface FileRouteTypes {
     | '/admin/kitchen/printer'
     | '/admin/menu/item'
     | '/support/chat/$ticketId'
+    | '/admin/menu'
   id:
     | '__root__'
     | '/'
@@ -613,6 +622,7 @@ export interface FileRouteTypes {
     | '/admin/kitchen/printer'
     | '/admin/menu/item'
     | '/support/chat/$ticketId'
+    | '/admin/menu/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -961,6 +971,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBillingRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/menu/': {
+      id: '/admin/menu/'
+      path: '/'
+      fullPath: '/admin/menu/'
+      preLoaderRoute: typeof AdminMenuIndexRouteImport
+      parentRoute: typeof AdminMenuRoute
+    }
     '/support/chat/$ticketId': {
       id: '/support/chat/$ticketId'
       path: '/chat/$ticketId'
@@ -994,10 +1011,12 @@ declare module '@tanstack/react-router' {
 
 interface AdminMenuRouteChildren {
   AdminMenuItemRoute: typeof AdminMenuItemRoute
+  AdminMenuIndexRoute: typeof AdminMenuIndexRoute
 }
 
 const AdminMenuRouteChildren: AdminMenuRouteChildren = {
   AdminMenuItemRoute: AdminMenuItemRoute,
+  AdminMenuIndexRoute: AdminMenuIndexRoute,
 }
 
 const AdminMenuRouteWithChildren = AdminMenuRoute._addFileChildren(
