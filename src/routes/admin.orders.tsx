@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
+import { Search, Bike, Check, CheckCircle2, MapPin, Navigation, PackageCheck, Phone, ReceiptText, Timer } from "lucide-react";
 import { DeliveryMap } from "@/components/site/DeliveryMap";
 import { useOrderRealtime } from "@/hooks/use-order-realtime";
 import {
@@ -69,6 +69,7 @@ function AdminOrders() {
     refetchInterval: 10000,
   });
 
+  const [view, setView] = useState<"orders" | "delivery">("orders");
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
@@ -156,6 +157,28 @@ function AdminOrders() {
           <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">Orders</h1>
         </div>
         <div className="flex flex-wrap items-center gap-4">
+          <div className="flex rounded-xl border border-border bg-background p-1">
+            <button
+              type="button"
+              onClick={() => setView("orders")}
+              className={`min-h-8 rounded-lg px-4 text-sm font-semibold transition ${
+                view === "orders" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Orders
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("delivery")}
+              className={`min-h-8 rounded-lg px-4 text-sm font-semibold transition ${
+                view === "delivery" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Bike className="h-4 w-4" /> Delivery Tracking
+              </span>
+            </button>
+          </div>
           <CountStat label="Active" value={counts.active} />
           <CountStat label="Kitchen" value={counts.kitchen} tone="amber" />
           <CountStat label="Ready" value={counts.ready} tone="amber" />
@@ -225,30 +248,39 @@ function AdminOrders() {
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(440px,1.1fr)]">
-        <OrderBoard
-          orders={filtered}
-          selectedId={selected?.id}
-          onSelect={setSelectedId}
-          riders={riders}
-          onAssign={async (order, rider) => {
-            await assignRider(order, rider);
-            await qc.invalidateQueries({ queryKey: ["orders"] });
-            toast.success(`Assigned to ${rider.name}`);
-          }}
-        />
+      {view === "orders" ? (
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(440px,1.1fr)]">
+          <OrderBoard
+            orders={filtered}
+            selectedId={selected?.id}
+            onSelect={setSelectedId}
+            riders={riders}
+            onAssign={async (order, rider) => {
+              await assignRider(order, rider);
+              await qc.invalidateQueries({ queryKey: ["orders"] });
+              toast.success(`Assigned to ${rider.name}`);
+            }}
+          />
 
-        <div className="xl:sticky xl:top-6 xl:self-start">
-          {selected ? (
-            <OrderDetail order={selected} orders={orders} riders={riders} onAdvance={advance} />
-          ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-background p-12 text-center text-muted-foreground">
-              <p className="font-semibold">No orders match.</p>
-              <p className="mt-1 text-sm">Adjust the filters or date range.</p>
-            </div>
-          )}
-        </div>
-      </section>
+          <div className="xl:sticky xl:top-6 xl:self-start">
+            {selected ? (
+              <OrderDetail order={selected} orders={orders} riders={riders} onAdvance={advance} />
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border bg-background p-12 text-center text-muted-foreground">
+                <p className="font-semibold">No orders match.</p>
+                <p className="mt-1 text-sm">Adjust the filters or date range.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      ) : (
+        <DeliveryTrackingView
+          orders={orders}
+          riders={riders}
+          onSelect={setSelectedId}
+          onAdvance={advance}
+        />
+      )}
     </main>
   );
 }
@@ -275,6 +307,266 @@ function CountStat({
       <div className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
         {label}
       </div>
+    </div>
+  );
+}
+
+/* --------------------------- Delivery Tracking ---------------------------- */
+/* Swiggy / Zomato style: rider-focused tracker cards with a vertical journey. */
+
+function DeliveryTrackingView({
+  orders,
+  riders,
+  onSelect,
+  onAdvance,
+}: {
+  orders: Order[];
+  riders: StaffUser[];
+  onSelect: (id: string) => void;
+  onAdvance: (id: string, status: OrderStatus) => void;
+}) {
+  const qc = useQueryClient();
+  const q = orders.filter(
+    (order) => order.type === "delivery" && ACTIVE_STATUSES.includes(order.status),
+  );
+  const groups: Array<{ title: string; list: Order[] }> = [
+    { title: "On the way", list: q.filter((o) => o.status === "out_for_delivery") },
+    { title: "Ready for dispatch", list: q.filter((o) => o.status === "ready") },
+    { title: "Preparing", list: q.filter((o) => ["received", "accepted", "preparing"].includes(o.status)) },
+  ].filter((g) => g.list.length);
+
+  if (!q.length)
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-background p-12 text-center text-muted-foreground">
+        <Bike className="mx-auto mb-2 h-8 w-8" />
+        <p className="font-semibold">No active delivery orders.</p>
+        <p className="mt-1 text-sm">New delivery orders will show here as they come in.</p>
+      </div>
+    );
+
+  return (
+    <div className="space-y-6">
+      {groups.map((group) => (
+        <section key={group.title}>
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              {group.title}
+            </h2>
+            <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-bold">
+              {group.list.length}
+            </span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+            {group.list.map((order) => (
+              <DeliveryTrackCard
+                key={order.id}
+                order={order}
+                riders={riders}
+                orders={orders}
+                onSelect={() => onSelect(order.id)}
+                onAdvance={onAdvance}
+                onAssigned={() => qc.invalidateQueries({ queryKey: ["orders"] })}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function DeliveryTrackCard({
+  order,
+  riders,
+  orders,
+  onSelect,
+  onAdvance,
+  onAssigned,
+}: {
+  order: Order;
+  riders: StaffUser[];
+  orders: Order[];
+  onSelect: () => void;
+  onAdvance: (id: string, status: OrderStatus) => void;
+  onAssigned: () => void;
+}) {
+  const d = order.delivery || {};
+  const riderName = d.assignedRiderName || d.partnerName;
+  const riderPhone = d.partnerPhone || "";
+  const canAssign = ["ready", "out_for_delivery"].includes(order.status) && !Boolean(d.assignedRiderId);
+  const eta = d.etaMinutes ? `~${d.etaMinutes} min` : null;
+  const stageText =
+    order.status === "out_for_delivery"
+      ? "Delivery partner is on the way"
+      : order.status === "ready"
+        ? "Ready & waiting for a partner"
+        : "Restaurant is preparing your order";
+
+  return (
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-background">
+      <button type="button" onClick={onSelect} className="w-full border-b border-border p-4 text-left">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-primary">#{order.id}</span>
+              <StatusPill status={order.status} />
+            </div>
+            <p className="mt-1 truncate text-sm font-semibold">{order.customer.name || "Customer"}</p>
+            <p className="mt-0.5 flex items-start gap-1 text-xs text-muted-foreground">
+              <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
+              <span className="line-clamp-2">
+                {order.customer.address || d.destinationText || "No address"}
+              </span>
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="font-bold">{money(order.total)}</div>
+            {eta ? (
+              <span className="mt-1 inline-flex rounded-md bg-blue-400/10 px-2 py-0.5 text-[10px] font-bold text-blue-300">
+                <Timer className="mr-1 h-3 w-3" /> {eta}
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <p className="mt-2 text-xs font-medium text-blue-300">{stageText}</p>
+      </button>
+
+      <div className="p-4">
+        <div className="mb-3 flex items-center gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/15 font-bold text-primary">
+            {riderName ? initials(riderName) : <Bike className="h-5 w-5" />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold">{riderName || "No rider assigned"}</div>
+            <div className="text-xs text-muted-foreground">{riderPhone || (riderName ? "Partner" : "Assign a partner to start tracking")}</div>
+          </div>
+          {riderPhone && (
+            <a
+              href={`tel:${riderPhone}`}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border bg-surface text-primary"
+              aria-label={`Call ${riderName}`}
+            >
+              <Phone className="h-4 w-4" />
+            </a>
+          )}
+        </div>
+
+        <DeliveryTracker order={order} />
+
+        {riderName && d.deliveryOtp ? (
+          <div className="mt-3 flex items-center justify-between rounded-xl border border-border bg-surface px-3 py-2 text-xs">
+            <span className="text-muted-foreground">Delivery OTP</span>
+            <span className="font-black tracking-widest">{d.deliveryOtp}</span>
+          </div>
+        ) : null}
+
+        {canAssign ? (
+          <select
+            value=""
+            onChange={(event) => {
+              const rider = riders.find((r) => r.id === event.target.value);
+              if (!rider || !event.target.value) return;
+              assignRider(order, rider)
+                .then(() => {
+                  toast.success(`Assigned to ${rider.name}`);
+                  onAssigned();
+                })
+                .catch(() => toast.error("Couldn't assign rider"));
+            }}
+            className="mt-3 min-h-10 w-full rounded-xl border border-border bg-surface px-2 text-xs outline-none"
+          >
+            <option value="">Assign rider…</option>
+            {riders
+              .slice()
+              .sort((a, b) => riderLoad(a, orders) - riderLoad(b, orders))
+              .map((rider) => (
+                <option key={rider.id} value={rider.id}>
+                  {rider.name} — {riderLoad(rider, orders)} active
+                </option>
+              ))}
+          </select>
+        ) : null}
+
+        {order.status === "out_for_delivery" ? (
+          <button
+            type="button"
+            onClick={() => onAdvance(order.id, "delivered")}
+            className="mt-3 min-h-10 w-full rounded-xl bg-veg text-sm font-semibold text-white hover:opacity-90"
+          >
+            Mark delivered
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function DeliveryTracker({ order }: { order: Order }) {
+  const d = order.delivery || {};
+  const steps = [
+    { key: "placed", label: "Order placed", sub: formatTime(order.createdAt), done: true, icon: ReceiptText },
+    {
+      key: "assigned",
+      label: "Rider assigned",
+      sub: d.assignedRiderName ? d.assignedRiderName : "Waiting for a rider",
+      done: Boolean(d.assignedRiderId),
+      icon: Bike,
+    },
+    {
+      key: "picked",
+      label: "Picked up from store",
+      sub: d.pickedUpAt ? formatTime(d.pickedUpAt) : "Partner heading to the store",
+      done: Boolean(d.pickedUpAt || d.pickupVerifiedAt),
+      icon: PackageCheck,
+    },
+    {
+      key: "onway",
+      label: "On the way",
+      sub: d.etaMinutes ? `Arriving in ~${d.etaMinutes} min` : "Delivery in progress",
+      done:
+        order.status === "out_for_delivery" ||
+        ["on_the_way", "nearby", "almost_there", "outside"].includes(d.deliveryStage || ""),
+      icon: Navigation,
+    },
+    {
+      key: "delivered",
+      label: "Delivered",
+      sub: d.deliveredAt ? formatTime(d.deliveredAt) : "—",
+      done: order.status === "delivered",
+      icon: CheckCircle2,
+    },
+  ];
+  const current = steps.findIndex((step) => !step.done);
+  return (
+    <div className="mt-2">
+      {steps.map((step, index) => {
+        const isCurrent = index === current;
+        const last = index === steps.length - 1;
+        return (
+          <div key={step.key} className="flex gap-3">
+            <div className="flex flex-col items-center">
+              <span
+                className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border ${
+                  step.done
+                    ? "border-veg bg-veg text-white"
+                    : isCurrent
+                      ? "border-blue-400 bg-blue-400/10 text-blue-300"
+                      : "border-border bg-surface text-muted-foreground"
+                }`}
+              >
+                {step.done || !isCurrent ? <Check className="h-3.5 w-3.5" /> : <step.icon className="h-3.5 w-3.5" />}
+              </span>
+              {!last && <span className={`my-0.5 w-0.5 flex-1 rounded-full ${step.done ? "bg-veg/50" : "bg-border"}`} />}
+            </div>
+            <div className="pb-4">
+              <div className={`text-sm ${isCurrent ? "font-bold text-blue-300" : step.done ? "font-semibold" : "font-medium text-muted-foreground"}`}>
+                {step.label}
+              </div>
+              {step.sub ? <div className="text-xs text-muted-foreground">{step.sub}</div> : null}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -787,6 +1079,15 @@ function BillRow({ label, value }: { label: string; value: number }) {
 }
 
 /* --------------------------------- Helpers -------------------------------- */
+
+function initials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+}
 
 function riderLoad(rider: StaffUser, orders: Order[]) {
   return orders.filter(
