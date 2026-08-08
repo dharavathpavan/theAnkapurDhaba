@@ -105,6 +105,11 @@ export interface Order {
   delivery?: DeliveryDetails;
   createdAt: string;
   updatedAt: string;
+  earningsBreakdown?: { fee: number; tip: number; bonus: number };
+  riderRating?: number | null;
+  riderReview?: string | null;
+  riderFeedbackAt?: string | null;
+  batchId?: string | null;
 }
 
 export type CreateOrderInput = Omit<

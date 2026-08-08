@@ -301,7 +301,7 @@ function redirectFor(role: UserRole | string): string {
     case "KITCHEN":
       return "/kitchen";
     case "DELIVERY":
-      return "/restaurant/delivery";
+      return "/delivery/dashboard";
     case "WAITER":
       return "/waiter";
     default:
