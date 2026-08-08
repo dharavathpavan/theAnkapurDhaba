@@ -186,6 +186,106 @@ export interface DeliveryDetails {
   supportMessage?: string;
   batteryLevel?: number;
   pickupChecklist?: Record<string, boolean>;
+  batchId?: string;
+  batchedOrderIds?: string[];
+  riderRating?: number;
+  riderReview?: string;
+  riderFeedbackAt?: string;
+}
+
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  radiusKm: number;
+  deliveryCharge: number;
+  freeDeliveryAbove: number;
+  minDeliveryMin: number;
+  enabled: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+  distanceKm?: number;
+}
+
+export type DeliveryPayoutStatus = "requested" | "approved" | "rejected" | "paid" | string;
+
+export interface DeliveryPayout {
+  id: string;
+  riderId: string;
+  riderName?: string;
+  amount: number;
+  method?: string;
+  accountDetails?: string;
+  status: DeliveryPayoutStatus;
+  note?: string;
+  requestedAt: string;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  paidAt?: string | null;
+  approvedBy?: string | null;
+  approvedByName?: string | null;
+}
+
+export interface DeliveryWalletTransaction {
+  id: string;
+  type: "earning" | "payout" | "payout_rejected" | string;
+  amount: number;
+  status?: string;
+  orderId?: string;
+  note?: string;
+  date: string;
+}
+
+export interface DeliveryWallet {
+  balance: number;
+  earned: number;
+  paidOut: number;
+  requested: number;
+  available: number;
+  transactions: DeliveryWalletTransaction[];
+  payouts: DeliveryPayout[];
+}
+
+export interface FleetRider {
+  id: string;
+  name: string;
+  phone: string;
+  role?: string;
+  online: boolean;
+  activeOrders: number;
+  load: number;
+  currentLocation?: DeliveryLocation | null;
+  lastLocationAt?: string | null;
+  lastUpdatedAt?: string;
+  vehicleNumber?: string | null;
+  partnerPhone?: string;
+  deliveryStage?: string | null;
+  etaMinutes?: number | null;
+  distanceKm?: number | null;
+  orderIds: string[];
+}
+
+export interface RiderPerformance {
+  id: string;
+  name: string;
+  phone: string;
+  activeOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  earnings: number;
+  avgEarning: number;
+  rating: number;
+  ratingCount: number;
+  onTimeRate: number;
+  completionRate: number;
+  acceptanceRate: number;
+}
+
+export interface DeliverySettings {
+  baseRatePerKm: number;
+  batchMax: number;
+  surgeEnabled: boolean;
+  surgeMultiplier: number;
 }
 
 export interface DeliveryProfile {
@@ -2161,4 +2261,88 @@ export function computeTotals(
       : 0;
   const total = subtotal + tax + deliveryFee;
   return { subtotal, tax, deliveryFee, total };
+}
+
+/* ---------------- Delivery Wallet & Payouts ---------------- */
+export async function getDeliveryWallet(): Promise<DeliveryWallet> {
+  return deliveryRequest<DeliveryWallet>("wallet");
+}
+
+export async function requestDeliveryPayout(input: {
+  amount: number;
+  method?: string;
+  accountDetails?: string;
+  note?: string;
+}): Promise<DeliveryPayout> {
+  return deliveryRequest<DeliveryPayout>("wallet/payout-request", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+/* ---------------- Delivery Fleet & Zones ---------------- */
+export async function listDeliveryFleet(): Promise<FleetRider[]> {
+  return deliveryRequest<FleetRider[]>("fleet");
+}
+
+export async function listDeliveryZones(): Promise<DeliveryZone[]> {
+  const res = await apiFetch(`${API_BASE}/delivery/zones`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to fetch delivery zones");
+  return json;
+}
+
+export async function listAdminDeliveryZones(): Promise<DeliveryZone[]> {
+  return deliveryRequest<DeliveryZone[]>("admin/zones");
+}
+
+export async function saveDeliveryZone(
+  input: Partial<DeliveryZone> & { id?: string },
+): Promise<DeliveryZone> {
+  const id = input.id;
+  const { id: _ignore, ...payload } = input;
+  return deliveryRequest<DeliveryZone>(id ? `admin/zones/${id}` : "admin/zones", {
+    method: id ? "PATCH" : "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteDeliveryZone(id: string): Promise<void> {
+  await deliveryRequest<{ ok: boolean }>(`admin/zones/${id}`, { method: "DELETE" });
+}
+
+/* ---------------- Delivery Admin: Payouts, Performance, Settings ---------------- */
+export async function listAdminPayouts(status?: string): Promise<DeliveryPayout[]> {
+  const query = status && status !== "all" ? `?status=${encodeURIComponent(status)}` : "";
+  return deliveryRequest<DeliveryPayout[]>(`admin/payouts${query}`);
+}
+
+export async function approveDeliveryPayout(id: string, note?: string): Promise<DeliveryPayout> {
+  return deliveryRequest<DeliveryPayout>(`admin/payouts/${id}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ note }),
+  });
+}
+
+export async function rejectDeliveryPayout(id: string, note?: string): Promise<DeliveryPayout> {
+  return deliveryRequest<DeliveryPayout>(`admin/payouts/${id}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ note }),
+  });
+}
+
+export async function getRiderPerformance(): Promise<RiderPerformance[]> {
+  return deliveryRequest<RiderPerformance[]>("admin/rider-performance");
+}
+
+export async function updateDeliverySettings(
+  input: Partial<DeliverySettings>,
+): Promise<DeliverySettings> {
+  const res = await apiFetch(`${API_BASE}/delivery/admin/settings`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to update delivery settings");
+  return json;
 }
