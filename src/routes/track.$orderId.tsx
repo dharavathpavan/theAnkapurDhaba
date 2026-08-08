@@ -31,6 +31,7 @@ import {
 import { useOrderRealtime } from "@/hooks/use-order-realtime";
 import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
 import { DeliveryMap } from "@/components/site/DeliveryMap";
+import { RiderRatingCard } from "@/components/site/RiderRatingCard";
 import { clearActiveOrder, saveActiveOrder } from "@/stores/active-order";
 import { useCart } from "@/stores/cart";
 
@@ -190,10 +191,16 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
         <div className="-mt-7 space-y-4 px-4">
           <LiveTrackingCard order={order} />
           <DelayAlert order={order} />
+          {order.batchId && <BatchAlert order={order} />}
           <ProgressCard order={order} />
           <ItemsOrderedCard order={order} />
           <WhileYouWaitAd banners={homeContent?.banners ?? []} />
-          {order.status === "delivered" && <CompletionCard orderId={order.id} />}
+          {order.status === "delivered" && (
+            <>
+              <CompletionCard orderId={order.id} />
+              {order.type === "delivery" && <RiderRatingCard order={order} />}
+            </>
+          )}
           {order.status === "cancelled" && <CancelledCard />}
         </div>
       </main>
@@ -324,8 +331,25 @@ function LiveTrackingCard({ order }: { order: Order }) {
   );
 }
 
-function DelayAlert({ order }: { order: Order }) {
-  const delayed =
+function BatchAlert({ order }: { order: Order }) {
+  return (
+    <section className="flex items-center gap-4 rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-zinc-100">
+      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
+        <Bike className="h-6 w-6" />
+      </div>
+      <div className="min-w-0">
+        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">
+          Batched delivery
+        </div>
+        <p className="mt-1 text-sm font-semibold text-zinc-950">
+          Your order is grouped with other nearby orders for a faster drop-off.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function DelayAlert({ order }: { order: Order }) {  const delayed =
     Boolean(order.delivery?.delayReason) ||
     Boolean(order.delivery?.delayExtraMinutes) ||
     isOlderThan(order, 35);

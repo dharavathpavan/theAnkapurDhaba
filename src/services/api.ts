@@ -1973,6 +1973,19 @@ export async function updateOrderDelivery(
   return res.json();
 }
 
+export async function rateRider(
+  id: string,
+  input: { rating: number; review?: string },
+): Promise<Order> {
+  const res = await apiFetch(`${API_BASE}/orders/${id}/rate-rider`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to submit rider rating");
+  return json;
+}
+
 async function deliveryRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await apiFetch(`${API_BASE}/delivery/${path}`, init);
   const json = await res.json().catch(() => ({}));
