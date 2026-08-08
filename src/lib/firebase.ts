@@ -64,13 +64,18 @@ export async function getFirebasePushToken() {
     throw new Error("Firebase Web Push key is missing. Add VITE_FIREBASE_VAPID_KEY in Vercel.");
   }
 
-  const messaging = await getFirebaseMessaging();
+const messaging = await getFirebaseMessaging();
   if (!messaging) return null;
 
-  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-  registration.active?.postMessage({ type: "FIREBASE_CONFIG", config: firebaseConfig });
-  registration.waiting?.postMessage({ type: "FIREBASE_CONFIG", config: firebaseConfig });
-  registration.installing?.postMessage({ type: "FIREBASE_CONFIG", config: firebaseConfig });
+  const registration =
+    (await navigator.serviceWorker.getRegistration()) ||
+    (await navigator.serviceWorker.register("/sw.js"));
+  await navigator.serviceWorker.ready;
+
+  const worker = registration.active || registration.waiting || registration.installing;
+  if (worker) {
+    worker.postMessage({ type: "FIREBASE_CONFIG", config: firebaseConfig });
+  }
 
   return getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
 }
