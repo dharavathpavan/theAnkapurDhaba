@@ -58,6 +58,7 @@ import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminMarketingRouteImport } from './routes/admin.marketing'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminExpensesRouteImport } from './routes/admin.expenses'
+import { Route as AdminDeliveryRouteImport } from './routes/admin.delivery'
 import { Route as AdminBusinessRouteImport } from './routes/admin.business'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 import { Route as AdminMenuIndexRouteImport } from './routes/admin.menu.index'
@@ -66,6 +67,8 @@ import { Route as DeliveryTripsOrderIdRouteImport } from './routes/delivery.trip
 import { Route as AdminMenuItemRouteImport } from './routes/admin.menu.item'
 import { Route as AdminKitchenPrinterRouteImport } from './routes/admin.kitchen.printer'
 import { Route as AdminKitchenPrintHistoryRouteImport } from './routes/admin.kitchen.print-history'
+import { Route as AdminDeliveryZonesRouteImport } from './routes/admin.delivery.zones'
+import { Route as AdminDeliveryPayoutsRouteImport } from './routes/admin.delivery.payouts'
 
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
@@ -313,6 +316,11 @@ const AdminExpensesRoute = AdminExpensesRouteImport.update({
   path: '/expenses',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDeliveryRoute = AdminDeliveryRouteImport.update({
+  id: '/delivery',
+  path: '/delivery',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBusinessRoute = AdminBusinessRouteImport.update({
   id: '/business',
   path: '/business',
@@ -354,6 +362,16 @@ const AdminKitchenPrintHistoryRoute =
     path: '/kitchen/print-history',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminDeliveryZonesRoute = AdminDeliveryZonesRouteImport.update({
+  id: '/zones',
+  path: '/zones',
+  getParentRoute: () => AdminDeliveryRoute,
+} as any)
+const AdminDeliveryPayoutsRoute = AdminDeliveryPayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
+  getParentRoute: () => AdminDeliveryRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -380,6 +398,7 @@ export interface FileRoutesByFullPath {
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/business': typeof AdminBusinessRoute
+  '/admin/delivery': typeof AdminDeliveryRouteWithChildren
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -407,6 +426,8 @@ export interface FileRoutesByFullPath {
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
   '/delivery/': typeof DeliveryIndexRoute
+  '/admin/delivery/payouts': typeof AdminDeliveryPayoutsRoute
+  '/admin/delivery/zones': typeof AdminDeliveryZonesRoute
   '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
@@ -437,6 +458,7 @@ export interface FileRoutesByTo {
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/business': typeof AdminBusinessRoute
+  '/admin/delivery': typeof AdminDeliveryRouteWithChildren
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -463,6 +485,8 @@ export interface FileRoutesByTo {
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin': typeof AdminIndexRoute
   '/delivery': typeof DeliveryIndexRoute
+  '/admin/delivery/payouts': typeof AdminDeliveryPayoutsRoute
+  '/admin/delivery/zones': typeof AdminDeliveryZonesRoute
   '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
@@ -496,6 +520,7 @@ export interface FileRoutesById {
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/business': typeof AdminBusinessRoute
+  '/admin/delivery': typeof AdminDeliveryRouteWithChildren
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -523,6 +548,8 @@ export interface FileRoutesById {
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
   '/delivery/': typeof DeliveryIndexRoute
+  '/admin/delivery/payouts': typeof AdminDeliveryPayoutsRoute
+  '/admin/delivery/zones': typeof AdminDeliveryZonesRoute
   '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
@@ -557,6 +584,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/admin/billing'
     | '/admin/business'
+    | '/admin/delivery'
     | '/admin/expenses'
     | '/admin/inventory'
     | '/admin/marketing'
@@ -584,6 +612,8 @@ export interface FileRouteTypes {
     | '/track/$orderId'
     | '/admin/'
     | '/delivery/'
+    | '/admin/delivery/payouts'
+    | '/admin/delivery/zones'
     | '/admin/kitchen/print-history'
     | '/admin/kitchen/printer'
     | '/admin/menu/item'
@@ -614,6 +644,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/admin/billing'
     | '/admin/business'
+    | '/admin/delivery'
     | '/admin/expenses'
     | '/admin/inventory'
     | '/admin/marketing'
@@ -640,6 +671,8 @@ export interface FileRouteTypes {
     | '/track/$orderId'
     | '/admin'
     | '/delivery'
+    | '/admin/delivery/payouts'
+    | '/admin/delivery/zones'
     | '/admin/kitchen/print-history'
     | '/admin/kitchen/printer'
     | '/admin/menu/item'
@@ -672,6 +705,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/admin/billing'
     | '/admin/business'
+    | '/admin/delivery'
     | '/admin/expenses'
     | '/admin/inventory'
     | '/admin/marketing'
@@ -699,6 +733,8 @@ export interface FileRouteTypes {
     | '/track/$orderId'
     | '/admin/'
     | '/delivery/'
+    | '/admin/delivery/payouts'
+    | '/admin/delivery/zones'
     | '/admin/kitchen/print-history'
     | '/admin/kitchen/printer'
     | '/admin/menu/item'
@@ -1081,6 +1117,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminExpensesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/delivery': {
+      id: '/admin/delivery'
+      path: '/delivery'
+      fullPath: '/admin/delivery'
+      preLoaderRoute: typeof AdminDeliveryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/business': {
       id: '/admin/business'
       path: '/business'
@@ -1137,8 +1180,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminKitchenPrintHistoryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/delivery/zones': {
+      id: '/admin/delivery/zones'
+      path: '/zones'
+      fullPath: '/admin/delivery/zones'
+      preLoaderRoute: typeof AdminDeliveryZonesRouteImport
+      parentRoute: typeof AdminDeliveryRoute
+    }
+    '/admin/delivery/payouts': {
+      id: '/admin/delivery/payouts'
+      path: '/payouts'
+      fullPath: '/admin/delivery/payouts'
+      preLoaderRoute: typeof AdminDeliveryPayoutsRouteImport
+      parentRoute: typeof AdminDeliveryRoute
+    }
   }
 }
+
+interface AdminDeliveryRouteChildren {
+  AdminDeliveryPayoutsRoute: typeof AdminDeliveryPayoutsRoute
+  AdminDeliveryZonesRoute: typeof AdminDeliveryZonesRoute
+}
+
+const AdminDeliveryRouteChildren: AdminDeliveryRouteChildren = {
+  AdminDeliveryPayoutsRoute: AdminDeliveryPayoutsRoute,
+  AdminDeliveryZonesRoute: AdminDeliveryZonesRoute,
+}
+
+const AdminDeliveryRouteWithChildren = AdminDeliveryRoute._addFileChildren(
+  AdminDeliveryRouteChildren,
+)
 
 interface AdminMenuRouteChildren {
   AdminMenuItemRoute: typeof AdminMenuItemRoute
@@ -1157,6 +1228,7 @@ const AdminMenuRouteWithChildren = AdminMenuRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminBillingRoute: typeof AdminBillingRoute
   AdminBusinessRoute: typeof AdminBusinessRoute
+  AdminDeliveryRoute: typeof AdminDeliveryRouteWithChildren
   AdminExpensesRoute: typeof AdminExpensesRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminMarketingRoute: typeof AdminMarketingRoute
@@ -1178,6 +1250,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBillingRoute: AdminBillingRoute,
   AdminBusinessRoute: AdminBusinessRoute,
+  AdminDeliveryRoute: AdminDeliveryRouteWithChildren,
   AdminExpensesRoute: AdminExpensesRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminMarketingRoute: AdminMarketingRoute,

@@ -2351,3 +2351,10 @@ export async function updateDeliverySettings(
   if (!res.ok) throw new Error(json.error || "Failed to update delivery settings");
   return json;
 }
+
+export async function getDeliverySettings(): Promise<DeliverySettings> {
+  const res = await apiFetch(`${API_BASE}/delivery/admin/settings`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to fetch delivery settings");
+  return json;
+}
