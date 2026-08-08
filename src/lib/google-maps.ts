@@ -5,7 +5,21 @@ let mapsPromise: Promise<any> | null = null;
 declare global {
   interface Window {
     google?: any;
+    gm_authFailure?: () => void;
   }
+}
+
+let mapsAuthBlocked = false;
+let mapsPendingReject: ((error: Error) => void) | null = null;
+
+function handleMapsAuthFailure() {
+  mapsAuthBlocked = true;
+  if (mapsPendingReject) {
+    const reject = mapsPendingReject;
+    mapsPendingReject = null;
+    reject(new Error("Google Maps is blocked for this domain. Add this site to the API key restrictions."));
+  }
+  mapsPromise = null;
 }
 
 export type LatLngLiteral = { lat: number; lng: number };
@@ -29,21 +43,44 @@ export function hasGoogleMapsKey() {
   return Boolean(GOOGLE_MAPS_KEY);
 }
 
+export function googleMapsEmbedUrl(coords: { lat: number; lng: number }, label?: string, zoom = 15) {
+  if (label) {
+    return `https://www.google.com/maps?q=${encodeURIComponent(label)}&z=${zoom}&output=embed`;
+  }
+  return `https://maps.google.com/maps?q=${coords.lat},${coords.lng}&z=${zoom}&output=embed`;
+}
+
 export function loadGoogleMaps(): Promise<any> {
   if (!GOOGLE_MAPS_KEY) return Promise.reject(new Error("Google Maps API key is not configured"));
   if (typeof window === "undefined")
     return Promise.reject(new Error("Google Maps is only available in the browser"));
-  if (window.google?.maps?.places && window.google?.maps?.geometry) return Promise.resolve(window.google);
+if (window.google?.maps?.places && window.google?.maps?.geometry) return Promise.resolve(window.google);
   if (mapsPromise) return mapsPromise;
+  if (mapsAuthBlocked) {
+    return Promise.reject(
+      new Error("Google Maps is blocked for this domain. Add this site to the API key restrictions."),
+    );
+  }
+
+  if (!window.gm_authFailure) {
+    window.gm_authFailure = handleMapsAuthFailure;
+  }
 
   mapsPromise = new Promise((resolve, reject) => {
+    mapsPendingReject = reject;
     const cleanupAndReject = (error: Error) => {
+      if (mapsPendingReject === reject) mapsPendingReject = null;
       mapsPromise = null;
       document.querySelectorAll<HTMLScriptElement>("script[data-google-maps='true']").forEach((script) => {
         if (!window.google?.maps) script.remove();
       });
       reject(error);
     };
+
+    const timer = window.setTimeout(() => {
+      cleanupAndReject(new Error("Google Maps failed to load (API key may be blocked for this domain)"));
+    }, 15000);
+    const startCleanup = () => window.clearTimeout(timer);
 
     const loadMissingLibraries = async () => {
       const importLibrary = window.google?.maps?.importLibrary;
@@ -54,7 +91,9 @@ export function loadGoogleMaps(): Promise<any> {
       if (tasks.length) await Promise.all(tasks);
     };
 
-    const resolveWhenReady = () => {
+const resolveWhenReady = () => {
+      startCleanup();
+      if (mapsPendingReject === reject) mapsPendingReject = null;
       if (window.google?.maps?.places && window.google?.maps?.geometry) {
         resolve(window.google);
         return;
@@ -62,6 +101,7 @@ export function loadGoogleMaps(): Promise<any> {
       window.setTimeout(() => {
         loadMissingLibraries()
           .then(() => {
+            if (mapsPendingReject === reject) mapsPendingReject = null;
             if (window.google?.maps?.places && window.google?.maps?.geometry) {
               resolve(window.google);
             } else {

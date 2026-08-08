@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   geocodePlace,
   getPlaceSuggestions,
+  googleMapsEmbedUrl,
   hasGoogleMapsKey,
   loadGoogleMaps,
   reverseGeocodeAddress,
@@ -253,18 +254,19 @@ export function LocationPicker({
       toast.error("Location permission is not supported on this device");
       return;
     }
-    if (!hasGoogleMapsKey()) {
-      toast.error("Google Maps key is not configured. Please try again after Maps is available.");
-      return;
-    }
     setLocating(true);
-    toast.info("Allow location permission to show your blue current-location dot");
+    toast.info("Allow location permission to pin your exact delivery point");
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
         setUserLocation(coords);
-        moveMapTo(coords, 20);
-        reverseGeocode(coords).finally(() => setLocating(false));
+        try {
+          await reverseGeocode(coords, true);
+        } catch {
+          emitLocation(coords, `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
+        } finally {
+          setLocating(false);
+        }
       },
       () => {
         setLocating(false);
@@ -347,21 +349,38 @@ export function LocationPicker({
         <div className="relative">
           {mapError ? (
             <div
-              className={`${compact ? "h-[56vh] min-h-[430px] md:h-[620px] md:min-h-[520px]" : "h-[76vh] min-h-[560px]"} grid w-full place-items-center bg-zinc-200 p-5 text-center`}
+              className={`relative ${compact ? "h-[56vh] min-h-[430px] md:h-[620px] md:min-h-[520px]" : "h-[76vh] min-h-[560px]"} w-full bg-zinc-200`}
             >
-              <div className="max-w-sm rounded-[28px] bg-white p-5 shadow-xl ring-1 ring-zinc-100">
-                <MapPin className="mx-auto h-9 w-9 text-red-600" />
-                <p className="mt-3 text-base font-black text-zinc-900">Map could not load</p>
-                <p className="mt-1 text-sm font-semibold text-zinc-500">
-                  {mapError}. Check the Google Maps key, enabled APIs, and allowed domain.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setMapRetry((count) => count + 1)}
-                  className="mt-4 min-h-11 rounded-2xl bg-zinc-950 px-5 text-sm font-black text-white"
-                >
-                  Retry map
-                </button>
+              <iframe
+                title="Delivery location map"
+                src={googleMapsEmbedUrl(value || restaurant || DEFAULT_CENTER, query || "Ankapur Dhaba", 15)}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="absolute inset-0 h-full w-full"
+              />
+              <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                <CenterPin moving={false} />
+              </div>
+              <div className="absolute inset-x-0 top-3 grid place-items-center px-4">
+                <div className="pointer-events-auto flex max-w-sm items-start gap-3 rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-zinc-100 backdrop-blur">
+                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-zinc-900">
+                      {query.trim() || (value ? `${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}` : "Delivery location")}
+                    </p>
+                    <p className="mt-0.5 text-xs font-semibold text-zinc-500">
+                      Interactive map is unavailable. Use the search or Current button above to pin a
+                      location, then review it here.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setMapRetry((count) => count + 1)}
+                      className="mt-2 rounded-full bg-zinc-950 px-4 py-1.5 text-xs font-black text-white"
+                    >
+                      Retry map
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (

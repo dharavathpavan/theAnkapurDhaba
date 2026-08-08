@@ -1395,8 +1395,16 @@ function ZoneSettings({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border bg-background">
-        {hasGoogleMapsKey() && coords ? (
+        {hasGoogleMapsKey() && coords && mapReady ? (
           <div ref={mapEl} className="h-[360px] w-full" />
+        ) : hasGoogleMapsKey() && coords ? (
+          <iframe
+            title="Restaurant delivery zone map preview"
+            src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=12&output=embed`}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            className="h-[360px] w-full"
+          />
         ) : (
           <div className="grid h-[360px] place-items-center p-6 text-center">
             <div>
