@@ -23,6 +23,8 @@ import {
   ShieldCheck,
   Star,
   History,
+  Megaphone,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "@/stores/auth";
 import { subscribeToCustomerContent, subscribeToOrderEvents } from "@/services/api";
@@ -39,6 +41,7 @@ export const Route = createFileRoute("/admin")({
 const NAV = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/orders", label: "Orders", icon: ClipboardList },
+  { to: "/admin/billing", label: "Self Billing", icon: Receipt },
   { to: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
   { to: "/admin/tables", label: "Tables", icon: QrCode },
   { to: "/kitchen", label: "Kitchen", icon: ChefHat },
@@ -48,6 +51,7 @@ const NAV = [
   { to: "/admin/delivery/zones", label: "Delivery Zones", icon: MapPin },
   { to: "/admin/users", label: "Customers", icon: Users },
   { to: "/admin/reviews", label: "Reviews", icon: Star },
+  { to: "/admin/marketing", label: "Marketing", icon: Megaphone },
   { to: "/admin/inventory", label: "Inventory", icon: PackageSearch },
   { to: "/admin/expenses", label: "Expenses", icon: ReceiptText },
   { to: "/admin/salary", label: "Staff Salary", icon: BadgeIndianRupee },
