@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
   CalendarDays,
+  ChevronDown,
   ChevronRight,
-  CreditCard,
   Gift,
   Headphones,
   Heart,
@@ -90,6 +90,7 @@ function ProfilePage() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [addressOpen, setAddressOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [addressDraft, setAddressDraft] = useState<AddressDraft>(blankAddress);
   const [photoUrl, setPhotoUrl] = useState("");
@@ -169,6 +170,15 @@ function ProfilePage() {
     typeof addressDraft.lat === "number" && typeof addressDraft.lng === "number"
       ? { lat: addressDraft.lat, lng: addressDraft.lng }
       : null;
+
+  const selectedPreferenceCount = useMemo(
+    () =>
+      Object.entries(preferenceGroups).reduce(
+        (sum, [group, values]) => sum + values.filter((value) => preferences[group]?.includes(value)).length,
+        0,
+      ),
+    [preferences],
+  );
 
   useEffect(() => {
     if (!profile) return;
@@ -317,12 +327,33 @@ function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-7xl overflow-x-hidden px-3 pb-36 pt-2 sm:px-4 md:px-6 md:py-8">
-      <section className="overflow-hidden rounded-[20px] bg-zinc-950 text-white shadow-xl shadow-zinc-950/15 md:rounded-[34px] md:shadow-2xl">
-        <div className="relative p-3 sm:p-4 md:p-7">
-          <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-red-600/25 blur-3xl md:h-44 md:w-44" />
-          <div className="relative flex flex-col gap-3 md:gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 items-center gap-2.5 md:gap-4">
-              <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-[16px] bg-white/10 text-base font-black ring-1 ring-white/15 sm:h-14 sm:w-14 md:h-20 md:w-20 md:rounded-[28px] md:text-3xl">
+      {/* Hero */}
+      <section className="overflow-hidden rounded-[26px] bg-white shadow-sm ring-1 ring-zinc-100 md:rounded-[36px] md:shadow-lg md:shadow-zinc-950/5">
+        <div className="relative bg-gradient-to-r from-red-600 via-red-500 to-amber-500 px-4 py-5 md:px-8 md:py-7">
+          <div className="absolute -right-6 -top-10 h-28 w-28 rounded-full bg-white/15 blur-2xl md:h-44 md:w-44" />
+          <div className="absolute bottom-0 right-24 hidden h-16 w-16 rounded-full bg-amber-300/20 blur-2xl md:block" />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-red-100 md:text-xs md:tracking-[0.26em]">
+                My Account
+              </div>
+              <p className="mt-1 text-xs font-bold text-white/80 md:text-sm">
+                Welcome back, foodie
+              </p>
+            </div>
+            <button
+              onClick={() => setEditOpen(true)}
+              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-xs font-black text-red-600 shadow-lg shadow-red-900/20 transition hover:-translate-y-0.5 hover:shadow-xl md:min-h-12 md:px-5 md:text-sm"
+            >
+              <Pencil className="h-4 w-4" /> Edit Profile
+            </button>
+          </div>
+        </div>
+
+        <div className="px-4 pb-4 pt-3 md:px-8 md:pb-6 md:pt-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3 md:gap-4">
+              <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[20px] bg-red-50 text-xl font-black text-red-600 ring-2 ring-red-100 sm:h-16 sm:w-16 md:h-20 md:w-20 md:rounded-[26px] md:text-3xl">
                 {photoUrl ? (
                   <img
                     src={photoUrl}
@@ -334,30 +365,19 @@ function ProfilePage() {
                 )}
               </div>
               <div className="min-w-0">
-                <div className="text-[8px] font-black uppercase tracking-[0.12em] text-red-200 md:text-xs md:tracking-[0.22em]">
-                  My Account
-                </div>
-                <h1 className="mt-0.5 max-w-[190px] truncate text-base font-black leading-tight min-[390px]:max-w-[230px] sm:max-w-none sm:text-xl md:mt-1 md:text-5xl">
+                <h1 className="truncate text-2xl font-black leading-tight md:text-4xl">
                   {profileUser?.name}
                 </h1>
-                <p className="mt-0.5 truncate text-[11px] font-semibold text-white/65 md:mt-1 md:text-sm">
-                  {profileUser?.phone}
-                </p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5 md:mt-3 md:gap-2">
+                <p className="mt-0.5 truncate text-sm font-bold text-zinc-500">{profileUser?.phone}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5 md:gap-2">
                   <Badge>{loyalty?.tier || "Bronze"} member</Badge>
                   <Badge>{defaultAddress ? defaultAddress.label : "No address saved"}</Badge>
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setEditOpen(true)}
-              className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 text-xs font-black text-zinc-950 sm:w-auto md:min-h-12 md:px-5 md:text-sm"
-            >
-              <Pencil className="h-4 w-4" /> Edit Profile
-            </button>
           </div>
 
-          <div className="relative mt-3 grid grid-cols-3 gap-2 md:mt-6 md:gap-3">
+          <div className="mt-4 grid grid-cols-3 gap-2 md:mt-6 md:gap-3">
             {summary.map((item) => (
               <HeroStat key={item.label} {...item} />
             ))}
@@ -365,15 +385,11 @@ function ProfilePage() {
         </div>
       </section>
 
+      {/* Quick actions */}
       <section className="mt-3 grid grid-cols-2 gap-2 min-[420px]:grid-cols-4 md:mt-4 md:grid-cols-8 md:gap-3">
         <QuickAction to="/orders" icon={Package} label="Orders" tone="red" />
         <QuickAction to="/wallet" icon={Wallet} label="Wallet" tone="green" />
-        <QuickAction
-          onClick={() => openAddressEditor()}
-          icon={MapPin}
-          label="Address"
-          tone="blue"
-        />
+        <QuickAction onClick={() => openAddressEditor()} icon={MapPin} label="Address" tone="blue" />
         <QuickAction to="/support" icon={Headphones} label="Support" tone="dark" />
         <QuickAction to="/favorites" icon={Heart} label="Favorites" tone="pink" />
         <QuickAction to="/cart" icon={Ticket} label="Coupons" tone="yellow" />
@@ -386,25 +402,29 @@ function ProfilePage() {
         <QuickAction to="/privacy-policy" icon={ShieldCheck} label="Legal" tone="slate" />
       </section>
 
-      <div className="mt-4 grid min-w-0 gap-4 md:mt-5 md:gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-        <main className="space-y-4 md:space-y-5">
+      <div className="mt-4 grid min-w-0 gap-4 md:mt-5 md:gap-5 lg:grid-cols-[1.4fr_1fr]">
+        <main className="min-w-0 space-y-4 md:space-y-5">
           {activeOrder && (
             <Link
               to="/orders/$orderId"
               params={{ orderId: activeOrder.id }}
-              className="block rounded-[24px] bg-gradient-to-br from-red-600 to-red-800 p-4 text-white shadow-xl shadow-red-600/20 md:rounded-[30px] md:p-5"
+              className="block rounded-[26px] bg-gradient-to-r from-red-600 to-amber-500 p-4 text-white shadow-lg shadow-red-600/20 md:rounded-[32px] md:p-5"
             >
               <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-white/65">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/75">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-60" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                    </span>
                     Active live order
                   </p>
-                  <h2 className="mt-1 text-xl font-black md:text-2xl">#{activeOrder.id}</h2>
-                  <p className="mt-1 text-sm font-semibold capitalize text-white/75">
+                  <h2 className="mt-1 truncate text-xl font-black md:text-2xl">#{activeOrder.id}</h2>
+                  <p className="mt-1 text-sm font-bold capitalize text-white/85">
                     {activeOrder.status.replace(/_/g, " ")}
                   </p>
                 </div>
-                <span className="rounded-2xl bg-white px-3 py-2 text-xs font-black text-red-700 md:px-4 md:text-sm">
+                <span className="shrink-0 rounded-2xl bg-white px-3.5 py-2.5 text-xs font-black text-red-600 shadow-md md:px-4 md:text-sm">
                   Track
                 </span>
               </div>
@@ -435,25 +455,23 @@ function ProfilePage() {
                 }
               />
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {recentOrders.map((order) => (
                   <Link
                     key={order.id}
                     to="/orders/$orderId"
                     params={{ orderId: order.id }}
-                    className="flex items-center justify-between gap-3 rounded-[22px] bg-zinc-50 p-3 md:rounded-3xl md:p-4"
+                    className="group flex items-center justify-between gap-3 rounded-[20px] bg-zinc-50 p-3.5 transition hover:bg-red-50/60 md:rounded-3xl md:p-4"
                   >
                     <span className="min-w-0">
-                      <span className="block truncate font-black">#{order.id}</span>
-                      <span className="mt-1 block truncate text-sm font-semibold text-zinc-500">
+                      <span className="block truncate font-black text-zinc-900">#{order.id}</span>
+                      <span className="mt-0.5 block truncate text-sm font-semibold text-zinc-500">
                         {order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}
                       </span>
                     </span>
                     <span className="shrink-0 text-right">
-                      <span className="block font-black">Rs {order.total}</span>
-                      <span className="text-xs font-black capitalize text-zinc-400">
-                        {order.status.replace(/_/g, " ")}
-                      </span>
+                      <span className="block font-black text-zinc-900">Rs {order.total}</span>
+                      <StatusPill status={order.status} />
                     </span>
                   </Link>
                 ))}
@@ -478,25 +496,36 @@ function ProfilePage() {
                 icon={MapPin}
                 title="No address saved"
                 text="Add your delivery address for faster checkout."
+                action={
+                  <button
+                    onClick={() => openAddressEditor()}
+                    className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-black text-white"
+                  >
+                    Add address
+                  </button>
+                }
               />
             ) : (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-2.5 sm:grid-cols-2">
                 {addresses.map((address) => (
                   <article
                     key={address.id}
-                    className="rounded-[22px] bg-zinc-50 p-3 md:rounded-3xl md:p-4"
+                    className="rounded-[20px] bg-zinc-50 p-3.5 transition hover:bg-red-50/60 md:rounded-3xl md:p-4"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2 font-black">
-                          <Home className="h-4 w-4 text-red-600" /> {address.label}
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-red-600/10 text-red-600">
+                            <Home className="h-4 w-4" />
+                          </span>
+                          <span className="truncate">{address.label}</span>
                           {address.isDefault && (
-                            <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black text-green-700">
+                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-700">
                               Default
                             </span>
                           )}
                         </div>
-                        <p className="mt-2 line-clamp-3 text-sm font-semibold leading-5 text-zinc-600">
+                        <p className="mt-2 line-clamp-2 text-sm font-semibold leading-5 text-zinc-600">
                           {address.address}
                         </p>
                         {address.landmark && (
@@ -507,7 +536,7 @@ function ProfilePage() {
                       </div>
                       <button
                         onClick={() => openAddressEditor(address)}
-                        className="rounded-2xl bg-white p-2 text-zinc-600 ring-1 ring-zinc-200"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-zinc-600 shadow-sm ring-1 ring-zinc-200 transition hover:text-red-600"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -521,40 +550,66 @@ function ProfilePage() {
           <Panel
             title="Food preferences"
             action={
-              <span className="text-xs font-black text-zinc-400">
-                {saveProfile.isPending ? "Saving..." : "Tap to update"}
-              </span>
+              <button
+                onClick={() => setPrefsOpen((open) => !open)}
+                className="inline-flex items-center gap-1 text-sm font-black text-red-600"
+              >
+                {prefsOpen ? "Hide" : "Show"}
+                <ChevronDown className={`h-4 w-4 transition-transform ${prefsOpen ? "rotate-180" : ""}`} />
+              </button>
             }
           >
-            <div className="space-y-4">
-              {Object.entries(preferenceGroups).map(([group, values]) => (
-                <div key={group}>
-                  <div className="mb-2 text-sm font-black capitalize text-zinc-700">
-                    {group.replace(/([A-Z])/g, " $1")}
+            {!prefsOpen ? (
+              <button
+                onClick={() => setPrefsOpen(true)}
+                className="flex w-full items-center justify-between rounded-[20px] bg-zinc-50 p-4 text-left transition hover:bg-red-50/60 md:rounded-3xl md:p-5"
+              >
+                <span className="min-w-0">
+                  <span className="block font-black text-zinc-900">
+                    {selectedPreferenceCount > 0
+                      ? `${selectedPreferenceCount} preference${selectedPreferenceCount > 1 ? "s" : ""} saved`
+                      : "Personalise your menu"}
+                  </span>
+                  <span className="mt-0.5 block text-sm font-semibold text-zinc-500">
+                    Tap to set your tastes for better recommendations
+                  </span>
+                </span>
+                <ChevronRight className="ml-3 h-5 w-5 shrink-0 text-zinc-400" />
+              </button>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(preferenceGroups).map(([group, values]) => (
+                  <div key={group}>
+                    <div className="mb-2 text-sm font-black capitalize text-zinc-700">
+                      {group.replace(/([A-Z])/g, " $1")}
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {values.map((value) => {
+                        const active = Boolean(preferences[group]?.includes(value));
+                        return (
+                          <button
+                            key={value}
+                            onClick={() => togglePreference(group, value)}
+                            className={`min-w-fit rounded-2xl px-4 py-2 text-sm font-black transition ${active ? "bg-red-600 text-white shadow-lg shadow-red-600/20" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+                          >
+                            {value}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {values.map((value) => {
-                      const active = Boolean(preferences[group]?.includes(value));
-                      return (
-                        <button
-                          key={value}
-                          onClick={() => togglePreference(group, value)}
-                          className={`min-w-fit rounded-2xl px-4 py-2 text-sm font-black transition ${active ? "bg-red-600 text-white shadow-lg shadow-red-600/20" : "bg-zinc-100 text-zinc-600"}`}
-                        >
-                          {value}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+                <p className="text-xs font-bold text-zinc-400">
+                  {saveProfile.isPending ? "Saving..." : "Changes save automatically"}
+                </p>
+              </div>
+            )}
           </Panel>
         </main>
 
-        <aside className="space-y-4 md:space-y-5">
+        <aside className="min-w-0 space-y-4 md:space-y-5">
           <Panel
-            title="Main Wallet"
+            title="Wallet"
             action={
               <Link to="/wallet" className="text-sm font-black text-red-600">
                 Open
@@ -562,13 +617,16 @@ function ProfilePage() {
             }
             loading={walletQuery.isLoading}
           >
-            <div className="rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-800 p-4 text-white md:rounded-[28px] md:p-5">
-              <Wallet className="h-6 w-6 md:h-7 md:w-7" />
-              <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-white/65 md:mt-6 md:text-xs md:tracking-[0.2em]">
-                Available balance
-              </p>
-              <div className="mt-1 text-3xl font-black md:text-4xl">
-                Rs {Math.round(wallet?.balance ?? 0)}
+            <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-800 p-4 text-white md:rounded-[28px] md:p-5">
+              <div className="absolute -right-5 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
+              <div className="relative">
+                <Wallet className="h-6 w-6 md:h-7 md:w-7" />
+                <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-white/70 md:mt-6 md:text-xs">
+                  Available balance
+                </p>
+                <div className="mt-1 text-3xl font-black md:text-4xl">
+                  Rs {Math.round(wallet?.balance ?? 0)}
+                </div>
               </div>
             </div>
             <div className="mt-3 space-y-2">
@@ -610,7 +668,7 @@ function ProfilePage() {
                     key={ticket.id}
                     to="/support/chat/$ticketId"
                     params={{ ticketId: ticket.id }}
-                    className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-3 md:p-4"
+                    className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-50 p-3.5 transition hover:bg-red-50/60 md:p-4"
                   >
                     <span className="min-w-0">
                       <span className="block truncate font-black">{ticket.subject}</span>
@@ -618,7 +676,7 @@ function ProfilePage() {
                         {ticket.status.replace(/_/g, " ")}
                       </span>
                     </span>
-                    <ChevronRight className="h-4 w-4 text-zinc-400" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />
                   </Link>
                 ))}
               </div>
@@ -651,17 +709,17 @@ function ProfilePage() {
                   <button
                     key={notice.id}
                     onClick={() => !notice.read && readNotification.mutate(notice.id)}
-                    className={`w-full rounded-2xl p-3 text-left md:p-4 ${notice.read ? "bg-zinc-50" : "bg-red-50 ring-1 ring-red-100"}`}
+                    className={`w-full rounded-2xl p-3 text-left transition md:p-4 ${notice.read ? "bg-zinc-50 hover:bg-zinc-100" : "bg-red-50 ring-1 ring-red-100 hover:bg-red-100/70"}`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div>
+                      <div className="min-w-0">
                         <div className="font-black">{notice.title}</div>
                         <p className="mt-1 text-sm font-semibold leading-5 text-zinc-600">
                           {notice.body}
                         </p>
                       </div>
                       {!notice.read && (
-                        <span className="mt-1 h-2.5 w-2.5 rounded-full bg-red-600" />
+                        <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-red-600" />
                       )}
                     </div>
                   </button>
@@ -671,7 +729,7 @@ function ProfilePage() {
           </Panel>
 
           <Panel title="Rewards and extras">
-            <div className="grid gap-3">
+            <div className="grid gap-2.5">
               <InfoTile
                 icon={Gift}
                 title={`${couponQuery.data?.length ?? 0} coupons`}
@@ -694,7 +752,7 @@ function ProfilePage() {
 
           <button
             onClick={signOut}
-            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-3xl bg-zinc-950 font-black text-white md:min-h-14"
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-3xl bg-zinc-950 font-black text-white transition hover:bg-zinc-800 md:min-h-14"
           >
             <LogOut className="h-5 w-5" /> Sign out
           </button>
@@ -705,7 +763,7 @@ function ProfilePage() {
         <Modal title="Edit profile" onClose={() => setEditOpen(false)}>
           <form onSubmit={submitProfile} className="space-y-4">
             <div className="flex items-center gap-4">
-              <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-[26px] bg-zinc-100 text-2xl font-black">
+              <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[26px] bg-red-50 text-2xl font-black text-red-600 ring-2 ring-red-100">
                 {photoUrl ? (
                   <img
                     src={photoUrl}
@@ -716,7 +774,7 @@ function ProfilePage() {
                   profileUser?.name?.charAt(0).toUpperCase()
                 )}
               </div>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-black text-white">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-black text-white transition hover:bg-zinc-800">
                 <Upload className="h-4 w-4" />{" "}
                 {uploadPhoto.isPending ? "Uploading..." : "Upload photo"}
                 <input
@@ -761,7 +819,7 @@ function ProfilePage() {
                 {["orders", "offers", "coupons", "announcements", "support"].map((key) => (
                   <label
                     key={key}
-                    className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-black capitalize"
+                    className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-black capitalize shadow-sm ring-1 ring-zinc-100"
                   >
                     {key}
                     <input
@@ -780,7 +838,7 @@ function ProfilePage() {
             </div>
             <button
               disabled={saveProfile.isPending || uploadPhoto.isPending}
-              className="min-h-14 w-full rounded-2xl bg-red-600 font-black text-white disabled:opacity-60"
+              className="min-h-14 w-full rounded-2xl bg-red-600 font-black text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700 disabled:opacity-60"
             >
               {saveProfile.isPending ? "Saving..." : "Save Profile"}
             </button>
@@ -803,7 +861,7 @@ function ProfilePage() {
                   !addressDraft.phone ||
                   !addressDraft.address
                 }
-                className="min-h-14 rounded-2xl bg-red-600 px-5 font-black text-white shadow-lg shadow-red-600/20 disabled:opacity-60"
+                className="min-h-14 rounded-2xl bg-red-600 px-5 font-black text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700 disabled:opacity-60"
               >
                 {saveAddress.isPending
                   ? "Saving..."
@@ -816,7 +874,7 @@ function ProfilePage() {
                   type="button"
                   onClick={() => editingAddressId && removeAddress.mutate(editingAddressId)}
                   disabled={removeAddress.isPending}
-                  className="min-h-14 rounded-2xl bg-zinc-100 px-5 font-black text-red-600 disabled:opacity-60"
+                  className="min-h-14 rounded-2xl bg-zinc-100 px-5 font-black text-red-600 transition hover:bg-zinc-200 disabled:opacity-60"
                 >
                   <Trash2 className="inline h-4 w-4" /> Delete
                 </button>
@@ -826,13 +884,13 @@ function ProfilePage() {
         >
           <div className="grid min-w-0 gap-3 lg:grid-cols-[1.05fr_0.95fr] lg:gap-4">
             <section className="min-w-0 space-y-3">
-              <div className="rounded-[22px] bg-zinc-950 p-3.5 text-white md:rounded-[26px] md:p-4">
+              <div className="rounded-[22px] bg-gradient-to-r from-zinc-900 to-zinc-800 p-3.5 text-white md:rounded-[26px] md:p-4">
                 <div className="flex items-start gap-3">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-red-600 md:h-11 md:w-11">
                     <MapPin className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <div className="text-xs font-black uppercase tracking-[0.16em] text-red-100 md:text-sm md:tracking-[0.18em]">
+                    <div className="text-xs font-black uppercase tracking-[0.16em] text-red-200 md:text-sm md:tracking-[0.18em]">
                       Delivery pin
                     </div>
                     <p className="mt-1 text-xs font-semibold leading-5 text-white/70 md:text-sm">
@@ -943,7 +1001,7 @@ function ProfilePage() {
 function SignedOutProfile() {
   return (
     <div className="mx-auto max-w-md px-4 py-16 text-center md:py-20">
-      <div className="mx-auto grid h-20 w-20 place-items-center rounded-[30px] bg-red-50 text-red-600">
+      <div className="mx-auto grid h-20 w-20 place-items-center rounded-[30px] bg-red-50 text-red-600 ring-1 ring-red-100">
         <User className="h-10 w-10" />
       </div>
       <h1 className="mt-5 text-3xl font-black">Sign in to your account</h1>
@@ -951,12 +1009,12 @@ function SignedOutProfile() {
         Manage orders, wallet, support chats, addresses, rewards and preferences from one place.
       </p>
       <div className="mt-6 grid gap-3">
-        <Link to="/login" className="rounded-3xl bg-red-600 px-6 py-4 font-black text-white">
+        <Link to="/login" className="rounded-3xl bg-red-600 px-6 py-4 font-black text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700">
           Sign in
         </Link>
         <Link
           to="/signup"
-          className="rounded-3xl bg-white px-6 py-4 font-black text-zinc-900 ring-1 ring-zinc-100"
+          className="rounded-3xl bg-white px-6 py-4 font-black text-zinc-900 ring-1 ring-zinc-100 transition hover:bg-zinc-50"
         >
           Create account
         </Link>
@@ -967,7 +1025,7 @@ function SignedOutProfile() {
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="max-w-full truncate rounded-full bg-white/12 px-2 py-0.5 text-[8px] font-black capitalize text-white/80 ring-1 ring-white/10 md:px-3 md:py-1 md:text-xs">
+    <span className="max-w-full truncate rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-black capitalize text-red-600 ring-1 ring-red-100 md:px-3 md:text-xs">
       {children}
     </span>
   );
@@ -983,12 +1041,10 @@ function HeroStat({
   icon: React.ElementType;
 }) {
   return (
-    <div className="min-w-0 rounded-2xl bg-white/10 p-2 ring-1 ring-white/10 md:rounded-3xl md:p-4">
-      <Icon className="h-4 w-4 text-red-200 md:h-5 md:w-5" />
-      <div className="mt-1 truncate text-[9px] font-bold text-white/55 md:mt-3 md:text-xs">
-        {label}
-      </div>
-      <div className="truncate text-xs font-black min-[390px]:text-sm md:text-xl">{value}</div>
+    <div className="min-w-0 rounded-2xl bg-zinc-50 p-2.5 text-center transition hover:bg-red-50/60 md:rounded-3xl md:p-4">
+      <Icon className="mx-auto h-4 w-4 text-red-600 md:h-5 md:w-5" />
+      <div className="mt-1 truncate text-sm font-black md:mt-2 md:text-2xl">{value}</div>
+      <div className="truncate text-[10px] font-bold text-zinc-500 md:text-xs">{label}</div>
     </div>
   );
 }
@@ -1007,8 +1063,8 @@ function QuickAction({
   tone: string;
 }) {
   const className =
-    "flex min-h-[64px] flex-col items-center justify-center gap-1.5 rounded-[18px] bg-white p-2 text-center text-[10px] font-black text-zinc-800 shadow-sm ring-1 ring-zinc-100 transition hover:-translate-y-0.5 hover:shadow-md md:min-h-[86px] md:gap-2 md:rounded-[24px] md:p-3 md:text-xs";
-  const iconClass = `grid h-8 w-8 place-items-center rounded-[14px] md:h-11 md:w-11 md:rounded-2xl ${toneClass(tone)}`;
+    "flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-[20px] bg-white p-2.5 text-center text-[10px] font-black text-zinc-700 shadow-sm ring-1 ring-zinc-100 transition hover:-translate-y-0.5 hover:shadow-md md:min-h-[92px] md:gap-2 md:rounded-[26px] md:p-3 md:text-xs";
+  const iconClass = `grid h-9 w-9 place-items-center rounded-[14px] md:h-11 md:w-11 md:rounded-2xl ${toneClass(tone)}`;
   const content = (
     <>
       <span className={iconClass}>
@@ -1056,13 +1112,32 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="min-w-0 rounded-[22px] bg-white p-3.5 shadow-sm ring-1 ring-zinc-100 md:rounded-[30px] md:p-5">
-      <div className="mb-3 flex items-center justify-between gap-3 md:mb-4">
-        <h2 className="min-w-0 truncate text-base font-black md:text-xl">{title}</h2>
+    <section className="min-w-0 rounded-[26px] bg-white p-4 shadow-sm ring-1 ring-zinc-100 md:rounded-[32px] md:p-6">
+      <div className="mb-4 flex items-center justify-between gap-3 md:mb-5">
+        <h2 className="min-w-0 truncate text-lg font-black md:text-xl">{title}</h2>
         {action}
       </div>
       {loading ? <div className="h-28 animate-pulse rounded-3xl bg-zinc-100" /> : children}
     </section>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
+  const normalized = status.replace(/_/g, " ");
+  const done = status === "delivered";
+  const cancelled = status === "cancelled";
+  return (
+    <span
+      className={`mt-1 block text-[10px] font-black capitalize md:text-xs ${
+        done
+          ? "text-emerald-600"
+          : cancelled
+            ? "text-red-600"
+            : "text-zinc-400"
+      }`}
+    >
+      {normalized}
+    </span>
   );
 }
 
@@ -1078,8 +1153,10 @@ function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[22px] bg-zinc-50 p-4 text-center md:rounded-3xl md:p-5">
-      <Icon className="mx-auto h-8 w-8 text-zinc-400" />
+    <div className="rounded-[22px] bg-zinc-50 p-5 text-center md:rounded-3xl">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100">
+        <Icon className="h-6 w-6 text-zinc-400" />
+      </div>
       <h3 className="mt-3 font-black">{title}</h3>
       <p className="mt-1 text-sm font-semibold text-zinc-500">{text}</p>
       {action && <div className="mt-4">{action}</div>}
@@ -1114,15 +1191,18 @@ function InfoTile({
 }) {
   const content = (
     <>
-      <Icon className="h-5 w-5 text-red-600" />
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-red-50 text-red-600">
+        <Icon className="h-5 w-5" />
+      </span>
       <span className="min-w-0">
         <span className="block truncate font-black">{title}</span>
         <span className="block truncate text-xs font-semibold text-zinc-500">{text}</span>
       </span>
-      {to && <ChevronRight className="ml-auto h-4 w-4 text-zinc-400" />}
+      {to && <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-zinc-400" />}
     </>
   );
-  const className = "flex items-center gap-3 rounded-2xl bg-zinc-50 p-3 text-left md:p-4";
+  const className =
+    "flex items-center gap-3 rounded-2xl bg-zinc-50 p-3 text-left transition hover:bg-red-50/60 md:p-4";
   if (to)
     return (
       <Link to={to as never} className={className}>
@@ -1157,7 +1237,7 @@ function AddressSheet({
             <button
               type="button"
               onClick={onClose}
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-zinc-100"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-zinc-100 transition hover:bg-zinc-200"
             >
               <X className="h-5 w-5" />
             </button>
@@ -1191,7 +1271,7 @@ function Modal({
             <h2 className="text-2xl font-black">{title}</h2>
             <button
               onClick={onClose}
-              className="grid h-10 w-10 place-items-center rounded-2xl bg-zinc-100"
+              className="grid h-10 w-10 place-items-center rounded-2xl bg-zinc-100 transition hover:bg-zinc-200"
             >
               <X className="h-5 w-5" />
             </button>
