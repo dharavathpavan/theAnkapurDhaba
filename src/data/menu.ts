@@ -31,6 +31,7 @@ export interface MenuItem {
   category: MenuCategory | string;
   categoryId?: string | null;
   image: string;
+  thumbnail?: string | null;
   images?: Array<{ id: string; url: string; kind: string; alt?: string | null; sortOrder: number }>;
   isVeg: boolean;
   dietType?: string;
