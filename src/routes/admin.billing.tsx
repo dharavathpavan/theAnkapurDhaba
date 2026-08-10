@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   BadgePercent,
   FileSpreadsheet,
@@ -120,6 +121,15 @@ function AdminBilling() {
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [fullscreen]);
 
   const subtotalRef = useRef(totals.subtotal);
   useEffect(() => {
@@ -279,10 +289,10 @@ function AdminBilling() {
     }
   }
 
-  return (
+  const posUI = (
     <div
       className={
-        fullscreen ? "fixed inset-0 z-[70] flex flex-col bg-background text-foreground" : ""
+        fullscreen ? "fixed inset-0 z-[9999] flex flex-col bg-background text-foreground" : ""
       }
     >
       <div
@@ -840,6 +850,8 @@ function AdminBilling() {
       )}
     </div>
   );
+
+  return fullscreen ? createPortal(posUI, document.body) : posUI;
 }
 
 function BillLine({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
