@@ -4,11 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   BadgePercent,
+  ChevronDown,
+  ChevronUp,
   FileSpreadsheet,
   FileText,
   Maximize2,
   Minimize2,
   Minus,
+  PanelLeftClose,
   Pin,
   Plus,
   Printer,
@@ -22,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { KotBill } from "@/components/site/KotBill";
+import { useAdminChrome } from "@/stores/admin-chrome";
 import { CATEGORIES, type MenuItem } from "@/data/menu";
 import {
   computeTotals,
@@ -65,6 +69,9 @@ function AdminBilling() {
   });
 
   const [fullscreen, setFullscreen] = useState(false);
+  const navHidden = useAdminChrome((state) => state.navHidden);
+  const setNavHidden = useAdminChrome((state) => state.setNavHidden);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("All");
   const [items, setItems] = useState<DraftItem[]>([]);
@@ -296,7 +303,7 @@ function AdminBilling() {
       }
     >
       <div
-        className={`flex flex-col ${fullscreen ? "h-full min-h-0" : "mx-auto min-h-screen max-w-[1600px] px-4 py-4 md:px-6"}`}
+        className={`flex flex-col ${fullscreen ? "h-full min-h-0" : `mx-auto w-full max-w-[1600px] px-4 py-4 md:px-6 ${navHidden ? "h-dvh" : "h-[calc(100dvh-81px)]"}`}`}
       >
         <header
           className={`mb-3 flex flex-wrap items-center justify-between gap-3 ${fullscreen ? "border-b border-border bg-surface px-4 py-3" : ""}`}
@@ -312,7 +319,7 @@ function AdminBilling() {
                 </span>
               </div>
             )}
-            <span className="text-sm text-muted-foreground">
+            <span className="hidden text-sm text-muted-foreground md:inline">
               Generate a counter bill, create the order, and send a live KOT to kitchen.
             </span>
           </div>
@@ -333,6 +340,14 @@ function AdminBilling() {
                 </button>
               </>
             )}
+            {!fullscreen && (
+              <button
+                onClick={() => setNavHidden(true)}
+                className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 font-display text-xs tracking-widest hover:bg-background"
+              >
+                <PanelLeftClose className="h-4 w-4" /> HIDE NAV
+              </button>
+            )}
             <button
               onClick={() => setFullscreen((value) => !value)}
               className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 font-display text-xs tracking-widest hover:bg-background"
@@ -350,9 +365,9 @@ function AdminBilling() {
         </header>
 
         <div
-          className={`grid min-h-0 gap-4 ${fullscreen ? "flex-1 grid-cols-1 lg:grid-cols-[1.5fr_1fr]" : "lg:grid-cols-[1.4fr_0.9fr]"}`}
+          className={`grid min-h-0 flex-1 gap-4 overflow-y-auto lg:overflow-hidden ${fullscreen ? "grid-cols-1 lg:grid-cols-[1.5fr_1fr]" : "lg:grid-cols-[1.4fr_0.9fr]"}`}
         >
-          <section className={`min-w-0 ${fullscreen ? "flex flex-col overflow-hidden" : ""}`}>
+          <section className="flex min-w-0 flex-col overflow-hidden">
             <div className="mb-3 grid gap-3 md:grid-cols-[1fr_auto]">
               <label className="relative block">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -375,9 +390,7 @@ function AdminBilling() {
               </select>
             </div>
 
-            <div
-              className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-3 ${fullscreen ? "content-start overflow-y-auto pr-1 pb-4" : ""}`}
-            >
+            <div className="grid content-start gap-3 overflow-y-auto pr-1 pb-4 sm:grid-cols-2 xl:grid-cols-3">
               {sortedMenu.map((item) => (
                 <button
                   key={item.id}
@@ -462,9 +475,7 @@ function AdminBilling() {
             </div>
           </section>
 
-          <aside
-            className={`lg:self-start ${fullscreen ? "min-h-0 overflow-y-auto" : "lg:sticky lg:top-24"}`}
-          >
+          <aside className="min-h-0 overflow-y-auto lg:self-start">
             <section className="rounded-lg border border-border bg-surface">
               <header className="border-b border-border px-4 py-3">
                 <div className="flex items-center justify-between">
@@ -684,31 +695,42 @@ function AdminBilling() {
         </div>
 
         <section
-          className={`mt-4 rounded-lg border border-border bg-surface ${fullscreen ? "flex min-h-0 flex-col" : ""}`}
+          className={`mt-4 flex flex-col rounded-lg border border-border bg-surface ${historyOpen ? "min-h-0 flex-1 max-h-[45%]" : ""}`}
         >
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
-            <div className="flex items-center gap-2">
+          <header className="relative flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+            <button
+              type="button"
+              onClick={() => setHistoryOpen((value) => !value)}
+              className="flex items-center gap-2 text-left"
+            >
               <h2 className="font-display text-xl tracking-widest">Complete Order History</h2>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-emerald-600">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> Live
               </span>
-            </div>
+              {historyOpen ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-muted-foreground">{orders.length} total orders</span>
-              <select
-                value={pageSize}
-                onChange={(event) => {
-                  setPageSize(Number(event.target.value));
-                  setPage(1);
-                }}
-                className="h-9 rounded-md border border-border bg-background px-2 text-xs font-bold"
-              >
-                {PAGE_SIZES.map((size) => (
-                  <option key={size} value={size}>
-                    {size} / page
-                  </option>
-                ))}
-              </select>
+              {historyOpen && (
+                <select
+                  value={pageSize}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value));
+                    setPage(1);
+                  }}
+                  className="h-9 rounded-md border border-border bg-background px-2 text-xs font-bold"
+                >
+                  {PAGE_SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size} / page
+                    </option>
+                  ))}
+                </select>
+              )}
               <button
                 onClick={() => {
                   downloadOrdersCsv(orders);
@@ -729,118 +751,124 @@ function AdminBilling() {
               </button>
             </div>
           </header>
-          <div className={`overflow-x-auto ${fullscreen ? "flex-1 overflow-y-auto" : ""}`}>
-            <table className="w-full min-w-[780px] text-sm">
-              <thead className="border-b border-border bg-background/50 text-left font-display text-xs tracking-widest text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Order</th>
-                  <th className="px-4 py-3">Customer</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Items</th>
-                  <th className="px-4 py-3">Total</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Print</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {pageOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-background/40">
-                    <td className="px-4 py-3">
-                      <div className="font-display text-primary">#{order.id}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleString()}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div>{order.customer.name}</div>
-                      <div className="text-xs text-muted-foreground">{order.customer.phone}</div>
-                    </td>
-                    <td className="px-4 py-3 uppercase">
-                      {order.tableNumber ? `Table ${order.tableNumber}` : order.type}
-                    </td>
-                    <td className="px-4 py-3">
-                      {order.items.reduce((sum, item) => sum + item.qty, 0)}
-                    </td>
-                    <td className="px-4 py-3 font-display">Rs {order.total}</td>
-                    <td className="px-4 py-3">
-                      <StatusPill status={order.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => {
-                            setCreatedOrder(order);
-                            setPrintKind("kot");
-                          }}
-                          className="rounded-md border border-border bg-background px-2 py-1 font-display text-[11px] tracking-widest hover:border-primary/50"
-                        >
-                          KOT
-                        </button>
-                        <button
-                          onClick={() => {
-                            setCreatedOrder(order);
-                            setPrintKind("bill");
-                          }}
-                          className="rounded-md border border-border bg-background px-2 py-1 font-display text-[11px] tracking-widest hover:border-primary/50"
-                        >
-                          BILL
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {pageOrders.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
-                      No orders yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {orders.length > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
-              <span className="text-xs text-muted-foreground">
-                Page {safePage} of {totalPages} · Showing {(safePage - 1) * pageSize + 1}–
-                {Math.min(safePage * pageSize, orders.length)} of {orders.length}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage((value) => Math.max(1, value - 1))}
-                  disabled={safePage <= 1}
-                  className="rounded-md border border-border bg-background px-3 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  PREV
-                </button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
-                  let start = Math.max(1, safePage - 2);
-                  start = Math.min(start, Math.max(1, totalPages - 4));
-                  const value = start + index;
-                  if (value > totalPages) return null;
-                  return (
-                    <button
-                      key={value}
-                      onClick={() => setPage(value)}
-                      className={`grid h-9 w-9 place-items-center rounded-md border text-xs font-black ${
-                        value === safePage
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background hover:border-primary/50"
-                      }`}
-                    >
-                      {value}
-                    </button>
-                  );
-                })}
-                <button
-                  onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-                  disabled={safePage >= totalPages}
-                  className="rounded-md border border-border bg-background px-3 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  NEXT
-                </button>
+          {historyOpen && (
+            <>
+              <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
+                <table className="w-full min-w-[780px] text-sm">
+                  <thead className="border-b border-border bg-background/50 text-left font-display text-xs tracking-widest text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3">Order</th>
+                      <th className="px-4 py-3">Customer</th>
+                      <th className="px-4 py-3">Type</th>
+                      <th className="px-4 py-3">Items</th>
+                      <th className="px-4 py-3">Total</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Print</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {pageOrders.map((order) => (
+                      <tr key={order.id} className="hover:bg-background/40">
+                        <td className="px-4 py-3">
+                          <div className="font-display text-primary">#{order.id}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(order.createdAt).toLocaleString()}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div>{order.customer.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {order.customer.phone}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 uppercase">
+                          {order.tableNumber ? `Table ${order.tableNumber}` : order.type}
+                        </td>
+                        <td className="px-4 py-3">
+                          {order.items.reduce((sum, item) => sum + item.qty, 0)}
+                        </td>
+                        <td className="px-4 py-3 font-display">Rs {order.total}</td>
+                        <td className="px-4 py-3">
+                          <StatusPill status={order.status} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setCreatedOrder(order);
+                                setPrintKind("kot");
+                              }}
+                              className="rounded-md border border-border bg-background px-2 py-1 font-display text-[11px] tracking-widest hover:border-primary/50"
+                            >
+                              KOT
+                            </button>
+                            <button
+                              onClick={() => {
+                                setCreatedOrder(order);
+                                setPrintKind("bill");
+                              }}
+                              className="rounded-md border border-border bg-background px-2 py-1 font-display text-[11px] tracking-widest hover:border-primary/50"
+                            >
+                              BILL
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {pageOrders.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                          No orders yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-            </div>
+              {orders.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+                  <span className="text-xs text-muted-foreground">
+                    Page {safePage} of {totalPages} · Showing {(safePage - 1) * pageSize + 1}–
+                    {Math.min(safePage * pageSize, orders.length)} of {orders.length}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage((value) => Math.max(1, value - 1))}
+                      disabled={safePage <= 1}
+                      className="rounded-md border border-border bg-background px-3 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      PREV
+                    </button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+                      let start = Math.max(1, safePage - 2);
+                      start = Math.min(start, Math.max(1, totalPages - 4));
+                      const value = start + index;
+                      if (value > totalPages) return null;
+                      return (
+                        <button
+                          key={value}
+                          onClick={() => setPage(value)}
+                          className={`grid h-9 w-9 place-items-center rounded-md border text-xs font-black ${
+                            value === safePage
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-background hover:border-primary/50"
+                          }`}
+                        >
+                          {value}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+                      disabled={safePage >= totalPages}
+                      className="rounded-md border border-border bg-background px-3 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      NEXT
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>

@@ -25,8 +25,10 @@ import {
   History,
   Megaphone,
   Receipt,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useAuth } from "@/stores/auth";
+import { useAdminChrome } from "@/stores/admin-chrome";
 import { subscribeToCustomerContent, subscribeToOrderEvents } from "@/services/api";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -74,6 +76,8 @@ function AdminLayout() {
   const qc = useQueryClient();
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navHidden = useAdminChrome((state) => state.navHidden);
+  const setNavHidden = useAdminChrome((state) => state.setNavHidden);
   const isKitchenAdminPath = pathname.startsWith("/admin/kitchen");
   const canAccess = hasRole("ADMIN") || (isKitchenAdminPath && hasRole("KITCHEN"));
   const navItems = hasRole("ADMIN") ? NAV : KITCHEN_NAV;
@@ -137,12 +141,14 @@ function AdminLayout() {
     );
   }
 
-  const current = navItems.find((n) => ("exact" in n && n.exact ? pathname === n.to : pathname.startsWith(n.to)));
+  const current = navItems.find((n) =>
+    "exact" in n && n.exact ? pathname === n.to : pathname.startsWith(n.to),
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[292px] border-r border-white/10 bg-[#110f12] text-white shadow-2xl transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 w-[292px] border-r border-white/10 bg-[#110f12] text-white shadow-2xl transition-transform duration-300 lg:translate-x-0 ${navHidden ? "-translate-x-full" : sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-full flex-col">
           <div className="border-b border-white/10 p-5">
@@ -170,7 +176,8 @@ function AdminLayout() {
 
           <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
             {navItems.map((n) => {
-              const active = "exact" in n && n.exact ? pathname === n.to : pathname.startsWith(n.to);
+              const active =
+                "exact" in n && n.exact ? pathname === n.to : pathname.startsWith(n.to);
               return (
                 <Link
                   key={n.to}
@@ -209,7 +216,7 @@ function AdminLayout() {
         </div>
       </aside>
 
-      {sidebarOpen && (
+      {sidebarOpen && !navHidden && (
         <button
           aria-label="Close admin menu"
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -217,8 +224,10 @@ function AdminLayout() {
         />
       )}
 
-      <div className="lg:pl-[292px]">
-        <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-xl">
+      <div className={navHidden ? "" : "lg:pl-[292px]"}>
+        <header
+          className={`${navHidden ? "hidden" : "sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-xl"}`}
+        >
           <div className="flex min-h-20 items-center justify-between gap-3 px-4 md:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <button
@@ -256,6 +265,16 @@ function AdminLayout() {
         </header>
         <Outlet />
       </div>
+
+      {navHidden && (
+        <button
+          type="button"
+          onClick={() => setNavHidden(false)}
+          className="fixed bottom-5 right-5 z-[70] inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-3 font-display text-xs tracking-widest text-foreground shadow-2xl hover:bg-background"
+        >
+          <PanelLeftOpen className="h-4 w-4" /> SHOW NAV
+        </button>
+      )}
     </div>
   );
 }
