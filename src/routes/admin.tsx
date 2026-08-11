@@ -148,7 +148,7 @@ function AdminLayout() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[292px] border-r border-white/10 bg-[#110f12] text-white shadow-2xl transition-transform duration-300 lg:translate-x-0 ${navHidden ? "-translate-x-full" : sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 w-[292px] border-r border-white/10 bg-[#110f12] text-white shadow-2xl transition-transform duration-300 ${navHidden ? "-translate-x-full lg:-translate-x-full" : sidebarOpen ? "translate-x-0 lg:translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         <div className="flex h-full flex-col">
           <div className="border-b border-white/10 p-5">
