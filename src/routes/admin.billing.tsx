@@ -365,7 +365,7 @@ function AdminBilling() {
         </header>
 
         <div
-          className={`grid min-h-0 flex-1 gap-4 overflow-y-auto lg:overflow-hidden ${fullscreen ? "grid-cols-1 lg:grid-cols-[1.5fr_1fr]" : "lg:grid-cols-[1.4fr_0.9fr]"}`}
+          className={`grid min-h-0 flex-1 gap-4 overflow-y-auto ${fullscreen ? "grid-cols-1 lg:grid-cols-[1.5fr_1fr]" : "lg:grid-cols-[1.4fr_0.9fr]"}`}
         >
           <section className="flex min-w-0 flex-col overflow-hidden">
             <div className="mb-3 grid gap-3 md:grid-cols-[1fr_auto]">
@@ -475,22 +475,22 @@ function AdminBilling() {
             </div>
           </section>
 
-          <aside className="min-h-0 overflow-y-auto lg:self-start">
-            <section className="rounded-lg border border-border bg-surface">
-              <header className="border-b border-border px-4 py-3">
+          <aside className="flex min-h-0 flex-col">
+            <section className="flex min-h-0 flex-col rounded-lg border border-border bg-surface">
+              <header className="border-b border-border px-4 py-2.5">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-display text-xl tracking-widest">Current Bill</h2>
+                  <h2 className="font-display text-lg tracking-widest">Current Bill</h2>
                   <span className="text-xs text-muted-foreground">{itemCount} items</span>
                 </div>
               </header>
 
-              <div className="space-y-3 p-4">
-                <div className="grid grid-cols-3 gap-2">
+              <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
+                <div className="grid grid-cols-3 gap-1.5">
                   {(["dinein", "pickup", "delivery"] as OrderType[]).map((mode) => (
                     <button
                       key={mode}
                       onClick={() => setType(mode)}
-                      className={`rounded-md border px-2 py-2 font-display text-xs tracking-widest ${
+                      className={`rounded-md border px-2 py-1.5 font-display text-[11px] tracking-widest ${
                         type === mode
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-background text-muted-foreground hover:text-foreground"
@@ -501,19 +501,19 @@ function AdminBilling() {
                   ))}
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-1.5 sm:grid-cols-2">
                   <input
                     value={customerName}
                     onChange={(event) => setCustomerName(event.target.value)}
                     placeholder="Customer name"
-                    className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                    className="rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
                   />
                   <input
                     value={customerPhone}
                     onChange={(event) => setCustomerPhone(event.target.value)}
                     placeholder="Phone"
                     inputMode="tel"
-                    className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                    className="rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
                   />
                 </div>
 
@@ -522,7 +522,7 @@ function AdminBilling() {
                     value={tableNumber}
                     onChange={(event) => setTableNumber(event.target.value)}
                     placeholder="Table number"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                    className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
                   />
                 )}
                 {type === "delivery" && (
@@ -530,30 +530,30 @@ function AdminBilling() {
                     value={address}
                     onChange={(event) => setAddress(event.target.value)}
                     placeholder="Delivery address"
-                    rows={2}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                    rows={1}
+                    className="w-full resize-none rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
                   />
                 )}
                 <textarea
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
                   placeholder="Kitchen note"
-                  rows={2}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                  rows={1}
+                  className="w-full resize-none rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
                 />
 
-                <div className="max-h-72 overflow-y-auto rounded-md border border-border bg-background">
+                <div className="max-h-44 overflow-y-auto rounded-md border border-border bg-background">
                   {items.length === 0 ? (
-                    <div className="grid min-h-32 place-items-center px-4 text-center text-sm text-muted-foreground">
+                    <div className="grid min-h-24 place-items-center px-4 text-center text-sm text-muted-foreground">
                       <span>
-                        <Utensils className="mx-auto mb-2 h-5 w-5" />
+                        <Utensils className="mx-auto mb-1 h-5 w-5" />
                         Add items from the menu
                       </span>
                     </div>
                   ) : (
                     <ul className="divide-y divide-border">
                       {items.map((item) => (
-                        <li key={item.id} className="p-3">
+                        <li key={item.id} className="p-2">
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <div className="font-display tracking-wide">{item.name}</div>
@@ -563,10 +563,10 @@ function AdminBilling() {
                             </div>
                             <div className="font-display">Rs {item.price * item.qty}</div>
                           </div>
-                          <div className="mt-2 flex items-center gap-2">
+                          <div className="mt-1.5 flex items-center gap-2">
                             <button
                               onClick={() => changeQty(item.id, -1)}
-                              className="grid h-8 w-8 place-items-center rounded-md border border-border bg-surface hover:bg-background"
+                              className="grid h-7 w-7 place-items-center rounded-md border border-border bg-surface hover:bg-background"
                               aria-label="Decrease quantity"
                             >
                               <Minus className="h-4 w-4" />
@@ -574,7 +574,7 @@ function AdminBilling() {
                             <span className="w-8 text-center font-display text-lg">{item.qty}</span>
                             <button
                               onClick={() => changeQty(item.id, 1)}
-                              className="grid h-8 w-8 place-items-center rounded-md border border-border bg-surface hover:bg-background"
+                              className="grid h-7 w-7 place-items-center rounded-md border border-border bg-surface hover:bg-background"
                               aria-label="Increase quantity"
                             >
                               <Plus className="h-4 w-4" />
@@ -586,22 +586,22 @@ function AdminBilling() {
                   )}
                 </div>
 
-                <div className="rounded-md border border-border bg-background p-3 text-sm">
+                <div className="rounded-md border border-border bg-background p-2.5 text-sm">
                   <BillLine label="Subtotal" value={`Rs ${totals.subtotal}`} />
                   <BillLine label="GST 5%" value={`Rs ${totals.tax}`} />
                   {totals.deliveryFee > 0 && (
                     <BillLine label="Delivery" value={`Rs ${totals.deliveryFee}`} />
                   )}
                   {discount > 0 && <BillLine label="Discount" value={`-Rs ${discount}`} accent />}
-                  <div className="mt-2 flex items-center justify-between border-t border-border pt-2 font-display text-2xl">
+                  <div className="mt-1.5 flex items-center justify-between border-t border-border pt-1.5 font-display text-xl">
                     <span>Total</span>
                     <span className="text-primary">Rs {grandTotal}</span>
                   </div>
                 </div>
 
-                <div className="rounded-md border border-border bg-background p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-muted-foreground">
+                <div className="rounded-md border border-border bg-background p-2.5">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                       <Tag className="h-3.5 w-3.5" /> Coupon &amp; Discount
                     </span>
                     {(appliedCoupon || manualDiscount > 0) && (
@@ -614,23 +614,23 @@ function AdminBilling() {
                     )}
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     <input
                       value={couponCode}
                       onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
                       placeholder="Coupon code"
-                      className="min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm uppercase outline-none focus:border-primary"
+                      className="min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-sm uppercase outline-none focus:border-primary"
                     />
                     <button
                       onClick={() => applyCoupon(couponCode)}
-                      className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-2 text-xs font-black tracking-widest text-primary-foreground hover:bg-primary-glow"
+                      className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-black tracking-widest text-primary-foreground hover:bg-primary-glow"
                     >
                       <BadgePercent className="h-4 w-4" /> APPLY
                     </button>
                   </div>
 
                   {appliedCoupon && (
-                    <div className="mt-2 flex items-center justify-between rounded-md border border-veg/30 bg-veg/10 px-3 py-2 text-sm">
+                    <div className="mt-1.5 flex items-center justify-between rounded-md border border-veg/30 bg-veg/10 px-2.5 py-1.5 text-sm">
                       <div>
                         <div className="font-black text-veg">{appliedCoupon.code}</div>
                         <div className="text-xs text-muted-foreground">{appliedCoupon.title}</div>
@@ -642,13 +642,13 @@ function AdminBilling() {
                   )}
 
                   {coupons.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
+                    <div className="mt-1.5 flex flex-wrap gap-1">
                       {coupons.slice(0, 4).map((coupon) => (
                         <button
                           key={coupon.id}
                           onClick={() => applyCoupon(coupon.code)}
                           disabled={appliedCoupon?.code === coupon.code}
-                          className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-bold disabled:opacity-40 hover:border-primary/50"
+                          className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-bold disabled:opacity-40 hover:border-primary/50"
                         >
                           {coupon.code}
                         </button>
@@ -656,7 +656,7 @@ function AdminBilling() {
                     </div>
                   )}
 
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-1.5 flex items-center gap-2">
                     <label className="text-xs text-muted-foreground">Manual discount (Rs)</label>
                     <input
                       value={manualDiscount || ""}
@@ -666,7 +666,7 @@ function AdminBilling() {
                       type="number"
                       min={0}
                       placeholder="0"
-                      className="w-28 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                      className="w-24 rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
                     />
                   </div>
                 </div>
@@ -674,7 +674,7 @@ function AdminBilling() {
                 <select
                   value={paymentMethod}
                   onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
-                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-primary"
+                  className="h-10 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none focus:border-primary"
                 >
                   <option value="cod">Cash</option>
                   <option value="upi">UPI</option>
@@ -684,7 +684,7 @@ function AdminBilling() {
                 <button
                   onClick={generateBill}
                   disabled={saving || items.length === 0}
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-primary font-display text-sm tracking-[0.25em] text-primary-foreground hover:bg-primary-glow disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary font-display text-sm tracking-[0.25em] text-primary-foreground hover:bg-primary-glow disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
                   {saving ? "CREATING..." : `GENERATE BILL + SEND KOT · Rs ${grandTotal}`}
