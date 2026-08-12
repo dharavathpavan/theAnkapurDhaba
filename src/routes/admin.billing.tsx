@@ -4,22 +4,32 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   BadgePercent,
+  Banknote,
+  Bike,
   ChevronDown,
   ChevronUp,
+  CreditCard,
   FileSpreadsheet,
   FileText,
+  MapPin,
   Maximize2,
   Minimize2,
   Minus,
+  NotebookPen,
   PanelLeftClose,
+  Phone,
   Pin,
   Plus,
   Printer,
   ReceiptText,
   Search,
   Send,
+  ShoppingBag,
+  ShoppingCart,
+  Smartphone,
   Tag,
   Trash2,
+  User,
   Utensils,
   X,
 } from "lucide-react";
@@ -90,6 +100,7 @@ function AdminBilling() {
   const [appliedCoupon, setAppliedCoupon] = useState<CustomerCoupon | null>(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [manualDiscount, setManualDiscount] = useState(0);
+  const [couponOpen, setCouponOpen] = useState(false);
   const [pinUpdating, setPinUpdating] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
@@ -103,6 +114,13 @@ function AdminBilling() {
   const grandTotal = useMemo(() => Math.max(0, totals.total - discount), [totals.total, discount]);
 
   const availableMenu = menu.filter((m) => m.available);
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of availableMenu) {
+      counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
+    }
+    return counts;
+  }, [availableMenu]);
   const filteredMenu = availableMenu.filter((m) => {
     const matchesCategory = category === "All" || m.category === category;
     const needle = query.trim().toLowerCase();
@@ -192,6 +210,10 @@ function AdminBilling() {
         .map((item) => (item.id === id ? { ...item, qty: Math.max(0, item.qty + delta) } : item))
         .filter((item) => item.qty > 0),
     );
+  }
+
+  function removeItem(id: string) {
+    setItems((current) => current.filter((item) => item.id !== id));
   }
 
   function clearBill() {
@@ -368,26 +390,59 @@ function AdminBilling() {
           className={`grid min-h-0 flex-1 gap-4 overflow-y-auto ${fullscreen ? "grid-cols-1 lg:grid-cols-[1.5fr_1fr]" : "lg:grid-cols-[1.4fr_0.9fr]"}`}
         >
           <section className="flex min-w-0 flex-col overflow-hidden">
-            <div className="mb-3 grid gap-3 md:grid-cols-[1fr_auto]">
-              <label className="relative block">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search menu"
-                  className="h-11 w-full rounded-md border border-input bg-surface pl-10 pr-3 text-sm outline-none focus:border-primary"
-                />
-              </label>
-              <select
-                value={category}
-                onChange={(event) => setCategory(event.target.value)}
-                className="h-11 rounded-md border border-input bg-surface px-3 text-sm outline-none focus:border-primary"
-              >
-                <option>All</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
+            <div className="mb-3 flex flex-col gap-2">
+              <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                <label className="relative block">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search menu"
+                    className="h-11 w-full rounded-md border border-input bg-surface pl-10 pr-10 text-sm outline-none focus:border-primary"
+                  />
+                  {query.length > 0 && (
+                    <button
+                      onClick={() => setQuery("")}
+                      aria-label="Clear search"
+                      className="absolute right-2.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </label>
+                <span className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-muted-foreground">
+                  <ShoppingCart className="h-4 w-4" />
+                  {sortedMenu.length} of {availableMenu.length} items
+                </span>
+              </div>
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {(["All", ...CATEGORIES] as string[]).map((c) => {
+                  const count = c === "All" ? availableMenu.length : (categoryCounts.get(c) ?? 0);
+                  const active = category === c;
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => setCategory(c)}
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-surface text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                      }`}
+                    >
+                      {c}
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${
+                          active
+                            ? "bg-primary-foreground/20 text-primary-foreground"
+                            : "bg-background"
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="grid content-start gap-3 overflow-y-auto pr-1 pb-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -395,7 +450,7 @@ function AdminBilling() {
                 <button
                   key={item.id}
                   onClick={() => addItem(item)}
-                  className="group relative flex min-h-40 flex-col overflow-hidden rounded-lg border border-border bg-surface text-left transition hover:border-primary/50 hover:bg-background"
+                  className="group relative flex min-h-44 flex-col overflow-hidden rounded-lg border border-border bg-surface text-left transition hover:border-primary/50 hover:bg-background"
                 >
                   <div className="relative aspect-[16/9] bg-background">
                     <img
@@ -405,24 +460,55 @@ function AdminBilling() {
                       className="h-full w-full object-cover"
                     />
                     <span
-                      className={`absolute right-2 top-2 rounded-full px-2 py-1 text-[10px] font-black ${
+                      className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-black ${
                         item.isVeg ? "bg-veg text-white" : "bg-primary text-primary-foreground"
                       }`}
                     >
                       {item.isVeg ? "VEG" : "NON-VEG"}
                     </span>
                     {(item.pinned || item.featured) && (
-                      <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-yellow-400 px-2 py-1 text-[10px] font-black text-black">
+                      <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-yellow-400 px-2 py-0.5 text-[10px] font-black text-black">
                         <Pin className="h-3 w-3" /> Priority
                       </span>
                     )}
                   </div>
                   <span className="flex flex-1 flex-col p-3">
-                    <span className="font-display text-lg leading-tight tracking-wide">
+                    <span className="line-clamp-2 font-display text-lg leading-tight tracking-wide">
                       {item.name}
                     </span>
-                    <span className="mt-1 text-xs text-muted-foreground">{item.category}</span>
-                    <span className="mt-3 flex items-center justify-between">
+                    <span className="mt-1 flex items-center justify-between gap-2">
+                      <span className="truncate text-xs text-muted-foreground">
+                        {item.category}
+                      </span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${item.pinned ? "Unpin" : "Pin"} ${item.name}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          togglePin(item);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            togglePin(item);
+                          }
+                        }}
+                        className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border transition ${
+                          item.pinned
+                            ? "border-yellow-400 bg-yellow-400 text-black"
+                            : "border-border bg-background text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {pinUpdating === item.id ? (
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        ) : (
+                          <Pin className="h-3.5 w-3.5" />
+                        )}
+                      </span>
+                    </span>
+                    <span className="mt-auto flex items-center justify-between pt-3">
                       <span className="flex items-baseline gap-2">
                         <span className="font-display text-xl text-primary">
                           Rs {item.offerPrice ?? item.price}
@@ -433,37 +519,10 @@ function AdminBilling() {
                           </span>
                         ) : null}
                       </span>
-                      <span className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground group-hover:bg-primary-glow">
-                        <Plus className="h-4 w-4" />
+                      <span className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 font-display text-[11px] tracking-widest text-primary-foreground transition group-hover:bg-primary-glow">
+                        <Plus className="h-3.5 w-3.5" /> ADD
                       </span>
                     </span>
-                  </span>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${item.pinned ? "Unpin" : "Pin"} ${item.name}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      togglePin(item);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        togglePin(item);
-                      }
-                    }}
-                    className={`absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-md border ${
-                      item.pinned
-                        ? "border-yellow-400 bg-yellow-400 text-black"
-                        : "border-border bg-background/90 text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {pinUpdating === item.id ? (
-                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    ) : (
-                      <Pin className="h-4 w-4" />
-                    )}
                   </span>
                 </button>
               ))}
@@ -477,109 +536,162 @@ function AdminBilling() {
 
           <aside className="flex min-h-0 flex-col">
             <section className="flex min-h-0 flex-col rounded-lg border border-border bg-surface">
-              <header className="border-b border-border px-4 py-2.5">
-                <div className="flex items-center justify-between">
+              <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5 text-primary" />
                   <h2 className="font-display text-lg tracking-widest">Current Bill</h2>
-                  <span className="text-xs text-muted-foreground">{itemCount} items</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-widest text-primary">
+                    {itemCount} items
+                  </span>
+                  {items.length > 0 && (
+                    <button
+                      onClick={clearBill}
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-black tracking-widest text-muted-foreground hover:border-red-400/50 hover:text-red-400"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> CLEAR
+                    </button>
+                  )}
                 </div>
               </header>
 
               <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
-                <div className="grid grid-cols-3 gap-1.5">
-                  {(["dinein", "pickup", "delivery"] as OrderType[]).map((mode) => (
+                <div className="grid grid-cols-3 gap-1 rounded-md border border-border bg-background p-1">
+                  {(
+                    [
+                      { mode: "dinein", label: "DINE-IN", icon: Utensils },
+                      { mode: "pickup", label: "PICKUP", icon: ShoppingBag },
+                      { mode: "delivery", label: "DELIVERY", icon: Bike },
+                    ] as { mode: OrderType; label: string; icon: typeof Utensils }[]
+                  ).map(({ mode, label, icon: Icon }) => (
                     <button
                       key={mode}
                       onClick={() => setType(mode)}
-                      className={`rounded-md border px-2 py-1.5 font-display text-[11px] tracking-widest ${
+                      className={`inline-flex items-center justify-center gap-1 rounded-md px-2 py-2 font-display text-[11px] tracking-widest transition ${
                         type === mode
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background text-muted-foreground hover:text-foreground"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-background hover:text-foreground"
                       }`}
                     >
-                      {mode === "dinein" ? "DINE-IN" : mode.toUpperCase()}
+                      <Icon className="h-3.5 w-3.5" />
+                      {label}
                     </button>
                   ))}
                 </div>
 
                 <div className="grid gap-1.5 sm:grid-cols-2">
-                  <input
-                    value={customerName}
-                    onChange={(event) => setCustomerName(event.target.value)}
-                    placeholder="Customer name"
-                    className="rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
-                  />
-                  <input
-                    value={customerPhone}
-                    onChange={(event) => setCustomerPhone(event.target.value)}
-                    placeholder="Phone"
-                    inputMode="tel"
-                    className="rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
-                  />
+                  <label className="relative block">
+                    <User className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      value={customerName}
+                      onChange={(event) => setCustomerName(event.target.value)}
+                      placeholder="Customer name"
+                      className="w-full rounded-md border border-input bg-background py-1.5 pl-8 pr-2.5 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                  <label className="relative block">
+                    <Phone className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      value={customerPhone}
+                      onChange={(event) => setCustomerPhone(event.target.value)}
+                      placeholder="Phone"
+                      inputMode="tel"
+                      className="w-full rounded-md border border-input bg-background py-1.5 pl-8 pr-2.5 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
                 </div>
 
                 {type === "dinein" && (
-                  <input
-                    value={tableNumber}
-                    onChange={(event) => setTableNumber(event.target.value)}
-                    placeholder="Table number"
-                    className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
-                  />
+                  <label className="relative block">
+                    <Utensils className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      value={tableNumber}
+                      onChange={(event) => setTableNumber(event.target.value)}
+                      placeholder="Table number"
+                      className="w-full rounded-md border border-input bg-background py-1.5 pl-8 pr-2.5 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
                 )}
                 {type === "delivery" && (
-                  <textarea
-                    value={address}
-                    onChange={(event) => setAddress(event.target.value)}
-                    placeholder="Delivery address"
-                    rows={1}
-                    className="w-full resize-none rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
-                  />
+                  <label className="relative block">
+                    <MapPin className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <textarea
+                      value={address}
+                      onChange={(event) => setAddress(event.target.value)}
+                      placeholder="Delivery address"
+                      rows={1}
+                      className="w-full resize-none rounded-md border border-input bg-background py-1.5 pl-8 pr-2.5 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
                 )}
-                <textarea
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  placeholder="Kitchen note"
-                  rows={1}
-                  className="w-full resize-none rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
-                />
+                <label className="relative block">
+                  <NotebookPen className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <textarea
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    placeholder="Kitchen note"
+                    rows={1}
+                    className="w-full resize-none rounded-md border border-input bg-background py-1.5 pl-8 pr-2.5 text-sm outline-none focus:border-primary"
+                  />
+                </label>
 
-                <div className="max-h-44 overflow-y-auto rounded-md border border-border bg-background">
+                <div className="flex-1 overflow-y-auto rounded-md border border-border bg-background">
                   {items.length === 0 ? (
-                    <div className="grid min-h-24 place-items-center px-4 text-center text-sm text-muted-foreground">
-                      <span>
-                        <Utensils className="mx-auto mb-1 h-5 w-5" />
-                        Add items from the menu
+                    <div className="grid min-h-40 place-items-center px-4 text-center">
+                      <span className="text-sm text-muted-foreground">
+                        <span className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-full bg-background">
+                          <Utensils className="h-5 w-5" />
+                        </span>
+                        Tap a product to add it to the bill
                       </span>
                     </div>
                   ) : (
                     <ul className="divide-y divide-border">
                       {items.map((item) => (
-                        <li key={item.id} className="p-2">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="font-display tracking-wide">{item.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                Rs {item.price} each
-                              </div>
-                            </div>
-                            <div className="font-display">Rs {item.price * item.qty}</div>
-                          </div>
-                          <div className="mt-1.5 flex items-center gap-2">
+                        <li key={item.id} className="flex items-start gap-2 p-2.5">
+                          <span
+                            className={`mt-1 h-3 w-3 shrink-0 rounded-[3px] border-2 ${
+                              item.isVeg ? "border-veg bg-veg/20" : "border-red-500 bg-red-500/20"
+                            }`}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="line-clamp-2 font-display leading-tight tracking-wide">
+                              {item.name}
+                            </span>
+                            <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>Rs {item.price} each</span>
+                              <span className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => changeQty(item.id, -1)}
+                                  className="grid h-6 w-6 place-items-center rounded border border-border bg-surface hover:bg-background"
+                                  aria-label="Decrease quantity"
+                                >
+                                  <Minus className="h-3.5 w-3.5" />
+                                </button>
+                                <span className="w-5 text-center font-display text-sm">
+                                  {item.qty}
+                                </span>
+                                <button
+                                  onClick={() => changeQty(item.id, 1)}
+                                  className="grid h-6 w-6 place-items-center rounded border border-border bg-surface hover:bg-background"
+                                  aria-label="Increase quantity"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </button>
+                              </span>
+                            </span>
+                          </span>
+                          <span className="flex flex-col items-end gap-1">
+                            <span className="font-display">Rs {item.price * item.qty}</span>
                             <button
-                              onClick={() => changeQty(item.id, -1)}
-                              className="grid h-7 w-7 place-items-center rounded-md border border-border bg-surface hover:bg-background"
-                              aria-label="Decrease quantity"
+                              onClick={() => removeItem(item.id)}
+                              aria-label={`Remove ${item.name}`}
+                              className="grid h-6 w-6 place-items-center rounded text-muted-foreground hover:bg-red-500/10 hover:text-red-400"
                             >
-                              <Minus className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
-                            <span className="w-8 text-center font-display text-lg">{item.qty}</span>
-                            <button
-                              onClick={() => changeQty(item.id, 1)}
-                              className="grid h-7 w-7 place-items-center rounded-md border border-border bg-surface hover:bg-background"
-                              aria-label="Increase quantity"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </button>
-                          </div>
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -593,17 +705,28 @@ function AdminBilling() {
                     <BillLine label="Delivery" value={`Rs ${totals.deliveryFee}`} />
                   )}
                   {discount > 0 && <BillLine label="Discount" value={`-Rs ${discount}`} accent />}
-                  <div className="mt-1.5 flex items-center justify-between border-t border-border pt-1.5 font-display text-xl">
+                  <div className="mt-1.5 flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 font-display text-xl">
                     <span>Total</span>
                     <span className="text-primary">Rs {grandTotal}</span>
                   </div>
                 </div>
 
-                <div className="rounded-md border border-border bg-background p-2.5">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
-                      <Tag className="h-3.5 w-3.5" /> Coupon &amp; Discount
-                    </span>
+                <div className="rounded-md border border-border bg-background">
+                  <div className="flex items-center justify-between px-2.5 py-2">
+                    <button
+                      type="button"
+                      onClick={() => setCouponOpen((value) => !value)}
+                      className="flex items-center gap-1.5"
+                    >
+                      <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                        <Tag className="h-3.5 w-3.5" /> Coupon &amp; Discount
+                      </span>
+                      {couponOpen ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
                     {(appliedCoupon || manualDiscount > 0) && (
                       <button
                         onClick={clearCoupon}
@@ -614,77 +737,102 @@ function AdminBilling() {
                     )}
                   </div>
 
-                  <div className="flex gap-1.5">
-                    <input
-                      value={couponCode}
-                      onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
-                      placeholder="Coupon code"
-                      className="min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-sm uppercase outline-none focus:border-primary"
-                    />
-                    <button
-                      onClick={() => applyCoupon(couponCode)}
-                      className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-black tracking-widest text-primary-foreground hover:bg-primary-glow"
-                    >
-                      <BadgePercent className="h-4 w-4" /> APPLY
-                    </button>
-                  </div>
-
-                  {appliedCoupon && (
-                    <div className="mt-1.5 flex items-center justify-between rounded-md border border-veg/30 bg-veg/10 px-2.5 py-1.5 text-sm">
-                      <div>
-                        <div className="font-black text-veg">{appliedCoupon.code}</div>
-                        <div className="text-xs text-muted-foreground">{appliedCoupon.title}</div>
-                      </div>
-                      <button onClick={clearCoupon} aria-label="Remove coupon" className="text-veg">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-
-                  {coupons.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1">
-                      {coupons.slice(0, 4).map((coupon) => (
+                  {couponOpen && (
+                    <div className="px-2.5 pb-2.5">
+                      <div className="flex gap-1.5">
+                        <input
+                          value={couponCode}
+                          onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                          placeholder="Coupon code"
+                          className="min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-sm uppercase outline-none focus:border-primary"
+                        />
                         <button
-                          key={coupon.id}
-                          onClick={() => applyCoupon(coupon.code)}
-                          disabled={appliedCoupon?.code === coupon.code}
-                          className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-bold disabled:opacity-40 hover:border-primary/50"
+                          onClick={() => applyCoupon(couponCode)}
+                          className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-black tracking-widest text-primary-foreground hover:bg-primary-glow"
                         >
-                          {coupon.code}
+                          <BadgePercent className="h-4 w-4" /> APPLY
                         </button>
-                      ))}
+                      </div>
+
+                      {appliedCoupon && (
+                        <div className="mt-1.5 flex items-center justify-between rounded-md border border-veg/30 bg-veg/10 px-2.5 py-1.5 text-sm">
+                          <div>
+                            <div className="font-black text-veg">{appliedCoupon.code}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {appliedCoupon.title}
+                            </div>
+                          </div>
+                          <button
+                            onClick={clearCoupon}
+                            aria-label="Remove coupon"
+                            className="text-veg"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+
+                      {coupons.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {coupons.slice(0, 4).map((coupon) => (
+                            <button
+                              key={coupon.id}
+                              onClick={() => applyCoupon(coupon.code)}
+                              disabled={appliedCoupon?.code === coupon.code}
+                              className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-bold disabled:opacity-40 hover:border-primary/50"
+                            >
+                              {coupon.code}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <label className="text-xs text-muted-foreground">
+                          Manual discount (Rs)
+                        </label>
+                        <input
+                          value={manualDiscount || ""}
+                          onChange={(event) =>
+                            setManualDiscount(Math.max(0, Number(event.target.value) || 0))
+                          }
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          className="w-24 rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+                        />
+                      </div>
                     </div>
                   )}
-
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <label className="text-xs text-muted-foreground">Manual discount (Rs)</label>
-                    <input
-                      value={manualDiscount || ""}
-                      onChange={(event) =>
-                        setManualDiscount(Math.max(0, Number(event.target.value) || 0))
-                      }
-                      type="number"
-                      min={0}
-                      placeholder="0"
-                      className="w-24 rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary"
-                    />
-                  </div>
                 </div>
 
-                <select
-                  value={paymentMethod}
-                  onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none focus:border-primary"
-                >
-                  <option value="cod">Cash</option>
-                  <option value="upi">UPI</option>
-                  <option value="razorpay">Card/Razorpay</option>
-                </select>
+                <div className="grid grid-cols-3 gap-1 rounded-md border border-border bg-background p-1">
+                  {(
+                    [
+                      { method: "cod", label: "CASH", icon: Banknote },
+                      { method: "upi", label: "UPI", icon: Smartphone },
+                      { method: "razorpay", label: "CARD", icon: CreditCard },
+                    ] as { method: PaymentMethod; label: string; icon: typeof Banknote }[]
+                  ).map(({ method, label, icon: Icon }) => (
+                    <button
+                      key={method}
+                      onClick={() => setPaymentMethod(method)}
+                      className={`inline-flex items-center justify-center gap-1 rounded-md px-2 py-2 font-display text-[11px] tracking-widest transition ${
+                        paymentMethod === method
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-background hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
 
                 <button
                   onClick={generateBill}
                   disabled={saving || items.length === 0}
-                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary font-display text-sm tracking-[0.25em] text-primary-foreground hover:bg-primary-glow disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-primary font-display text-sm tracking-[0.25em] text-primary-foreground hover:bg-primary-glow disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
                   {saving ? "CREATING..." : `GENERATE BILL + SEND KOT · Rs ${grandTotal}`}
