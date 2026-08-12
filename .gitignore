@@ -16,14 +16,17 @@ dist-ssr
 .nitro
 *.local
 
-# Wrangler / Cloudflare
-.wrangler/
-.dev.vars
-
-# Environment / secrets
+# Secrets - never commit these
 .env
 .env.*
 !.env.example
+!.env.production.example
+google-services.json
+**/google-services*.json
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
 
 # Editor directories and files
 .vscode/*

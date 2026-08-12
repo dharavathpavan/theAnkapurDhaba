@@ -1,11 +1,10 @@
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import { UserPlus, UtensilsCrossed, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/stores/auth";
 import type { AuthUser } from "@/stores/auth";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+import { API_BASE } from "@/services/api";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Sign Up · Ankapur Dhaba" }] }),
@@ -20,24 +19,18 @@ function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isAuthenticated()) navigate({ to: "/" });
-  }, [isAuthenticated, navigate]);
+  if (isAuthenticated()) {
+    navigate({ to: "/" });
+    return null;
+  }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     if (!name || !phone || !password || !confirm) return toast.error("Please fill in all fields");
-    const digits = phone.replace(/\D/g, "");
-    const normalized = /^[6-9]\d{9}$/.test(digits)
-      ? digits
-      : digits.startsWith("91") && /^91[6-9]\d{9}$/.test(digits)
-        ? digits.slice(2)
-        : "";
-    if (!normalized) return toast.error("Enter a valid 10-digit Indian mobile number");
-    if (normalized !== phone) setPhone(normalized);
+    if (!/^[6-9]\d{9}$/.test(phone))
+      return toast.error("Enter a valid 10-digit Indian mobile number");
     if (password.length < 6) return toast.error("Password must be at least 6 characters");
     if (password !== confirm) return toast.error("Passwords do not match");
 
@@ -46,7 +39,7 @@ function SignupPage() {
       const res = await fetch(`${API_BASE}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), phone: normalized, password }),
+        body: JSON.stringify({ name: name.trim(), phone, password }),
       });
       const data = await res.json();
       if (!res.ok) return toast.error(data.error || "Signup failed");
@@ -142,30 +135,14 @@ function SignupPage() {
               <label className="mb-1.5 block font-display text-xs tracking-widest text-muted-foreground">
                 CONFIRM PASSWORD
               </label>
-              <div className="relative">
-                <input
-                  id="signup-confirm"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  placeholder="Re-enter password"
-                  className="w-full rounded-lg border border-input bg-background px-4 py-3 pr-11 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword((v) => !v)}
-                  aria-label={
-                    showConfirmPassword ? "Hide confirm password" : "Show confirm password"
-                  }
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
+              <input
+                id="signup-confirm"
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="Re-enter password"
+                className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition"
+              />
             </div>
 
             <button
@@ -185,9 +162,9 @@ function SignupPage() {
 
           <div className="mt-5 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="font-medium text-primary hover:underline">
+            <a href="/login" className="font-medium text-primary hover:underline">
               Sign in
-            </Link>
+            </a>
           </div>
         </div>
       </div>

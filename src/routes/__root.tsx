@@ -90,7 +90,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "theme-color", content: "#C62828" },
       { title: "Ankapur Dhaba — Ankapur Chicken, Biryani & Telangana Classics" },
       {
@@ -99,40 +99,40 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Order slow-cooked Ankapur chicken, Hyderabadi biryani and Telangana classics from Ankapur Dhaba. Delivery, pickup, dine-in.",
       },
       {
-        name: "apple-mobile-web-app-capable",
-        content: "yes",
-      },
-      {
-        name: "apple-mobile-web-app-status-bar-style",
-        content: "default",
-      },
-      {
-        name: "apple-mobile-web-app-title",
-        content: "Ankapur Dhaba",
-      },
-      { name: "mobile-web-app-capable", content: "yes" },
-      {
         property: "og:title",
         content: "Ankapur Dhaba — Ankapur Chicken, Biryani & Telangana Classics",
       },
       {
         property: "og:description",
         content:
-          "Order slow-cooked Ankapur chicken, Hyderabadi biryani and Telangana classics from Ankapur Dhaba. Delivery, pickup, dine-in.",
+          "A PWA for restaurants to manage online ordering, KOT, and delivery for customers and staff.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "/pwa-icon-512.png" },
       { name: "twitter:card", content: "summary_large_image" },
       {
         name: "twitter:title",
         content: "Ankapur Dhaba — Ankapur Chicken, Biryani & Telangana Classics",
       },
       {
+        name: "description",
+        content:
+          "A PWA for restaurants to manage online ordering, KOT, and delivery for customers and staff.",
+      },
+      {
         name: "twitter:description",
         content:
-          "Order slow-cooked Ankapur chicken, Hyderabadi biryani and Telangana classics from Ankapur Dhaba.",
+          "A PWA for restaurants to manage online ordering, KOT, and delivery for customers and staff.",
       },
-      { name: "twitter:image", content: "/pwa-icon-512.png" },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fd0bce0e-92e2-437e-9c38-67d40982e514/id-preview-9ef9aefd--ec5a08b1-d817-4523-b6e0-4a65406ba29c.lovable.app-1782314593038.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fd0bce0e-92e2-437e-9c38-67d40982e514/id-preview-9ef9aefd--ec5a08b1-d817-4523-b6e0-4a65406ba29c.lovable.app-1782314593038.png",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -155,19 +155,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isStaff =
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/kitchen") ||
-    pathname.startsWith("/delivery") ||
-    pathname.startsWith("/waiter") ||
-    pathname.startsWith("/restaurant/delivery") ||
-    pathname.startsWith("/restaurant/waiter") ||
-    pathname === "/login" ||
-    pathname === "/signup";
-  const dataTheme = isStaff ? "dark" : "light";
   return (
-    <html lang="en" data-theme={dataTheme}>
+    <html lang="en">
       <head>
         <HeadContent />
       </head>

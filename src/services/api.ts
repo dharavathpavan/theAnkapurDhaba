@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import { useAuth } from "@/stores/auth";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
 const RAW_SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "";
 const SOCKET_URL = isValidSocketIoUrl(RAW_SOCKET_URL) ? RAW_SOCKET_URL : "";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
@@ -49,6 +49,19 @@ async function apiFetch(url: string, init?: ApiFetchInit): Promise<Response> {
   return res;
 }
 
+// Extract the server's real error message (e.g. `{ error: "..." }`) from a failed response.
+async function serverError(res: Response, fallback: string): Promise<Error> {
+  try {
+    const data = (await res.json()) as { error?: unknown; message?: unknown };
+    const detail =
+      typeof data?.error === "string" ? data.error : typeof data?.message === "string" ? data.message : "";
+    if (detail.trim()) return new Error(detail.trim());
+  } catch {
+    // body was not JSON
+  }
+  return new Error(`${fallback} (${res.status})`);
+}
+
 export type OrderStatus =
   "received" | "accepted" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "cancelled";
 
@@ -92,6 +105,11 @@ export interface Order {
   delivery?: DeliveryDetails;
   createdAt: string;
   updatedAt: string;
+  earningsBreakdown?: { fee: number; tip: number; bonus: number };
+  riderRating?: number | null;
+  riderReview?: string | null;
+  riderFeedbackAt?: string | null;
+  batchId?: string | null;
 }
 
 export type CreateOrderInput = Omit<
@@ -173,6 +191,106 @@ export interface DeliveryDetails {
   supportMessage?: string;
   batteryLevel?: number;
   pickupChecklist?: Record<string, boolean>;
+  batchId?: string;
+  batchedOrderIds?: string[];
+  riderRating?: number;
+  riderReview?: string;
+  riderFeedbackAt?: string;
+}
+
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  radiusKm: number;
+  deliveryCharge: number;
+  freeDeliveryAbove: number;
+  minDeliveryMin: number;
+  enabled: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+  distanceKm?: number;
+}
+
+export type DeliveryPayoutStatus = "requested" | "approved" | "rejected" | "paid" | string;
+
+export interface DeliveryPayout {
+  id: string;
+  riderId: string;
+  riderName?: string;
+  amount: number;
+  method?: string;
+  accountDetails?: string;
+  status: DeliveryPayoutStatus;
+  note?: string;
+  requestedAt: string;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  paidAt?: string | null;
+  approvedBy?: string | null;
+  approvedByName?: string | null;
+}
+
+export interface DeliveryWalletTransaction {
+  id: string;
+  type: "earning" | "payout" | "payout_rejected" | string;
+  amount: number;
+  status?: string;
+  orderId?: string;
+  note?: string;
+  date: string;
+}
+
+export interface DeliveryWallet {
+  balance: number;
+  earned: number;
+  paidOut: number;
+  requested: number;
+  available: number;
+  transactions: DeliveryWalletTransaction[];
+  payouts: DeliveryPayout[];
+}
+
+export interface FleetRider {
+  id: string;
+  name: string;
+  phone: string;
+  role?: string;
+  online: boolean;
+  activeOrders: number;
+  load: number;
+  currentLocation?: DeliveryLocation | null;
+  lastLocationAt?: string | null;
+  lastUpdatedAt?: string;
+  vehicleNumber?: string | null;
+  partnerPhone?: string;
+  deliveryStage?: string | null;
+  etaMinutes?: number | null;
+  distanceKm?: number | null;
+  orderIds: string[];
+}
+
+export interface RiderPerformance {
+  id: string;
+  name: string;
+  phone: string;
+  activeOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  earnings: number;
+  avgEarning: number;
+  rating: number;
+  ratingCount: number;
+  onTimeRate: number;
+  completionRate: number;
+  acceptanceRate: number;
+}
+
+export interface DeliverySettings {
+  baseRatePerKm: number;
+  batchMax: number;
+  surgeEnabled: boolean;
+  surgeMultiplier: number;
 }
 
 export interface DeliveryProfile {
@@ -1599,7 +1717,7 @@ export async function createCatalogCategory(
     method: "POST",
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw new Error("Failed to create category");
+  if (!res.ok) throw await serverError(res, "Failed to create category");
   return res.json();
 }
 
@@ -1611,13 +1729,13 @@ export async function updateCatalogCategory(
     method: "PATCH",
     body: JSON.stringify(patch),
   });
-  if (!res.ok) throw new Error("Failed to update category");
+  if (!res.ok) throw await serverError(res, "Failed to update category");
   return res.json();
 }
 
 export async function deleteCatalogCategory(id: string): Promise<void> {
   const res = await apiFetch(`${API_BASE}/catalog/categories/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete category");
+  if (!res.ok) throw await serverError(res, "Failed to delete category");
 }
 
 export async function listCatalogItems(
@@ -1639,7 +1757,7 @@ export async function createCatalogItem(
     method: "POST",
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw new Error("Failed to create item");
+  if (!res.ok) throw await serverError(res, "Failed to create item");
   return res.json();
 }
 
@@ -1651,18 +1769,18 @@ export async function updateCatalogItem(
     method: "PATCH",
     body: JSON.stringify(patch),
   });
-  if (!res.ok) throw new Error("Failed to update item");
+  if (!res.ok) throw await serverError(res, "Failed to update item");
   return res.json();
 }
 
 export async function deleteCatalogItem(id: string): Promise<void> {
   const res = await apiFetch(`${API_BASE}/catalog/items/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete item");
+  if (!res.ok) throw await serverError(res, "Failed to delete item");
 }
 
 export async function duplicateCatalogItem(id: string): Promise<CatalogItem> {
   const res = await apiFetch(`${API_BASE}/catalog/items/${id}/duplicate`, { method: "POST" });
-  if (!res.ok) throw new Error("Failed to duplicate item");
+  if (!res.ok) throw await serverError(res, "Failed to duplicate item");
   return res.json();
 }
 
@@ -1813,8 +1931,6 @@ export async function createCashfreePaymentSession(order: CreateOrderInput): Pro
   orderId: string;
   paymentSessionId?: string;
   mode: "sandbox" | "production";
-  alreadyPaid?: boolean;
-  order?: Order;
 }> {
   const res = await apiFetch(`${API_BASE}/payments/cashfree/session`, {
     method: "POST",
@@ -1827,11 +1943,9 @@ export async function createCashfreePaymentSession(order: CreateOrderInput): Pro
 
 export async function verifyCashfreePayment(
   orderId: string,
-  order?: CreateOrderInput,
-): Promise<{ status: string; order: Order | null }> {
+): Promise<{ status: string; order: Order | null; draftId?: string }> {
   const res = await apiFetch(`${API_BASE}/payments/cashfree/verify/${orderId}`, {
     method: "POST",
-    body: JSON.stringify({ order }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Failed to verify Cashfree payment");
@@ -1857,6 +1971,19 @@ export async function updateOrderDelivery(
   });
   if (!res.ok) throw new Error("Failed to update delivery info");
   return res.json();
+}
+
+export async function rateRider(
+  id: string,
+  input: { rating: number; review?: string },
+): Promise<Order> {
+  const res = await apiFetch(`${API_BASE}/orders/${id}/rate-rider`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to submit rider rating");
+  return json;
 }
 
 async function deliveryRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -2119,10 +2246,128 @@ export async function deleteStaff(id: string): Promise<void> {
 }
 
 /* ---------------- Pricing ---------------- */
-export function computeTotals(items: OrderItem[], type: OrderType) {
+export function itemTaxRate(
+  item: { taxRate?: number | null; gstRate?: number | null } | null | undefined,
+  fallback = 5,
+) {
+  const rate = Number(item?.taxRate ?? item?.gstRate ?? fallback);
+  return Number.isFinite(rate) ? rate : fallback;
+}
+
+export interface PricedCartItem {
+  price: number;
+  qty: number;
+  taxRate?: number | null;
+  gstRate?: number | null;
+}
+
+export function computeTotals(
+  items: PricedCartItem[],
+  type: OrderType,
+  fallbackTaxRate = 5,
+  delivery?: { charge?: number; freeAbove?: number },
+) {
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-  const tax = Math.round(subtotal * 0.05);
-  const deliveryFee = type === "delivery" && subtotal > 0 ? (subtotal >= 500 ? 0 : 40) : 0;
+  const tax = Math.round(
+    items.reduce((s, i) => s + (i.price * i.qty * itemTaxRate(i, fallbackTaxRate)) / 100, 0),
+  );
+  const deliveryFee =
+    type === "delivery" && subtotal > 0
+      ? subtotal >= (delivery?.freeAbove ?? 500)
+        ? 0
+        : (delivery?.charge ?? 40)
+      : 0;
   const total = subtotal + tax + deliveryFee;
   return { subtotal, tax, deliveryFee, total };
+}
+
+/* ---------------- Delivery Wallet & Payouts ---------------- */
+export async function getDeliveryWallet(): Promise<DeliveryWallet> {
+  return deliveryRequest<DeliveryWallet>("wallet");
+}
+
+export async function requestDeliveryPayout(input: {
+  amount: number;
+  method?: string;
+  accountDetails?: string;
+  note?: string;
+}): Promise<DeliveryPayout> {
+  return deliveryRequest<DeliveryPayout>("wallet/payout-request", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+/* ---------------- Delivery Fleet & Zones ---------------- */
+export async function listDeliveryFleet(): Promise<FleetRider[]> {
+  return deliveryRequest<FleetRider[]>("fleet");
+}
+
+export async function listDeliveryZones(): Promise<DeliveryZone[]> {
+  const res = await apiFetch(`${API_BASE}/delivery/zones`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to fetch delivery zones");
+  return json;
+}
+
+export async function listAdminDeliveryZones(): Promise<DeliveryZone[]> {
+  return deliveryRequest<DeliveryZone[]>("admin/zones");
+}
+
+export async function saveDeliveryZone(
+  input: Partial<DeliveryZone> & { id?: string },
+): Promise<DeliveryZone> {
+  const id = input.id;
+  const { id: _ignore, ...payload } = input;
+  return deliveryRequest<DeliveryZone>(id ? `admin/zones/${id}` : "admin/zones", {
+    method: id ? "PATCH" : "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteDeliveryZone(id: string): Promise<void> {
+  await deliveryRequest<{ ok: boolean }>(`admin/zones/${id}`, { method: "DELETE" });
+}
+
+/* ---------------- Delivery Admin: Payouts, Performance, Settings ---------------- */
+export async function listAdminPayouts(status?: string): Promise<DeliveryPayout[]> {
+  const query = status && status !== "all" ? `?status=${encodeURIComponent(status)}` : "";
+  return deliveryRequest<DeliveryPayout[]>(`admin/payouts${query}`);
+}
+
+export async function approveDeliveryPayout(id: string, note?: string): Promise<DeliveryPayout> {
+  return deliveryRequest<DeliveryPayout>(`admin/payouts/${id}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ note }),
+  });
+}
+
+export async function rejectDeliveryPayout(id: string, note?: string): Promise<DeliveryPayout> {
+  return deliveryRequest<DeliveryPayout>(`admin/payouts/${id}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ note }),
+  });
+}
+
+export async function getRiderPerformance(): Promise<RiderPerformance[]> {
+  return deliveryRequest<RiderPerformance[]>("admin/rider-performance");
+}
+
+export async function updateDeliverySettings(
+  input: Partial<DeliverySettings>,
+): Promise<DeliverySettings> {
+  const res = await apiFetch(`${API_BASE}/delivery/admin/settings`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to update delivery settings");
+  return json;
+}
+
+export async function getDeliverySettings(): Promise<DeliverySettings> {
+  const res = await apiFetch(`${API_BASE}/delivery/admin/settings`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to fetch delivery settings");
+  return json;
 }

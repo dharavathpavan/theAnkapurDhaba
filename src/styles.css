@@ -106,51 +106,6 @@
   /* App is dark by default; .dark mirrors :root */
 }
 
-html[data-theme="light"] {
-  --background: oklch(0.985 0.005 80); /* warm paper white */
-  --foreground: oklch(0.16 0.015 25);
-  --surface: oklch(0.97 0.006 80);
-  --surface-elevated: oklch(1 0 0);
-
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0.015 25);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0.015 25);
-
-  --primary: oklch(0.58 0.23 25);
-  --primary-foreground: oklch(0.98 0.01 80);
-  --primary-glow: oklch(0.68 0.22 25);
-
-  --secondary: oklch(0.94 0.01 70);
-  --secondary-foreground: oklch(0.2 0.015 25);
-
-  --muted: oklch(0.95 0.006 75);
-  --muted-foreground: oklch(0.45 0.015 60);
-
-  --accent: oklch(0.82 0.16 75);
-  --accent-foreground: oklch(0.2 0.015 25);
-  --gold: oklch(0.72 0.16 80);
-
-  --destructive: oklch(0.55 0.24 25);
-  --destructive-foreground: oklch(0.98 0.01 80);
-
-  --border: oklch(0 0 0 / 8%);
-  --input: oklch(0 0 0 / 10%);
-  --ring: oklch(0.58 0.23 25);
-
-  --veg: oklch(0.5 0.17 145);
-  --nonveg: oklch(0.55 0.24 25);
-
-  --sidebar: var(--surface);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--surface-elevated);
-  --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
-}
-
 @layer base {
   * {
     border-color: var(--color-border);

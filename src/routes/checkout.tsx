@@ -10,6 +10,7 @@ import {
   getCustomerLoyalty,
   getCustomerMenu,
   getCustomerWallet,
+  itemTaxRate,
   listCustomerAddresses,
   listCustomerCoupons,
   validateCustomerCoupon,
@@ -31,7 +32,6 @@ import {
   type DeliveryEta,
 } from "@/lib/delivery-location";
 import { isMenuItemAvailableNow } from "@/lib/menu-availability";
-import { formatINR } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout - Ankapur Dhaba" }] }),
@@ -88,13 +88,20 @@ function CheckoutPage() {
     enabled: isAuthenticated(),
   });
 
+  const menuById = useMemo(() => new Map(menuItems.map((item) => [item.id, item])), [menuItems]);
+
   const subtotal = lines.reduce((sum, line) => sum + line.price * line.qty, 0);
   const deliveryFee =
     type === "delivery" && subtotal < (home?.store.freeDeliveryAbove ?? 499)
       ? (home?.store.deliveryCharge ?? 40)
       : 0;
-  const packing = lines.length ? (home?.store.packingCharge ?? 10) : 0;
-  const tax = Math.round(subtotal * 0.05);
+  const packing = type === "delivery" && lines.length ? (home?.store.packingCharge ?? 10) : 0;
+  const tax = Math.round(
+    lines.reduce(
+      (sum, line) => sum + (line.price * line.qty * itemTaxRate(menuById.get(line.id))) / 100,
+      0,
+    ),
+  );
   const total = Math.max(0, subtotal + tax + deliveryFee + packing - discount);
   const address =
     addresses.find((a) => a.id === selectedAddress) ||
@@ -106,7 +113,6 @@ function CheckoutPage() {
   const deliveryCodDisabled = type === "delivery" && home?.store.allowDeliveryCod !== true;
   const deliveryAddressReady = type !== "delivery" || Boolean(address);
   const deliveryOutOfZone = type === "delivery" && deliveryEta?.inZone === false;
-  const menuById = useMemo(() => new Map(menuItems.map((item) => [item.id, item])), [menuItems]);
   const unavailableCartLines = useMemo(
     () =>
       lines
@@ -125,13 +131,13 @@ function CheckoutPage() {
       ? home.store.statusMessage || "Store is closed right now."
       : unavailableCartLines.length
         ? `${unavailableCartLines[0].line.name} is not available right now. ${unavailableCartLines[0].message}`
-        : type === "delivery" && subtotal < minimumOrder
-          ? `Minimum delivery order is Rs ${minimumOrder}.`
-          : deliveryOutOfZone
-            ? "This address is outside our delivery zone. Pickup is available."
-            : paymentMethod === "wallet" && (wallet?.balance ?? 0) < total
-              ? "Main Wallet balance is insufficient."
-              : "";
+      : type === "delivery" && subtotal < minimumOrder
+        ? `Minimum delivery order is Rs ${minimumOrder}.`
+        : deliveryOutOfZone
+          ? "This address is outside our delivery zone. Pickup is available."
+          : paymentMethod === "wallet" && (wallet?.balance ?? 0) < total
+            ? "Main Wallet balance is insufficient."
+            : "";
   const checkoutHintReason =
     checkoutBlockedReason ||
     (needsLogin
@@ -148,8 +154,8 @@ function CheckoutPage() {
   const mobileSubmitLabel = submitting
     ? "Processing..."
     : paymentMethod === "cashfree"
-      ? `Pay ${formatINR(total)}`
-      : `Place order - ${formatINR(total)}`;
+      ? `Pay Rs ${total}`
+      : `Place order - Rs ${total}`;
 
   useEffect(() => {
     if (!address) return;
@@ -173,7 +179,13 @@ function CheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, [type, home?.store, address?.id, address?.lat, address?.lng]);
+  }, [
+    type,
+    home?.store,
+    address?.id,
+    address?.lat,
+    address?.lng,
+  ]);
 
   const items = useMemo(
     () =>
@@ -187,17 +199,37 @@ function CheckoutPage() {
     [lines],
   );
 
+  const subtotalAtApply = useRef<number | null>(null);
+
   async function applyCoupon(code = couponCode) {
     if (!code.trim()) return;
     try {
       const result = await validateCustomerCoupon({ code, subtotal, phone: user?.phone });
       setCouponCode(result.coupon.code);
       setDiscount(result.discount);
+      subtotalAtApply.current = subtotal;
       toast.success(`Coupon applied: -₹${result.discount}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Invalid coupon");
     }
   }
+
+  useEffect(() => {
+    if (!couponCode || subtotalAtApply.current === null) return;
+    if (Math.abs(subtotalAtApply.current - subtotal) < 1) return;
+    const timer = setTimeout(async () => {
+      try {
+        const result = await validateCustomerCoupon({ code: couponCode, subtotal, phone: user?.phone });
+        subtotalAtApply.current = subtotal;
+        setDiscount(result.discount);
+      } catch {
+        subtotalAtApply.current = null;
+        setCouponCode("");
+        setDiscount(0);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [subtotal, couponCode, user?.phone]);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -211,7 +243,7 @@ function CheckoutPage() {
       );
     if (!isAuthenticated()) {
       toast.error("Please login to place your order");
-      return navigate({ to: "/login", search: { from: "checkout" } as never });
+      return navigate({ to: "/login" });
     }
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get("name") || user?.name || "").trim();
@@ -242,25 +274,28 @@ function CheckoutPage() {
           address: type === "delivery" ? address?.address : undefined,
           lat: type === "delivery" ? address?.lat : undefined,
           lng: type === "delivery" ? address?.lng : undefined,
-          landmark: type === "delivery" ? (address?.landmark ?? undefined) : undefined,
+          landmark: type === "delivery" ? address?.landmark ?? undefined : undefined,
           notes: String(fd.get("notes") || ""),
         },
         type,
-        tableNumber: tableNumber ?? undefined,
+        tableNumber: tableNumber || undefined,
         paymentMethod,
       };
       let order;
       if (paymentMethod === "cashfree") {
         const session = await createCashfreePaymentSession(orderInput);
-        if (!session.alreadyPaid) {
-          if (!session.paymentSessionId)
-            throw new Error("Cashfree payment session was not created");
-          const checkoutResult = await openCashfreeCheckout(session.paymentSessionId, session.mode);
-          if (checkoutResult !== "attempted") return;
+        if (!session.paymentSessionId)
+          throw new Error("Cashfree payment session was not created");
+        const checkoutResult = await openCashfreeCheckout(session.paymentSessionId, session.mode);
+        if (checkoutResult.redirect) {
+          saveActiveOrder(session.orderId);
+          toast.info("Payment is pending. Confirm your order on the next page.");
+          navigate({ to: "/orders/$orderId", params: { orderId: session.orderId } });
+          return;
         }
-        const verified = await verifyCashfreePayment(session.orderId, orderInput);
+        const verified = await verifyCashfreePayment(session.orderId);
         if (String(verified.status).toUpperCase() !== "PAID") {
-          toast.error("Payment is not complete. Order was not placed.");
+          toast.error("Payment was not completed. Your cart is saved — please try again.");
           return;
         }
         if (!verified.order) throw new Error("Payment verified but order was not created");
@@ -354,16 +389,12 @@ function CheckoutPage() {
                         {address.address}
                       </p>
                       {address.landmark ? (
-                        <p className="mt-1 text-xs font-semibold text-zinc-500">
-                          Landmark: {address.landmark}
-                        </p>
+                        <p className="mt-1 text-xs font-semibold text-zinc-500">Landmark: {address.landmark}</p>
                       ) : null}
                       <p className="mt-3 text-xs font-bold text-zinc-500">
                         {deliveryEta
                           ? `${deliveryEta.distanceKm.toFixed(1)} km - ${
-                              deliveryEta.inZone
-                                ? `ETA ${deliveryEta.etaLabel}`
-                                : "Pickup available"
+                              deliveryEta.inZone ? `ETA ${deliveryEta.etaLabel}` : "Pickup available"
                             }`
                           : "ETA will update from your saved address"}
                       </p>
@@ -386,8 +417,7 @@ function CheckoutPage() {
                     <div>
                       <h3 className="font-black">Add your delivery address first</h3>
                       <p className="mt-1 text-sm font-semibold text-yellow-800">
-                        Delivery address is selected after login and reused here. Add or choose a
-                        saved address to continue checkout.
+                        Delivery address is selected after login and reused here. Add or choose a saved address to continue checkout.
                       </p>
                     </div>
                   </div>
@@ -409,7 +439,7 @@ function CheckoutPage() {
                 [
                   ["cod", "Cash on Delivery"],
                   ["cashfree", "UPI / Card / Wallet"],
-                  ["wallet", `Main Wallet - ${formatINR(wallet?.balance ?? 0)}`],
+                  ["wallet", `Main Wallet - Rs ${Math.round(wallet?.balance ?? 0)}`],
                 ] as Array<[PaymentMethod, string]>
               )
                 .filter(([value]) => !(deliveryCodDisabled && value === "cod"))
@@ -449,7 +479,7 @@ function CheckoutPage() {
                 <span className="text-zinc-600">
                   {line.qty}x {line.name}
                 </span>
-                <span className="font-bold">{formatINR(line.qty * line.price)}</span>
+                <span className="font-bold">Rs {line.qty * line.price}</span>
               </li>
             ))}
           </ul>
@@ -477,7 +507,6 @@ function CheckoutPage() {
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
               placeholder="Coupon code"
-              aria-label="Coupon code"
               className="min-w-0 flex-1 rounded-2xl bg-zinc-100 px-3 outline-none"
             />
             <button
@@ -496,16 +525,16 @@ function CheckoutPage() {
           )}
           <div className="my-4 border-t border-zinc-200" />
           <dl className="space-y-2 text-sm">
-            <Row label="Subtotal" value={formatINR(subtotal)} />
-            <Row label="GST" value={formatINR(tax)} />
-            <Row label="Packing" value={formatINR(home?.store.packingCharge ?? 10)} />
-            <Row label="Delivery" value={deliveryFee ? formatINR(deliveryFee) : "FREE"} />
-            {discount > 0 && <Row label="Discount" value={`-${formatINR(discount)}`} />}
+            <Row label="Subtotal" value={`Rs ${subtotal}`} />
+            <Row label="GST" value={`Rs ${tax}`} />
+            {type === "delivery" && <Row label="Packing" value={`Rs ${home?.store.packingCharge ?? 10}`} />}
+            <Row label="Delivery" value={deliveryFee ? `Rs ${deliveryFee}` : "FREE"} />
+            {discount > 0 && <Row label="Discount" value={`-Rs ${discount}`} />}
           </dl>
           <div className="my-4 border-t border-zinc-200" />
           <div className="flex items-center justify-between">
             <span className="text-lg font-black">To pay</span>
-            <span className="text-3xl font-black text-red-600">{formatINR(total)}</span>
+            <span className="text-3xl font-black text-red-600">Rs {total}</span>
           </div>
           {checkoutHintReason && (
             <p className="mt-4 rounded-2xl bg-yellow-50 px-4 py-3 text-sm font-bold text-yellow-800">
@@ -522,7 +551,7 @@ function CheckoutPage() {
         </aside>
       </form>
       {checkoutHintReason && (
-        <p className="fixed bottom-[calc(env(safe-area-inset-bottom)+10rem)] left-4 right-4 z-40 mx-auto max-w-md rounded-2xl bg-yellow-50 px-4 py-2 text-center text-xs font-bold text-yellow-800 shadow-lg md:hidden">
+        <p className="fixed bottom-[9.1rem] left-4 right-4 z-40 mx-auto max-w-md rounded-2xl bg-yellow-50 px-4 py-2 text-center text-xs font-bold text-yellow-800 shadow-lg md:hidden">
           {checkoutHintReason}
         </p>
       )}
@@ -533,7 +562,7 @@ function CheckoutPage() {
           checkoutFormRef.current.requestSubmit();
         }}
         disabled={submitDisabled}
-        className="fixed bottom-[calc(env(safe-area-inset-bottom)+96px)] left-4 right-4 z-40 mx-auto min-h-14 max-w-md rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 disabled:bg-zinc-300 md:hidden"
+        className="fixed bottom-24 left-4 right-4 z-40 mx-auto min-h-14 max-w-md rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 disabled:bg-zinc-300 md:hidden"
       >
         {mobileSubmitLabel}
       </button>
@@ -649,9 +678,6 @@ async function openCashfreeCheckout(paymentSessionId: string, mode: "sandbox" | 
   const cashfree = window.Cashfree?.({ mode });
   if (!cashfree) throw new Error("Cashfree checkout is unavailable");
   const result = await cashfree.checkout({ paymentSessionId, redirectTarget: "_modal" });
-  if (result.error) throw new Error("Payment was not completed. No order was placed.");
-  if (result.redirect)
-    throw new Error("Payment was redirected. Complete payment and return to confirm your order.");
-  if (!result.paymentDetails) throw new Error("Payment was not completed. No order was placed.");
-  return "attempted" as const;
+  if (result.error) throw new Error("Payment was not completed");
+  return result;
 }

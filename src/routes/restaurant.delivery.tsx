@@ -1107,7 +1107,7 @@ function estimateDistanceKm(order: Order, location: DeliveryLocation) {
   return Number((distanceMeters(location.lat, location.lng, destination.lat, destination.lng) / 1000).toFixed(2));
 }
 
-async function liveRoutePatch(order: Order, location: DeliveryLocation) {
+async function liveRoutePatch(order: Order, location: DeliveryLocation): Promise<{ distanceKm?: number; etaMinutes?: number }> {
   const destination = coordsFrom(order.delivery?.destinationLat, order.delivery?.destinationLng);
   if (!destination) return {};
   try {

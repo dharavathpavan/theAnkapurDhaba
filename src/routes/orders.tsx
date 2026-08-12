@@ -5,7 +5,6 @@ import { listMyOrders } from "@/services/api";
 import { useOrderRealtime } from "@/hooks/use-order-realtime";
 import { useActiveOrderTracking } from "@/stores/active-order";
 import { useCart } from "@/stores/cart";
-import { formatINR } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/orders")({
@@ -19,12 +18,7 @@ function OrdersPage() {
   const add = useCart((state) => state.add);
   useOrderRealtime();
   const { order: activeOrder } = useActiveOrderTracking();
-  const {
-    data: orders = [],
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery({
+  const { data: orders = [], isLoading } = useQuery({
     queryKey: ["my-orders"],
     queryFn: listMyOrders,
     refetchInterval: 5000,
@@ -39,8 +33,6 @@ function OrdersPage() {
       <h1 className="text-3xl font-black md:text-5xl">Your orders</h1>
       {isLoading ? (
         <div className="mt-5 h-40 animate-pulse rounded-3xl bg-white" />
-      ) : isError ? (
-        <ErrorState onRetry={() => refetch()} />
       ) : orders.length === 0 ? (
         <Empty />
       ) : (
@@ -57,9 +49,7 @@ function OrdersPage() {
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-2xl font-black">#{activeOrder.id}</span>
                 <span className="rounded-2xl bg-green-500 px-3 py-2 text-sm font-black text-black">
-                  {activeOrder.delivery?.etaMinutes
-                    ? `${activeOrder.delivery.etaMinutes} min`
-                    : "Preparing"}
+                  {activeOrder.delivery?.etaMinutes || 20} min
                 </span>
               </div>
               <div className="mt-1 flex items-center justify-between gap-3 capitalize text-white/75">
@@ -124,7 +114,7 @@ function OrderGroup({
               {order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}
             </div>
             <div className="mt-4 flex items-center justify-between">
-              <span className="text-2xl font-black">{formatINR(order.total)}</span>
+              <span className="text-2xl font-black">₹{order.total}</span>
               <button
                 onClick={() => onReorder(order)}
                 className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-4 py-2 text-sm font-black text-red-600"
@@ -174,22 +164,6 @@ function Empty() {
       >
         Start ordering
       </Link>
-    </div>
-  );
-}
-
-function ErrorState({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className="py-20 text-center">
-      <h2 className="text-2xl font-black">Could not load your orders</h2>
-      <p className="mt-1 text-zinc-500">Check your connection and try again.</p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="mt-6 inline-flex rounded-3xl bg-red-600 px-6 py-4 font-black text-white"
-      >
-        Retry
-      </button>
     </div>
   );
 }

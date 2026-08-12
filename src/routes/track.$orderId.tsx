@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Bike,
@@ -11,7 +11,9 @@ import {
   Circle,
   Home,
   MessageSquare,
+  MoreHorizontal,
   Phone,
+  Plus,
   RotateCcw,
   Star,
   TimerReset,
@@ -21,6 +23,7 @@ import {
 import {
   getCustomerHome,
   getOrder,
+  verifyCashfreePayment,
   type CustomerBanner,
   type Order,
   type OrderStatus,
@@ -28,40 +31,35 @@ import {
 import { useOrderRealtime } from "@/hooks/use-order-realtime";
 import { imageFallback, isVideoUrl, resolveMediaUrl } from "@/lib/media";
 import { DeliveryMap } from "@/components/site/DeliveryMap";
+import { RiderRatingCard } from "@/components/site/RiderRatingCard";
 import { clearActiveOrder, saveActiveOrder } from "@/stores/active-order";
-import { formatINR } from "@/lib/utils";
+import { useCart } from "@/stores/cart";
 
 export const Route = createFileRoute("/track/$orderId")({
-  head: ({ params }) => ({
-    meta: [{ title: `Order ${params.orderId} - Ankapur Dhaba` }],
-  }),
+  head: ({ params }) => ({ meta: [{ title: `Order ${params.orderId} - Ankapur Dhaba` }] }),
   component: TrackRedirect,
 });
 
 type ProgressStep = {
-  id: "placed" | "preparing" | "out_for_delivery" | "delivered" | "ready_for_pickup" | "picked_up";
+  id: "placed" | "preparing" | "out_for_delivery" | "delivered";
   title: string;
   description: string;
   icon: React.ElementType;
 };
 
-const PLACED_STEP: ProgressStep = {
-  id: "placed",
-  title: "Order Placed",
-  description: "Restaurant has accepted your order",
-  icon: Check,
-};
-
-const PREPARING_STEP: ProgressStep = {
-  id: "preparing",
-  title: "Preparing Food",
-  description: "Chef is working on your order",
-  icon: Utensils,
-};
-
-const DELIVERY_STEPS: ProgressStep[] = [
-  PLACED_STEP,
-  PREPARING_STEP,
+const PROGRESS_STEPS: ProgressStep[] = [
+  {
+    id: "placed",
+    title: "Order Placed",
+    description: "Restaurant has accepted your order",
+    icon: Check,
+  },
+  {
+    id: "preparing",
+    title: "Preparing Food",
+    description: "Chef is working on your order",
+    icon: Utensils,
+  },
   {
     id: "out_for_delivery",
     title: "Out for Delivery",
@@ -76,27 +74,6 @@ const DELIVERY_STEPS: ProgressStep[] = [
   },
 ];
 
-const PICKUP_STEPS: ProgressStep[] = [
-  PLACED_STEP,
-  PREPARING_STEP,
-  {
-    id: "ready_for_pickup",
-    title: "Ready for Pickup",
-    description: "Your order is ready at the counter",
-    icon: ChefHat,
-  },
-  {
-    id: "picked_up",
-    title: "Picked Up",
-    description: "Enjoy your meal",
-    icon: Home,
-  },
-];
-
-function stepsFor(order: Order): ProgressStep[] {
-  return order.type === "delivery" ? DELIVERY_STEPS : PICKUP_STEPS;
-}
-
 function TrackRedirect() {
   const { orderId } = Route.useParams();
   return <Navigate to="/orders/$orderId" params={{ orderId }} replace />;
@@ -104,6 +81,12 @@ function TrackRedirect() {
 
 export function OrderTrackingView({ orderId }: { orderId: string }) {
   const [mounted, setMounted] = useState(false);
+  const [awaitingPayment, setAwaitingPayment] = useState(false);
+  const queryClient = useQueryClient();
+  const settledNotFoundRef = useRef<string | null>(null);
+  const clearedCartRef = useRef<string | null>(null);
+  const pendingVerifyRef = useRef<string | null>(null);
+  const clearCart = useCart((s) => s.clear);
   useOrderRealtime(orderId);
   const { data: order, isLoading } = useQuery({
     queryKey: ["order", orderId],
@@ -121,13 +104,84 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
   }, []);
 
   useEffect(() => {
+    if (!mounted || order) return;
+    let cancelled = false;
+    let running = false;
+    const attempt = () => {
+      if (running) return;
+      if (settledNotFoundRef.current === orderId) return;
+      running = true;
+      verifyCashfreePayment(orderId)
+        .then((verified) => {
+          if (cancelled) return;
+          if (verified.order) {
+            setAwaitingPayment(false);
+            queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+            queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+          } else {
+            setAwaitingPayment(true);
+          }
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          const message = String(error instanceof Error ? error.message : error);
+          if (/expired|not found|does not exist/i.test(message)) {
+            settledNotFoundRef.current = orderId;
+            setAwaitingPayment(false);
+          } else {
+            setAwaitingPayment(true);
+          }
+        })
+        .finally(() => {
+          running = false;
+        });
+    };
+    attempt();
+    const interval = setInterval(attempt, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [mounted, order, orderId, queryClient]);
+
+  useEffect(() => {
+    if (!order) return;
+    if (order.paymentMethod === "cashfree" && order.paymentStatus === "paid") {
+      if (clearedCartRef.current !== order.id) {
+        clearedCartRef.current = order.id;
+        clearCart();
+      }
+    }
+  }, [order, clearCart]);
+
+  useEffect(() => {
+    if (!mounted || !order) return;
+    if (order.paymentMethod !== "cashfree" || order.paymentStatus !== "pending") return;
+    if (pendingVerifyRef.current === order.id) return;
+    pendingVerifyRef.current = order.id;
+    let cancelled = false;
+    verifyCashfreePayment(order.id)
+      .then(() => {
+        if (cancelled) return;
+        queryClient.invalidateQueries({ queryKey: ["order", order.id] });
+        queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      })
+      .catch(() => {
+        // Payment still pending — the Cashfree webhook will confirm it.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, order?.id, order?.paymentMethod, order?.paymentStatus, queryClient]);
+
+  useEffect(() => {
     if (!order) return;
     if (["delivered", "cancelled"].includes(order.status)) clearActiveOrder(order.id);
     else saveActiveOrder(order.id);
   }, [order]);
 
   if (!mounted || isLoading) return <TrackingSkeleton />;
-  if (!order) return <NotFound orderId={orderId} />;
+  if (!order) return awaitingPayment ? <ConfirmingPayment orderId={orderId} /> : <NotFound orderId={orderId} />;
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f5f3f3] text-[#1b1c1c]">
@@ -137,10 +191,16 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
         <div className="-mt-7 space-y-4 px-4">
           <LiveTrackingCard order={order} />
           <DelayAlert order={order} />
+          {order.batchId && <BatchAlert order={order} />}
           <ProgressCard order={order} />
           <ItemsOrderedCard order={order} />
           <WhileYouWaitAd banners={homeContent?.banners ?? []} />
-          {order.status === "delivered" && <CompletionCard orderId={order.id} />}
+          {order.status === "delivered" && (
+            <>
+              <CompletionCard orderId={order.id} />
+              {order.type === "delivery" && <RiderRatingCard order={order} />}
+            </>
+          )}
           {order.status === "cancelled" && <CancelledCard />}
         </div>
       </main>
@@ -150,7 +210,7 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
 
 function TopControls() {
   return (
-    <div className="pointer-events-none fixed left-0 right-0 top-0 z-40 mx-auto flex h-16 max-w-[640px] items-center px-4">
+    <div className="pointer-events-none fixed left-0 right-0 top-0 z-40 mx-auto flex h-16 max-w-[640px] items-center justify-between px-4">
       <button
         type="button"
         onClick={() => window.history.back()}
@@ -158,6 +218,13 @@ function TopControls() {
         aria-label="Go back"
       >
         <ArrowLeft className="h-6 w-6" />
+      </button>
+      <button
+        type="button"
+        className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full border border-black/5 bg-white/90 text-zinc-950 shadow-sm backdrop-blur"
+        aria-label="More order actions"
+      >
+        <MoreHorizontal className="h-6 w-6" />
       </button>
     </div>
   );
@@ -179,12 +246,10 @@ function TrackingHero({ order }: { order: Order }) {
 }
 
 function LiveTrackingCard({ order }: { order: Order }) {
-  const isDelivery = order.type === "delivery";
-  const partnerName =
+  const riderName =
     order.delivery?.partnerName || order.delivery?.assignedRiderName || "Delivery partner";
-  const riderName = isDelivery ? partnerName : "The Ankapur Dhaba";
   const riderStatus = riderSubtext(order);
-  const canCall = isDelivery && Boolean(order.delivery?.partnerPhone);
+  const canCall = Boolean(order.delivery?.partnerPhone);
   return (
     <section className="relative z-10 rounded-[24px] bg-white p-5 shadow-[0_10px_35px_rgba(0,0,0,0.08)] ring-1 ring-zinc-100">
       <div className="flex items-start justify-between gap-4">
@@ -198,54 +263,98 @@ function LiveTrackingCard({ order }: { order: Order }) {
           </h1>
           <p className="mt-1 truncate text-sm font-medium text-zinc-500">{riderStatus}</p>
         </div>
-        {order.status !== "delivered" && order.status !== "cancelled" ? (
-          <div className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[18px] bg-zinc-950 text-center text-white shadow-lg">
-            <span className="block text-2xl font-black leading-none">{etaNumber(order)}</span>
-            <span className="mt-1 block text-[10px] font-black uppercase leading-none">min</span>
-          </div>
-        ) : null}
+        <div className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[18px] bg-zinc-950 text-center text-white shadow-lg">
+          <span className="block text-2xl font-black leading-none">{etaNumber(order)}</span>
+          <span className="mt-1 block text-[10px] font-black uppercase leading-none">min</span>
+        </div>
       </div>
 
       <div className="my-5 h-px bg-zinc-100" />
 
       <div className="flex items-center gap-3">
         <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-red-50">
-          {isDelivery ? (
-            <Bike className="h-7 w-7 text-red-600" />
-          ) : (
-            <ChefHat className="h-7 w-7 text-red-600" />
-          )}
+          <Bike className="h-7 w-7 text-red-600" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-black text-zinc-950">{riderName}</div>
-          <div className="mt-0.5 text-xs font-medium text-zinc-500">
-            {isDelivery ? "Delivery Partner" : order.type === "dinein" ? "Dine-in" : "Pickup"}
+          <div className="mt-0.5 flex items-center gap-1 text-xs font-medium text-zinc-500">
+            <Star className="h-3.5 w-3.5 fill-[#FF8A00] text-[#FF8A00]" />
+            <span>4.9</span>
+            <span>•</span>
+            <span>{order.type === "delivery" ? "Delivery Partner" : order.type}</span>
           </div>
         </div>
-        <Link
-          to="/support"
+        <button
+          type="button"
           className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-zinc-100 text-zinc-700"
           aria-label="Message support"
         >
           <MessageSquare className="h-5 w-5" />
-        </Link>
-        <a
-          href={`tel:${canCall ? order.delivery?.partnerPhone : "+919963218601"}`}
-          className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-600 text-white shadow-lg shadow-red-600/20"
-          aria-label={canCall ? "Call delivery partner" : "Call restaurant"}
-        >
-          <Phone className="h-5 w-5" />
-        </a>
+        </button>
+        {canCall ? (
+          <a
+            href={`tel:${order.delivery?.partnerPhone}`}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-600 text-white shadow-lg shadow-red-600/20"
+            aria-label="Call delivery partner"
+          >
+            <Phone className="h-5 w-5" />
+          </a>
+        ) : (
+          <a
+            href="tel:+919963218601"
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-600 text-white shadow-lg shadow-red-600/20"
+            aria-label="Call restaurant"
+          >
+            <Phone className="h-5 w-5" />
+          </a>
+        )}
+      </div>
+
+      <div className="my-5 h-px bg-zinc-100" />
+
+      <button
+        type="button"
+        className="flex w-full items-center gap-3 text-left"
+        aria-label="Add delivery instructions"
+      >
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
+          <Plus className="h-5 w-5" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-black text-zinc-950">Add Delivery Instructions</span>
+          <span className="block truncate text-xs font-medium text-zinc-500">
+            Ring bell, leave at door...
+          </span>
+        </span>
+      </button>
+    </section>
+  );
+}
+
+function BatchAlert({ order }: { order: Order }) {
+  return (
+    <section className="flex items-center gap-4 rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-zinc-100">
+      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
+        <Bike className="h-6 w-6" />
+      </div>
+      <div className="min-w-0">
+        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">
+          Batched delivery
+        </div>
+        <p className="mt-1 text-sm font-semibold text-zinc-950">
+          Your order is grouped with other nearby orders for a faster drop-off.
+        </p>
       </div>
     </section>
   );
 }
 
-function DelayAlert({ order }: { order: Order }) {
-  const delayed =
-    Boolean(order.delivery?.delayReason) || Boolean(order.delivery?.delayExtraMinutes);
+function DelayAlert({ order }: { order: Order }) {  const delayed =
+    Boolean(order.delivery?.delayReason) ||
+    Boolean(order.delivery?.delayExtraMinutes) ||
+    isOlderThan(order, 35);
   if (!delayed) return null;
-  const minutes = order.delivery?.delayExtraMinutes;
+  const minutes = order.delivery?.delayExtraMinutes || 5;
   return (
     <section className="flex items-center gap-4 rounded-[18px] bg-white p-4 shadow-sm ring-1 ring-zinc-100">
       <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
@@ -253,11 +362,10 @@ function DelayAlert({ order }: { order: Order }) {
       </div>
       <div className="min-w-0">
         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">
-          {minutes ? `Delayed by ${minutes} mins` : "Delayed"}
+          Delayed by {minutes} mins
         </div>
         <p className="mt-1 text-sm font-semibold text-zinc-950">
-          {order.delivery?.delayReason ||
-            "Your order is taking a little longer than expected. Hang tight."}
+          {order.delivery?.delayReason || "Get Rs 25 coupon after order delivery"}
         </p>
       </div>
     </section>
@@ -265,7 +373,6 @@ function DelayAlert({ order }: { order: Order }) {
 }
 
 function ProgressCard({ order }: { order: Order }) {
-  const steps = stepsFor(order);
   const active = progressId(order.status);
   const badge = order.status === "cancelled" ? "Cancelled" : labelForStatus(order.status);
   return (
@@ -279,14 +386,14 @@ function ProgressCard({ order }: { order: Order }) {
         </span>
       </div>
       <ol className="mt-7 space-y-0">
-        {steps.map((step, index) => (
+        {PROGRESS_STEPS.map((step, index) => (
           <ProgressItem
             key={step.id}
             step={step}
             order={order}
             active={active === step.id}
             done={isStepDone(step.id, order.status)}
-            isLast={index === steps.length - 1}
+            isLast={index === PROGRESS_STEPS.length - 1}
           />
         ))}
       </ol>
@@ -394,9 +501,11 @@ function ItemsOrderedCard({ order }: { order: Order }) {
 function WhileYouWaitAd({ banners }: { banners: CustomerBanner[] }) {
   const ad = banners.find((banner) => /ad|sponsor|brand/i.test(banner.type || ""));
   if (ad) {
-    const isExternal = /^https?:\/\//.test(ad.ctaLink || "");
-    const content = (
-      <>
+    return (
+      <Link
+        to={(ad.ctaLink || "/menu") as never}
+        className="group block overflow-hidden rounded-[18px] bg-zinc-950 text-white shadow-sm"
+      >
         <div className="relative min-h-[160px]">
           <AdMedia src={ad.image} />
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/35 to-transparent" />
@@ -407,26 +516,6 @@ function WhileYouWaitAd({ banners }: { banners: CustomerBanner[] }) {
             <div className="mt-2 line-clamp-2 text-2xl font-black">{ad.title}</div>
           </div>
         </div>
-      </>
-    );
-    if (isExternal) {
-      return (
-        <a
-          href={ad.ctaLink}
-          target="_blank"
-          rel="noreferrer"
-          className="group block overflow-hidden rounded-[18px] bg-zinc-950 text-white shadow-sm"
-        >
-          {content}
-        </a>
-      );
-    }
-    return (
-      <Link
-        to={(ad.ctaLink || "/menu") as never}
-        className="group block overflow-hidden rounded-[18px] bg-zinc-950 text-white shadow-sm"
-      >
-        {content}
       </Link>
     );
   }
@@ -507,6 +596,25 @@ function NotFound({ orderId }: { orderId: string }) {
   );
 }
 
+function ConfirmingPayment({ orderId }: { orderId: string }) {
+  return (
+    <div className="mx-auto max-w-md px-4 py-24 text-center">
+      <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-red-200 border-t-red-600" />
+      <h1 className="mt-6 text-2xl font-black text-zinc-900">Confirming your payment</h1>
+      <p className="mt-2 text-zinc-500">
+        Your order will be placed as soon as the payment for {orderId} is confirmed. This page
+        refreshes automatically.
+      </p>
+      <Link
+        to="/menu"
+        className="mt-8 inline-flex rounded-3xl bg-red-600 px-6 py-3.5 font-black text-white"
+      >
+        Continue shopping
+      </Link>
+    </div>
+  );
+}
+
 function AdMedia({ src }: { src: string }) {
   const url = resolveMediaUrl(src);
   if (isVideoUrl(url)) {
@@ -560,21 +668,17 @@ function stepDescription(step: ProgressStep, order: Order) {
   return step.description;
 }
 
-function progressId(status: OrderStatus): ProgressStep["id"] | null {
+function progressId(status: OrderStatus): ProgressStep["id"] {
   if (status === "delivered") return "delivered";
   if (status === "out_for_delivery") return "out_for_delivery";
-  if (status === "ready") return "ready_for_pickup";
-  if (status === "cancelled") return null;
   return "preparing";
 }
 
 function isStepDone(step: ProgressStep["id"], status: OrderStatus) {
-  if (status === "cancelled") return step === "placed";
+  if (status === "cancelled") return false;
   if (step === "placed") return true;
   if (step === "preparing") return ["ready", "out_for_delivery", "delivered"].includes(status);
-  if (step === "ready_for_pickup") return status === "delivered";
   if (step === "out_for_delivery") return status === "delivered";
-  if (step === "picked_up") return status === "delivered";
   if (step === "delivered") return status === "delivered";
   return false;
 }
@@ -587,17 +691,18 @@ function labelForStatus(status: OrderStatus) {
 function etaNumber(order: Order) {
   if (order.status === "delivered") return 0;
   if (order.status === "cancelled") return 0;
-  const eta = order.delivery?.etaMinutes ?? order.delivery?.prepEtaMinutes;
-  return eta ?? "–";
+  return order.delivery?.etaMinutes || order.delivery?.prepEtaMinutes || 23;
 }
 
 function placedTime(order: Order) {
-  return new Date(order.createdAt).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function isOlderThan(order: Order, minutes: number) {
+  if (["delivered", "cancelled"].includes(order.status)) return false;
+  return Date.now() - new Date(order.createdAt).getTime() > minutes * 60 * 1000;
 }
 
 function money(value: number) {
-  return formatINR(value);
+  return `Rs ${Math.round(value)}`;
 }

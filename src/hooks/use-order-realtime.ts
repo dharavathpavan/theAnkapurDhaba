@@ -8,6 +8,7 @@ export function useOrderRealtime(orderId?: string) {
   useEffect(() => {
     return subscribeToOrderEvents((event) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["my-orders"] });
       if (orderId) queryClient.invalidateQueries({ queryKey: ["order", orderId] });
       if (event.order?.id) {
         queryClient.invalidateQueries({ queryKey: ["order", event.order.id] });

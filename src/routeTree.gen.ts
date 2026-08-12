@@ -31,6 +31,7 @@ import { Route as CancellationRefundPolicyRouteImport } from './routes/cancellat
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DeliveryIndexRouteImport } from './routes/delivery.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 import { Route as TTableIdRouteImport } from './routes/t.$tableId'
@@ -39,6 +40,11 @@ import { Route as ReviewOrderIdRouteImport } from './routes/review.$orderId'
 import { Route as RestaurantWaiterRouteImport } from './routes/restaurant.waiter'
 import { Route as RestaurantDeliveryRouteImport } from './routes/restaurant.delivery'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders.$orderId'
+import { Route as DeliveryWalletRouteImport } from './routes/delivery.wallet'
+import { Route as DeliveryProfileRouteImport } from './routes/delivery.profile'
+import { Route as DeliveryOrdersRouteImport } from './routes/delivery.orders'
+import { Route as DeliveryHistoryRouteImport } from './routes/delivery.history'
+import { Route as DeliveryDashboardRouteImport } from './routes/delivery.dashboard'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTablesRouteImport } from './routes/admin.tables'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
@@ -52,12 +58,17 @@ import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminMarketingRouteImport } from './routes/admin.marketing'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminExpensesRouteImport } from './routes/admin.expenses'
+import { Route as AdminDeliveryRouteImport } from './routes/admin.delivery'
 import { Route as AdminBusinessRouteImport } from './routes/admin.business'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
+import { Route as AdminMenuIndexRouteImport } from './routes/admin.menu.index'
 import { Route as SupportChatTicketIdRouteImport } from './routes/support.chat.$ticketId'
+import { Route as DeliveryTripsOrderIdRouteImport } from './routes/delivery.trips.$orderId'
 import { Route as AdminMenuItemRouteImport } from './routes/admin.menu.item'
 import { Route as AdminKitchenPrinterRouteImport } from './routes/admin.kitchen.printer'
 import { Route as AdminKitchenPrintHistoryRouteImport } from './routes/admin.kitchen.print-history'
+import { Route as AdminDeliveryZonesRouteImport } from './routes/admin.delivery.zones'
+import { Route as AdminDeliveryPayoutsRouteImport } from './routes/admin.delivery.payouts'
 
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
@@ -170,6 +181,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeliveryIndexRoute = DeliveryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DeliveryRoute,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -209,6 +225,31 @@ const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
   id: '/$orderId',
   path: '/$orderId',
   getParentRoute: () => OrdersRoute,
+} as any)
+const DeliveryWalletRoute = DeliveryWalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => DeliveryRoute,
+} as any)
+const DeliveryProfileRoute = DeliveryProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => DeliveryRoute,
+} as any)
+const DeliveryOrdersRoute = DeliveryOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => DeliveryRoute,
+} as any)
+const DeliveryHistoryRoute = DeliveryHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => DeliveryRoute,
+} as any)
+const DeliveryDashboardRoute = DeliveryDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => DeliveryRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
@@ -275,6 +316,11 @@ const AdminExpensesRoute = AdminExpensesRouteImport.update({
   path: '/expenses',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDeliveryRoute = AdminDeliveryRouteImport.update({
+  id: '/delivery',
+  path: '/delivery',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBusinessRoute = AdminBusinessRouteImport.update({
   id: '/business',
   path: '/business',
@@ -285,10 +331,20 @@ const AdminBillingRoute = AdminBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMenuIndexRoute = AdminMenuIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminMenuRoute,
+} as any)
 const SupportChatTicketIdRoute = SupportChatTicketIdRouteImport.update({
   id: '/chat/$ticketId',
   path: '/chat/$ticketId',
   getParentRoute: () => SupportRoute,
+} as any)
+const DeliveryTripsOrderIdRoute = DeliveryTripsOrderIdRouteImport.update({
+  id: '/trips/$orderId',
+  path: '/trips/$orderId',
+  getParentRoute: () => DeliveryRoute,
 } as any)
 const AdminMenuItemRoute = AdminMenuItemRouteImport.update({
   id: '/item',
@@ -306,6 +362,16 @@ const AdminKitchenPrintHistoryRoute =
     path: '/kitchen/print-history',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminDeliveryZonesRoute = AdminDeliveryZonesRouteImport.update({
+  id: '/zones',
+  path: '/zones',
+  getParentRoute: () => AdminDeliveryRoute,
+} as any)
+const AdminDeliveryPayoutsRoute = AdminDeliveryPayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
+  getParentRoute: () => AdminDeliveryRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -315,7 +381,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact-us': typeof ContactUsRoute
-  '/delivery': typeof DeliveryRoute
+  '/delivery': typeof DeliveryRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
@@ -332,6 +398,7 @@ export interface FileRoutesByFullPath {
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/business': typeof AdminBusinessRoute
+  '/admin/delivery': typeof AdminDeliveryRouteWithChildren
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -345,6 +412,11 @@ export interface FileRoutesByFullPath {
   '/admin/support': typeof AdminSupportRoute
   '/admin/tables': typeof AdminTablesRoute
   '/admin/users': typeof AdminUsersRoute
+  '/delivery/dashboard': typeof DeliveryDashboardRoute
+  '/delivery/history': typeof DeliveryHistoryRoute
+  '/delivery/orders': typeof DeliveryOrdersRoute
+  '/delivery/profile': typeof DeliveryProfileRoute
+  '/delivery/wallet': typeof DeliveryWalletRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
   '/restaurant/waiter': typeof RestaurantWaiterRoute
@@ -353,10 +425,15 @@ export interface FileRoutesByFullPath {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/delivery/': typeof DeliveryIndexRoute
+  '/admin/delivery/payouts': typeof AdminDeliveryPayoutsRoute
+  '/admin/delivery/zones': typeof AdminDeliveryZonesRoute
   '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
+  '/delivery/trips/$orderId': typeof DeliveryTripsOrderIdRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
+  '/admin/menu/': typeof AdminMenuIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -365,7 +442,6 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact-us': typeof ContactUsRoute
-  '/delivery': typeof DeliveryRoute
   '/favorites': typeof FavoritesRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
@@ -382,10 +458,10 @@ export interface FileRoutesByTo {
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/business': typeof AdminBusinessRoute
+  '/admin/delivery': typeof AdminDeliveryRouteWithChildren
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
-  '/admin/menu': typeof AdminMenuRouteWithChildren
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -395,6 +471,11 @@ export interface FileRoutesByTo {
   '/admin/support': typeof AdminSupportRoute
   '/admin/tables': typeof AdminTablesRoute
   '/admin/users': typeof AdminUsersRoute
+  '/delivery/dashboard': typeof DeliveryDashboardRoute
+  '/delivery/history': typeof DeliveryHistoryRoute
+  '/delivery/orders': typeof DeliveryOrdersRoute
+  '/delivery/profile': typeof DeliveryProfileRoute
+  '/delivery/wallet': typeof DeliveryWalletRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
   '/restaurant/waiter': typeof RestaurantWaiterRoute
@@ -403,10 +484,15 @@ export interface FileRoutesByTo {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin': typeof AdminIndexRoute
+  '/delivery': typeof DeliveryIndexRoute
+  '/admin/delivery/payouts': typeof AdminDeliveryPayoutsRoute
+  '/admin/delivery/zones': typeof AdminDeliveryZonesRoute
   '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
+  '/delivery/trips/$orderId': typeof DeliveryTripsOrderIdRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
+  '/admin/menu': typeof AdminMenuIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -417,7 +503,7 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact-us': typeof ContactUsRoute
-  '/delivery': typeof DeliveryRoute
+  '/delivery': typeof DeliveryRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
@@ -434,6 +520,7 @@ export interface FileRoutesById {
   '/wallet': typeof WalletRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/business': typeof AdminBusinessRoute
+  '/admin/delivery': typeof AdminDeliveryRouteWithChildren
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/marketing': typeof AdminMarketingRoute
@@ -447,6 +534,11 @@ export interface FileRoutesById {
   '/admin/support': typeof AdminSupportRoute
   '/admin/tables': typeof AdminTablesRoute
   '/admin/users': typeof AdminUsersRoute
+  '/delivery/dashboard': typeof DeliveryDashboardRoute
+  '/delivery/history': typeof DeliveryHistoryRoute
+  '/delivery/orders': typeof DeliveryOrdersRoute
+  '/delivery/profile': typeof DeliveryProfileRoute
+  '/delivery/wallet': typeof DeliveryWalletRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/restaurant/delivery': typeof RestaurantDeliveryRoute
   '/restaurant/waiter': typeof RestaurantWaiterRoute
@@ -455,10 +547,15 @@ export interface FileRoutesById {
   '/t/$tableId': typeof TTableIdRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/delivery/': typeof DeliveryIndexRoute
+  '/admin/delivery/payouts': typeof AdminDeliveryPayoutsRoute
+  '/admin/delivery/zones': typeof AdminDeliveryZonesRoute
   '/admin/kitchen/print-history': typeof AdminKitchenPrintHistoryRoute
   '/admin/kitchen/printer': typeof AdminKitchenPrinterRoute
   '/admin/menu/item': typeof AdminMenuItemRoute
+  '/delivery/trips/$orderId': typeof DeliveryTripsOrderIdRoute
   '/support/chat/$ticketId': typeof SupportChatTicketIdRoute
+  '/admin/menu/': typeof AdminMenuIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -487,6 +584,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/admin/billing'
     | '/admin/business'
+    | '/admin/delivery'
     | '/admin/expenses'
     | '/admin/inventory'
     | '/admin/marketing'
@@ -500,6 +598,11 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/tables'
     | '/admin/users'
+    | '/delivery/dashboard'
+    | '/delivery/history'
+    | '/delivery/orders'
+    | '/delivery/profile'
+    | '/delivery/wallet'
     | '/orders/$orderId'
     | '/restaurant/delivery'
     | '/restaurant/waiter'
@@ -508,10 +611,15 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
+    | '/delivery/'
+    | '/admin/delivery/payouts'
+    | '/admin/delivery/zones'
     | '/admin/kitchen/print-history'
     | '/admin/kitchen/printer'
     | '/admin/menu/item'
+    | '/delivery/trips/$orderId'
     | '/support/chat/$ticketId'
+    | '/admin/menu/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -520,7 +628,6 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/contact-us'
-    | '/delivery'
     | '/favorites'
     | '/kitchen'
     | '/login'
@@ -537,10 +644,10 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/admin/billing'
     | '/admin/business'
+    | '/admin/delivery'
     | '/admin/expenses'
     | '/admin/inventory'
     | '/admin/marketing'
-    | '/admin/menu'
     | '/admin/orders'
     | '/admin/payments'
     | '/admin/reports'
@@ -550,6 +657,11 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/tables'
     | '/admin/users'
+    | '/delivery/dashboard'
+    | '/delivery/history'
+    | '/delivery/orders'
+    | '/delivery/profile'
+    | '/delivery/wallet'
     | '/orders/$orderId'
     | '/restaurant/delivery'
     | '/restaurant/waiter'
@@ -558,10 +670,15 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin'
+    | '/delivery'
+    | '/admin/delivery/payouts'
+    | '/admin/delivery/zones'
     | '/admin/kitchen/print-history'
     | '/admin/kitchen/printer'
     | '/admin/menu/item'
+    | '/delivery/trips/$orderId'
     | '/support/chat/$ticketId'
+    | '/admin/menu'
   id:
     | '__root__'
     | '/'
@@ -588,6 +705,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/admin/billing'
     | '/admin/business'
+    | '/admin/delivery'
     | '/admin/expenses'
     | '/admin/inventory'
     | '/admin/marketing'
@@ -601,6 +719,11 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/tables'
     | '/admin/users'
+    | '/delivery/dashboard'
+    | '/delivery/history'
+    | '/delivery/orders'
+    | '/delivery/profile'
+    | '/delivery/wallet'
     | '/orders/$orderId'
     | '/restaurant/delivery'
     | '/restaurant/waiter'
@@ -609,10 +732,15 @@ export interface FileRouteTypes {
     | '/t/$tableId'
     | '/track/$orderId'
     | '/admin/'
+    | '/delivery/'
+    | '/admin/delivery/payouts'
+    | '/admin/delivery/zones'
     | '/admin/kitchen/print-history'
     | '/admin/kitchen/printer'
     | '/admin/menu/item'
+    | '/delivery/trips/$orderId'
     | '/support/chat/$ticketId'
+    | '/admin/menu/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -623,7 +751,7 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
   ContactUsRoute: typeof ContactUsRoute
-  DeliveryRoute: typeof DeliveryRoute
+  DeliveryRoute: typeof DeliveryRouteWithChildren
   FavoritesRoute: typeof FavoritesRoute
   KitchenRoute: typeof KitchenRoute
   LoginRoute: typeof LoginRoute
@@ -800,6 +928,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/delivery/': {
+      id: '/delivery/'
+      path: '/'
+      fullPath: '/delivery/'
+      preLoaderRoute: typeof DeliveryIndexRouteImport
+      parentRoute: typeof DeliveryRoute
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
@@ -855,6 +990,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/orders/$orderId'
       preLoaderRoute: typeof OrdersOrderIdRouteImport
       parentRoute: typeof OrdersRoute
+    }
+    '/delivery/wallet': {
+      id: '/delivery/wallet'
+      path: '/wallet'
+      fullPath: '/delivery/wallet'
+      preLoaderRoute: typeof DeliveryWalletRouteImport
+      parentRoute: typeof DeliveryRoute
+    }
+    '/delivery/profile': {
+      id: '/delivery/profile'
+      path: '/profile'
+      fullPath: '/delivery/profile'
+      preLoaderRoute: typeof DeliveryProfileRouteImport
+      parentRoute: typeof DeliveryRoute
+    }
+    '/delivery/orders': {
+      id: '/delivery/orders'
+      path: '/orders'
+      fullPath: '/delivery/orders'
+      preLoaderRoute: typeof DeliveryOrdersRouteImport
+      parentRoute: typeof DeliveryRoute
+    }
+    '/delivery/history': {
+      id: '/delivery/history'
+      path: '/history'
+      fullPath: '/delivery/history'
+      preLoaderRoute: typeof DeliveryHistoryRouteImport
+      parentRoute: typeof DeliveryRoute
+    }
+    '/delivery/dashboard': {
+      id: '/delivery/dashboard'
+      path: '/dashboard'
+      fullPath: '/delivery/dashboard'
+      preLoaderRoute: typeof DeliveryDashboardRouteImport
+      parentRoute: typeof DeliveryRoute
     }
     '/admin/users': {
       id: '/admin/users'
@@ -947,6 +1117,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminExpensesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/delivery': {
+      id: '/admin/delivery'
+      path: '/delivery'
+      fullPath: '/admin/delivery'
+      preLoaderRoute: typeof AdminDeliveryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/business': {
       id: '/admin/business'
       path: '/business'
@@ -961,12 +1138,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBillingRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/menu/': {
+      id: '/admin/menu/'
+      path: '/'
+      fullPath: '/admin/menu/'
+      preLoaderRoute: typeof AdminMenuIndexRouteImport
+      parentRoute: typeof AdminMenuRoute
+    }
     '/support/chat/$ticketId': {
       id: '/support/chat/$ticketId'
       path: '/chat/$ticketId'
       fullPath: '/support/chat/$ticketId'
       preLoaderRoute: typeof SupportChatTicketIdRouteImport
       parentRoute: typeof SupportRoute
+    }
+    '/delivery/trips/$orderId': {
+      id: '/delivery/trips/$orderId'
+      path: '/trips/$orderId'
+      fullPath: '/delivery/trips/$orderId'
+      preLoaderRoute: typeof DeliveryTripsOrderIdRouteImport
+      parentRoute: typeof DeliveryRoute
     }
     '/admin/menu/item': {
       id: '/admin/menu/item'
@@ -989,15 +1180,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminKitchenPrintHistoryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/delivery/zones': {
+      id: '/admin/delivery/zones'
+      path: '/zones'
+      fullPath: '/admin/delivery/zones'
+      preLoaderRoute: typeof AdminDeliveryZonesRouteImport
+      parentRoute: typeof AdminDeliveryRoute
+    }
+    '/admin/delivery/payouts': {
+      id: '/admin/delivery/payouts'
+      path: '/payouts'
+      fullPath: '/admin/delivery/payouts'
+      preLoaderRoute: typeof AdminDeliveryPayoutsRouteImport
+      parentRoute: typeof AdminDeliveryRoute
+    }
   }
 }
 
+interface AdminDeliveryRouteChildren {
+  AdminDeliveryPayoutsRoute: typeof AdminDeliveryPayoutsRoute
+  AdminDeliveryZonesRoute: typeof AdminDeliveryZonesRoute
+}
+
+const AdminDeliveryRouteChildren: AdminDeliveryRouteChildren = {
+  AdminDeliveryPayoutsRoute: AdminDeliveryPayoutsRoute,
+  AdminDeliveryZonesRoute: AdminDeliveryZonesRoute,
+}
+
+const AdminDeliveryRouteWithChildren = AdminDeliveryRoute._addFileChildren(
+  AdminDeliveryRouteChildren,
+)
+
 interface AdminMenuRouteChildren {
   AdminMenuItemRoute: typeof AdminMenuItemRoute
+  AdminMenuIndexRoute: typeof AdminMenuIndexRoute
 }
 
 const AdminMenuRouteChildren: AdminMenuRouteChildren = {
   AdminMenuItemRoute: AdminMenuItemRoute,
+  AdminMenuIndexRoute: AdminMenuIndexRoute,
 }
 
 const AdminMenuRouteWithChildren = AdminMenuRoute._addFileChildren(
@@ -1007,6 +1228,7 @@ const AdminMenuRouteWithChildren = AdminMenuRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminBillingRoute: typeof AdminBillingRoute
   AdminBusinessRoute: typeof AdminBusinessRoute
+  AdminDeliveryRoute: typeof AdminDeliveryRouteWithChildren
   AdminExpensesRoute: typeof AdminExpensesRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminMarketingRoute: typeof AdminMarketingRoute
@@ -1028,6 +1250,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBillingRoute: AdminBillingRoute,
   AdminBusinessRoute: AdminBusinessRoute,
+  AdminDeliveryRoute: AdminDeliveryRouteWithChildren,
   AdminExpensesRoute: AdminExpensesRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminMarketingRoute: AdminMarketingRoute,
@@ -1047,6 +1270,30 @@ const AdminRouteChildren: AdminRouteChildren = {
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface DeliveryRouteChildren {
+  DeliveryDashboardRoute: typeof DeliveryDashboardRoute
+  DeliveryHistoryRoute: typeof DeliveryHistoryRoute
+  DeliveryOrdersRoute: typeof DeliveryOrdersRoute
+  DeliveryProfileRoute: typeof DeliveryProfileRoute
+  DeliveryWalletRoute: typeof DeliveryWalletRoute
+  DeliveryIndexRoute: typeof DeliveryIndexRoute
+  DeliveryTripsOrderIdRoute: typeof DeliveryTripsOrderIdRoute
+}
+
+const DeliveryRouteChildren: DeliveryRouteChildren = {
+  DeliveryDashboardRoute: DeliveryDashboardRoute,
+  DeliveryHistoryRoute: DeliveryHistoryRoute,
+  DeliveryOrdersRoute: DeliveryOrdersRoute,
+  DeliveryProfileRoute: DeliveryProfileRoute,
+  DeliveryWalletRoute: DeliveryWalletRoute,
+  DeliveryIndexRoute: DeliveryIndexRoute,
+  DeliveryTripsOrderIdRoute: DeliveryTripsOrderIdRoute,
+}
+
+const DeliveryRouteWithChildren = DeliveryRoute._addFileChildren(
+  DeliveryRouteChildren,
+)
 
 interface OrdersRouteChildren {
   OrdersOrderIdRoute: typeof OrdersOrderIdRoute
@@ -1090,7 +1337,7 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
   ContactUsRoute: ContactUsRoute,
-  DeliveryRoute: DeliveryRoute,
+  DeliveryRoute: DeliveryRouteWithChildren,
   FavoritesRoute: FavoritesRoute,
   KitchenRoute: KitchenRoute,
   LoginRoute: LoginRoute,

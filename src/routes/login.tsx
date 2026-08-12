@@ -1,26 +1,13 @@
-import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Eye, EyeOff, KeyRound, LogIn, MessageSquareText, UtensilsCrossed } from "lucide-react";
 import { resetFirebaseOtp, sendFirebasePhoneOtp, verifyFirebasePhoneOtp } from "@/lib/firebase";
 import { useAuth } from "@/stores/auth";
 import type { UserRole, AuthUser } from "@/stores/auth";
+import { API_BASE } from "@/services/api";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
-
-const SAFE_RETURN_PATHS = new Set([
-  "checkout",
-  "cart",
-  "orders",
-  "menu",
-  "favorites",
-  "wallet",
-  "profile",
-  "support",
-  "account",
-  "track",
-]);
 
 type LoginMode = "otp" | "password";
 
@@ -33,7 +20,6 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login, isAuthenticated, user } = useAuth();
   const [mode, setMode] = useState<LoginMode>("otp");
   const [phone, setPhone] = useState("");
@@ -47,16 +33,15 @@ function LoginPage() {
 
   useEffect(() => {
     if (otpCooldown <= 0) return undefined;
-    const timer = window.setTimeout(
-      () => setOtpCooldown((seconds) => Math.max(0, seconds - 1)),
-      1000,
-    );
+    const timer = window.setTimeout(() => setOtpCooldown((seconds) => Math.max(0, seconds - 1)), 1000);
     return () => window.clearTimeout(timer);
   }, [otpCooldown]);
 
-  useEffect(() => {
-    if (isAuthenticated() && user) navigate({ to: redirectFor(user.role) });
-  }, [isAuthenticated, user, navigate]);
+  if (isAuthenticated() && user) {
+    const dest = redirectFor(user.role);
+    navigate({ to: dest });
+    return null;
+  }
 
   function authHeaders() {
     return {
@@ -68,11 +53,7 @@ function LoginPage() {
   function finishLogin(data: { token: string; user: AuthUser }) {
     login(data.token, data.user);
     toast.success(`Welcome back, ${data.user.name}!`);
-    const role = data.user.role as UserRole;
-    const fromParam = (location.search as { from?: string }).from;
-    const returnPath =
-      role === "USER" && fromParam && SAFE_RETURN_PATHS.has(fromParam) ? `/${fromParam}` : null;
-    navigate({ to: (returnPath ?? redirectFor(role)) as never });
+    navigate({ to: redirectFor(data.user.role as UserRole) });
   }
 
   async function handlePasswordLogin(e: React.FormEvent) {
@@ -103,8 +84,7 @@ function LoginPage() {
 
   async function handleSendOtp() {
     if (phone.length !== 10) return toast.error("Enter a valid 10-digit mobile number.");
-    if (otpCooldown > 0)
-      return toast.message(`Please wait ${otpCooldown}s before requesting another OTP.`);
+    if (otpCooldown > 0) return toast.message(`Please wait ${otpCooldown}s before requesting another OTP.`);
     setOtpSending(true);
     try {
       resetFirebaseOtp();
@@ -167,12 +147,8 @@ function LoginPage() {
             <UtensilsCrossed className="h-7 w-7 text-primary" />
           </div>
           <div className="text-center">
-            <h1 className="font-display text-3xl tracking-widest text-foreground">
-              THE ANKAPURE DHABA
-            </h1>
-            <p className="mt-1 text-xs tracking-widest text-muted-foreground">
-              SIGN IN TO YOUR ACCOUNT
-            </p>
+            <h1 className="font-display text-3xl tracking-widest text-foreground">THE ANKAPURE DHABA</h1>
+            <p className="mt-1 text-xs tracking-widest text-muted-foreground">SIGN IN TO YOUR ACCOUNT</p>
           </div>
         </div>
 
@@ -182,9 +158,7 @@ function LoginPage() {
               type="button"
               onClick={() => switchMode("otp")}
               className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 transition ${
-                mode === "otp"
-                  ? "bg-primary text-primary-foreground shadow"
-                  : "text-muted-foreground hover:text-foreground"
+                mode === "otp" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <MessageSquareText className="h-4 w-4" /> OTP
@@ -193,19 +167,14 @@ function LoginPage() {
               type="button"
               onClick={() => switchMode("password")}
               className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 transition ${
-                mode === "password"
-                  ? "bg-primary text-primary-foreground shadow"
-                  : "text-muted-foreground hover:text-foreground"
+                mode === "password" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <KeyRound className="h-4 w-4" /> Password
             </button>
           </div>
 
-          <form
-            onSubmit={mode === "otp" ? handleOtpLogin : handlePasswordLogin}
-            className="space-y-5"
-          >
+          <form onSubmit={mode === "otp" ? handleOtpLogin : handlePasswordLogin} className="space-y-5">
             <div>
               <label className="mb-1.5 block font-display text-xs tracking-widest text-muted-foreground">
                 PHONE NUMBER
@@ -215,13 +184,7 @@ function LoginPage() {
                 type="tel"
                 value={phone}
                 onChange={(e) => {
-                  const digits = e.target.value.replace(/\D/g, "");
-                  setPhone(
-                    (digits.startsWith("91") && digits.length > 10
-                      ? digits.slice(2)
-                      : digits
-                    ).slice(0, 10),
-                  );
+                  setPhone(e.target.value.replace(/\D/g, "").slice(0, 10));
                   setOtpSent(false);
                   setOtp("");
                   setOtpCooldown(0);
@@ -229,7 +192,6 @@ function LoginPage() {
                 }}
                 placeholder="10-digit mobile number"
                 inputMode="tel"
-                autoComplete="tel"
                 className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
@@ -260,13 +222,7 @@ function LoginPage() {
                   disabled={otpSending || phone.length !== 10 || otpCooldown > 0}
                   className="w-full rounded-lg border border-primary/25 bg-primary/10 py-3 text-sm font-semibold text-primary transition hover:bg-primary/15 disabled:opacity-60"
                 >
-                  {otpSending
-                    ? "SENDING OTP..."
-                    : otpCooldown > 0
-                      ? `RESEND IN ${otpCooldown}s`
-                      : otpSent
-                        ? "RESEND OTP"
-                        : "SEND OTP"}
+                  {otpSending ? "SENDING OTP..." : otpCooldown > 0 ? `RESEND IN ${otpCooldown}s` : otpSent ? "RESEND OTP" : "SEND OTP"}
                 </button>
               </div>
             ) : (
@@ -314,15 +270,14 @@ function LoginPage() {
 
           <div className="mt-5 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
-            <Link to="/signup" className="font-medium text-primary hover:underline">
+            <a href="/signup" className="font-medium text-primary hover:underline">
               Sign up
-            </Link>
+            </a>
           </div>
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground/70">
-          OTP login is for customers. Admin, Kitchen, Waiter and Delivery staff should use password
-          login.
+          OTP login is for customers. Admin, Kitchen, Waiter and Delivery staff should use password login.
         </p>
       </div>
     </div>
@@ -331,14 +286,11 @@ function LoginPage() {
 
 function firebaseOtpError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
-  if (message.includes("auth/too-many-requests"))
-    return "Too many OTP attempts. Please try again later.";
+  if (message.includes("auth/too-many-requests")) return "Too many OTP attempts. Please try again later.";
   if (message.includes("auth/invalid-phone-number")) return "Enter a valid mobile number.";
-  if (message.includes("auth/invalid-verification-code"))
-    return "Invalid OTP. Please check and try again.";
+  if (message.includes("auth/invalid-verification-code")) return "Invalid OTP. Please check and try again.";
   if (message.includes("auth/code-expired")) return "OTP expired. Please request a new OTP.";
-  if (message.includes("auth/captcha-check-failed"))
-    return "Security check failed. Please refresh and try again.";
+  if (message.includes("auth/captcha-check-failed")) return "Security check failed. Please refresh and try again.";
   return message || "OTP login failed. Please try again.";
 }
 
@@ -349,7 +301,7 @@ function redirectFor(role: UserRole | string): string {
     case "KITCHEN":
       return "/kitchen";
     case "DELIVERY":
-      return "/restaurant/delivery";
+      return "/delivery/dashboard";
     case "WAITER":
       return "/waiter";
     default:

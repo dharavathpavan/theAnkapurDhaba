@@ -26,6 +26,7 @@ export function DeliveryMap({
   const riderMarker = useRef<any>(null);
   const routeLine = useRef<any>(null);
   const [mapsLive, setMapsLive] = useState(false);
+  const [mapsBlocked, setMapsBlocked] = useState(false);
   const [routeEta, setRouteEta] = useState<{ distanceKm?: number; etaMinutes?: number }>({});
   const location = order.delivery?.currentLocation;
   const restaurantCoords = coordsFrom(order.delivery?.restaurantLat, order.delivery?.restaurantLng);
@@ -47,6 +48,7 @@ export function DeliveryMap({
   const routeOrigin = riderCoords || restaurantCoords;
   const routeDestination = destinationCoords;
   const canUseGoogleMap = hasGoogleMapsKey() && Boolean(routeOrigin && routeDestination);
+  const showGoogleMap = canUseGoogleMap && !mapsBlocked;
 
   useEffect(() => {
     if (!canUseGoogleMap || !mapRef.current || !routeOrigin || !routeDestination) return;
@@ -120,7 +122,12 @@ export function DeliveryMap({
           })
           .catch(() => setMapsLive(false));
       })
-      .catch(() => setMapsLive(false));
+      .catch(() => {
+        if (!cancelled) {
+          setMapsLive(false);
+          setMapsBlocked(true);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -145,7 +152,7 @@ export function DeliveryMap({
       <div
         className={`relative ${bare ? "h-full" : compact ? "h-44" : "h-72 sm:h-[22rem] md:h-96"} overflow-hidden`}
       >
-        {canUseGoogleMap ? (
+        {showGoogleMap ? (
           <div ref={mapRef} className="absolute inset-0 h-full w-full" />
         ) : (
           <>
@@ -208,7 +215,7 @@ export function DeliveryMap({
             </div>
           </>
         )}
-        {canUseGoogleMap && riderCoords ? (
+        {showGoogleMap && riderCoords ? (
           <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 hidden -translate-x-1/2 -translate-y-1/2 md:block">
             <div className="absolute inset-0 animate-ping rounded-full bg-green-500/35" />
           </div>
@@ -281,7 +288,7 @@ export function DeliveryMap({
           )}
           <span className="min-w-0 break-words md:text-right">
             {location
-              ? `Updated ${new Date(order.delivery?.lastLocationAt || location.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              ? `Updated ${new Date((order.delivery?.lastLocationAt ?? location.updatedAt) as string).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
               : `Destination: ${destination}`}
           </span>
         </div>

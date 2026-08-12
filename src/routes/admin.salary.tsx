@@ -82,7 +82,7 @@ function SalaryPage() {
           {isLoading ? <div className="h-48 animate-pulse rounded-2xl bg-background" /> : !data?.salaries.length ? <Empty text="No salary records for this month." /> : (
             <div className="space-y-3">
               {data.salaries.map((row) => (
-                <button key={row.id} onClick={() => { setEditing(row); setForm(row); }} className="grid w-full gap-3 rounded-2xl bg-background p-4 text-left md:grid-cols-[1fr_auto] md:items-center">
+                <button key={row.id} onClick={() => { setEditing(row); setForm({ ...row, employeePhone: row.employeePhone ?? "", paidAt: row.paidAt ?? null }); }} className="grid w-full gap-3 rounded-2xl bg-background p-4 text-left md:grid-cols-[1fr_auto] md:items-center">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-black">{row.employeeName}</span>
@@ -118,7 +118,7 @@ function Empty({ text }: { text: string }) {
 }
 
 function emptySalary(period: string) {
-  return { employeeName: "", employeePhone: "", role: "Staff", salary: 0, advance: 0, bonus: 0, deduction: 0, status: "pending", period, paidAt: null, note: "" };
+  return { employeeName: "", employeePhone: "", role: "Staff", salary: 0, advance: 0, bonus: 0, deduction: 0, status: "pending", period, paidAt: null as string | null, note: "" };
 }
 
 function money(value?: number) {

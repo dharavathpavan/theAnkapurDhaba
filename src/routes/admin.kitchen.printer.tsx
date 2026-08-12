@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import {
   createPrinterHistory,
   getPrinters,
-  logPrinterConnection,
   savePrinter,
   savePrinterSettings,
   saveStationPrinter,
@@ -24,7 +23,15 @@ import {
   type PrinterRecord,
   type PrinterSettings,
 } from "@/services/api";
-import { compatibilityMessage, getPrinterRuntimeSupport, printTestJob, scanPrinterDevices, type DetectedPrinterDevice } from "@/lib/printer/manager";
+import {
+  compatibilityMessage,
+  getPrinterActiveConnection,
+  getPrinterRuntimeSupport,
+  isDeviceConnectionLive,
+  printTestJob,
+  scanPrinterDevices,
+  type DetectedPrinterDevice,
+} from "@/lib/printer/manager";
 import { useAuth } from "@/stores/auth";
 import { useEffect, useRef, useState } from "react";
 
@@ -44,7 +51,12 @@ function KitchenPrinterPage() {
   const support = getPrinterRuntimeSupport();
   const [savingStation, setSavingStation] = useState<string | null>(null);
   const [detectedDevices, setDetectedDevices] = useState<DetectedPrinterDevice[]>([]);
-  const [testPrintOpen, setTestPrintOpen] = useState(false);
+const [testPrintOpen, setTestPrintOpen] = useState(false);
+  const [connectionTick, setConnectionTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setConnectionTick((tick) => tick + 1), 4000);
+    return () => window.clearInterval(id);
+  }, []);
   const { data, isLoading } = useQuery({ queryKey: ["printers"], queryFn: getPrinters });
   const settings = data?.settings;
   const defaultPrinter = data?.printers.find((printer) => printer.isDefault) || data?.printers[0] || null;
@@ -58,10 +70,9 @@ function KitchenPrinterPage() {
     onError: (error) => toast.error(error instanceof Error ? error.message : "Could not save printer settings"),
   });
 
-  const savePrinterMutation = useMutation({
+const savePrinterMutation = useMutation({
     mutationFn: savePrinter,
-    onSuccess: async (printer) => {
-      await logPrinterConnection({ printerId: printer.id, message: "Printer saved from kitchen settings" }).catch(() => undefined);
+    onSuccess: (printer) => {
       toast.success("Default printer saved");
       qc.invalidateQueries({ queryKey: ["printers"] });
     },
@@ -125,7 +136,22 @@ function KitchenPrinterPage() {
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Test print failed"),
   });
-  const status = defaultPrinter?.status || (support.directEscPos ? "disconnected" : "bridge_required");
+  const activeConnection = getPrinterActiveConnection();
+  const liveConnected = Boolean(activeConnection);
+  const scanDevices: Array<DetectedPrinterDevice & { online: boolean }> = (() => {
+    void connectionTick;
+    const list: Array<DetectedPrinterDevice & { online: boolean }> = [];
+    if (activeConnection) {
+      list.push({ id: activeConnection.id, name: activeConnection.name, connectionType: activeConnection.connectionType, status: "available", online: true });
+    }
+    for (const device of detectedDevices) {
+      if (!list.some((existing) => existing.id === device.id)) {
+        list.push({ ...device, online: isDeviceConnectionLive(device.connectionType) });
+      }
+    }
+    return list;
+  })();
+  const status = !defaultPrinter ? "bridge_required" : liveConnected ? "connected" : "disconnected";
   const printerLabel = defaultPrinter ? `${defaultPrinter.name} (${defaultPrinter.paperWidth})` : "EZO 58D not saved";
 
   return (
@@ -164,7 +190,7 @@ function KitchenPrinterPage() {
       <section className="mt-5 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="grid gap-4 md:grid-cols-2">
           <StatusCard title="Printer Status" icon={PlugZap} value={statusLabel(status)} sub={printerLabel} tone={status === "connected" ? "green" : status === "bridge_required" ? "amber" : "slate"} />
-          <StatusCard title="Runtime Support" icon={MonitorSmartphone} value={support.directEscPos ? "Bridge Ready" : "Bridge Required"} sub={compatibilityMessage()} tone={support.directEscPos ? "green" : "amber"} />
+          <StatusCard title="Runtime Support" icon={MonitorSmartphone} value={liveConnected ? "Bridge Ready" : "Bridge Required"} sub={compatibilityMessage()} tone={liveConnected ? "green" : "amber"} />
           <StatusCard title="Paper Size" icon={Settings2} value={settings?.paperSize || "58mm"} sub={`${settings?.copies || 1} print copy/copies`} tone="slate" />
           <StatusCard title="Auto Print" icon={RefreshCcw} value={settings?.autoPrint ? "Enabled" : "Disabled"} sub={settings?.autoReconnect ? "Auto reconnect on" : "Auto reconnect off"} tone={settings?.autoPrint ? "green" : "slate"} />
         </div>
@@ -247,8 +273,8 @@ function KitchenPrinterPage() {
           </button>
         </div>
         <div className="mt-5 grid gap-3 lg:grid-cols-2">
-          {[...(data?.devices || []), ...detectedDevices].length ? (
-            [...(data?.devices || []), ...detectedDevices].map((device) => (
+          {scanDevices.length ? (
+            scanDevices.map((device) => (
               <div key={`${device.connectionType}-${device.id}`} className="rounded-3xl border border-white/10 bg-black/25 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -258,8 +284,13 @@ function KitchenPrinterPage() {
                     </p>
                     {"message" in device && device.message ? <p className="mt-2 text-xs leading-5 text-amber-100">{device.message}</p> : null}
                   </div>
-                  <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-white/70">
-                    {String(device.status || "available").replace(/_/g, " ")}
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider ${
+                      device.online ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300" : "border-red-400/20 bg-red-400/10 text-red-300"
+                    }`}
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${device.online ? "bg-emerald-400" : "bg-red-400"}`} />
+                    {device.online ? "Online" : "Offline"}
                   </span>
                 </div>
                 <button
@@ -273,7 +304,7 @@ function KitchenPrinterPage() {
                       connectionType: device.connectionType === "web-bluetooth" ? "bridge" : device.connectionType,
                       paperWidth: settings?.paperSize || "58mm",
                       isDefault: true,
-                      status: device.status === "available" ? "disconnected" : "bridge_required",
+                      status: device.online ? "disconnected" : "bridge_required",
                     })
                   }
                   className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-white/10 bg-red-600 text-sm font-black text-white disabled:opacity-50"
@@ -284,7 +315,7 @@ function KitchenPrinterPage() {
             ))
           ) : (
             <div className="rounded-3xl border border-dashed border-white/15 bg-black/20 p-6 text-sm leading-6 text-white/55 lg:col-span-2">
-              No devices scanned yet. Click scan from a user gesture, or connect through the Android/local bridge for realtime Classic Bluetooth printer discovery.
+              No printer devices are currently available. Click scan from a user gesture, or connect through the Android/local bridge for realtime Classic Bluetooth printer discovery.
             </div>
           )}
         </div>
