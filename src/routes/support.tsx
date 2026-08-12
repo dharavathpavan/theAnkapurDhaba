@@ -23,6 +23,7 @@ import {
   type SupportPriority,
 } from "@/services/api";
 import { useAuth } from "@/stores/auth";
+import { formatINR } from "@/lib/utils";
 
 export const Route = createFileRoute("/support")({
   head: () => ({ meta: [{ title: "Support - The Ankapure Dhaba" }] }),
@@ -258,7 +259,7 @@ function SupportPage() {
                 <option value="">No order selected</option>
                 {orders.slice(0, 10).map((order) => (
                   <option key={order.id} value={order.id}>
-                    #{order.id} · Rs {order.total}
+                    #{order.id} · {formatINR(order.total)}
                   </option>
                 ))}
               </select>

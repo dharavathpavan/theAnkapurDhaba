@@ -55,7 +55,11 @@ function FavoritesPage() {
               <div className="min-w-0 flex-1">
                 <h2 className="line-clamp-2 font-black">{item.name}</h2>
                 <div className="mt-1 flex items-center gap-1 text-sm text-zinc-500">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> {item.rating || 4.6}
+                  {item.rating ? (
+                    <>
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> {item.rating}
+                    </>
+                  ) : null}
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-xl font-black">₹{item.price}</span>
