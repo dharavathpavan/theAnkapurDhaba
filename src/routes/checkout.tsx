@@ -32,6 +32,7 @@ import {
   type DeliveryEta,
 } from "@/lib/delivery-location";
 import { isMenuItemAvailableNow } from "@/lib/menu-availability";
+import { formatINR } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout - Ankapur Dhaba" }] }),
@@ -154,8 +155,8 @@ function CheckoutPage() {
   const mobileSubmitLabel = submitting
     ? "Processing..."
     : paymentMethod === "cashfree"
-      ? `Pay Rs ${total}`
-      : `Place order - Rs ${total}`;
+      ? `Pay ${formatINR(total)}`
+      : `Place order - ${formatINR(total)}`;
 
   useEffect(() => {
     if (!address) return;
@@ -243,7 +244,7 @@ function CheckoutPage() {
       );
     if (!isAuthenticated()) {
       toast.error("Please login to place your order");
-      return navigate({ to: "/login" });
+      return navigate({ to: "/login", search: { from: "checkout" } as never });
     }
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get("name") || user?.name || "").trim();
@@ -439,7 +440,7 @@ function CheckoutPage() {
                 [
                   ["cod", "Cash on Delivery"],
                   ["cashfree", "UPI / Card / Wallet"],
-                  ["wallet", `Main Wallet - Rs ${Math.round(wallet?.balance ?? 0)}`],
+                  ["wallet", `Main Wallet - ${formatINR(wallet?.balance ?? 0)}`],
                 ] as Array<[PaymentMethod, string]>
               )
                 .filter(([value]) => !(deliveryCodDisabled && value === "cod"))
@@ -479,7 +480,7 @@ function CheckoutPage() {
                 <span className="text-zinc-600">
                   {line.qty}x {line.name}
                 </span>
-                <span className="font-bold">Rs {line.qty * line.price}</span>
+                <span className="font-bold">{formatINR(line.qty * line.price)}</span>
               </li>
             ))}
           </ul>
@@ -507,6 +508,7 @@ function CheckoutPage() {
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
               placeholder="Coupon code"
+              aria-label="Coupon code"
               className="min-w-0 flex-1 rounded-2xl bg-zinc-100 px-3 outline-none"
             />
             <button
@@ -525,16 +527,16 @@ function CheckoutPage() {
           )}
           <div className="my-4 border-t border-zinc-200" />
           <dl className="space-y-2 text-sm">
-            <Row label="Subtotal" value={`Rs ${subtotal}`} />
-            <Row label="GST" value={`Rs ${tax}`} />
-            {type === "delivery" && <Row label="Packing" value={`Rs ${home?.store.packingCharge ?? 10}`} />}
-            <Row label="Delivery" value={deliveryFee ? `Rs ${deliveryFee}` : "FREE"} />
-            {discount > 0 && <Row label="Discount" value={`-Rs ${discount}`} />}
+            <Row label="Subtotal" value={formatINR(subtotal)} />
+            <Row label="GST" value={formatINR(tax)} />
+            {type === "delivery" && <Row label="Packing" value={formatINR(home?.store.packingCharge ?? 10)} />}
+            <Row label="Delivery" value={deliveryFee ? formatINR(deliveryFee) : "FREE"} />
+            {discount > 0 && <Row label="Discount" value={`-${formatINR(discount)}`} />}
           </dl>
           <div className="my-4 border-t border-zinc-200" />
           <div className="flex items-center justify-between">
             <span className="text-lg font-black">To pay</span>
-            <span className="text-3xl font-black text-red-600">Rs {total}</span>
+            <span className="text-3xl font-black text-red-600">{formatINR(total)}</span>
           </div>
           {checkoutHintReason && (
             <p className="mt-4 rounded-2xl bg-yellow-50 px-4 py-3 text-sm font-bold text-yellow-800">
@@ -551,7 +553,7 @@ function CheckoutPage() {
         </aside>
       </form>
       {checkoutHintReason && (
-        <p className="fixed bottom-[9.1rem] left-4 right-4 z-40 mx-auto max-w-md rounded-2xl bg-yellow-50 px-4 py-2 text-center text-xs font-bold text-yellow-800 shadow-lg md:hidden">
+        <p className="fixed bottom-[calc(env(safe-area-inset-bottom)+10rem)] left-4 right-4 z-40 mx-auto max-w-md rounded-2xl bg-yellow-50 px-4 py-2 text-center text-xs font-bold text-yellow-800 shadow-lg md:hidden">
           {checkoutHintReason}
         </p>
       )}
@@ -562,7 +564,7 @@ function CheckoutPage() {
           checkoutFormRef.current.requestSubmit();
         }}
         disabled={submitDisabled}
-        className="fixed bottom-24 left-4 right-4 z-40 mx-auto min-h-14 max-w-md rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 disabled:bg-zinc-300 md:hidden"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+96px)] left-4 right-4 z-40 mx-auto min-h-14 max-w-md rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 disabled:bg-zinc-300 md:hidden"
       >
         {mobileSubmitLabel}
       </button>

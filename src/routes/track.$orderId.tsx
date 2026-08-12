@@ -11,9 +11,7 @@ import {
   Circle,
   Home,
   MessageSquare,
-  MoreHorizontal,
   Phone,
-  Plus,
   RotateCcw,
   Star,
   TimerReset,
@@ -34,6 +32,7 @@ import { DeliveryMap } from "@/components/site/DeliveryMap";
 import { RiderRatingCard } from "@/components/site/RiderRatingCard";
 import { clearActiveOrder, saveActiveOrder } from "@/stores/active-order";
 import { useCart } from "@/stores/cart";
+import { formatINR } from "@/lib/utils";
 
 export const Route = createFileRoute("/track/$orderId")({
   head: ({ params }) => ({ meta: [{ title: `Order ${params.orderId} - Ankapur Dhaba` }] }),
@@ -41,11 +40,38 @@ export const Route = createFileRoute("/track/$orderId")({
 });
 
 type ProgressStep = {
-  id: "placed" | "preparing" | "out_for_delivery" | "delivered";
+  id: "placed" | "preparing" | "out_for_delivery" | "delivered" | "ready_for_pickup" | "picked_up";
   title: string;
   description: string;
   icon: React.ElementType;
 };
+
+const PICKUP_STEPS: ProgressStep[] = [
+  {
+    id: "placed",
+    title: "Order Placed",
+    description: "Restaurant has accepted your order",
+    icon: Check,
+  },
+  {
+    id: "preparing",
+    title: "Preparing Food",
+    description: "Chef is working on your order",
+    icon: Utensils,
+  },
+  {
+    id: "ready_for_pickup",
+    title: "Ready for Pickup",
+    description: "Your order is ready to be picked up",
+    icon: ChefHat,
+  },
+  {
+    id: "picked_up",
+    title: "Picked Up",
+    description: "Enjoy your meal",
+    icon: Home,
+  },
+];
 
 const PROGRESS_STEPS: ProgressStep[] = [
   {
@@ -219,13 +245,6 @@ function TopControls() {
       >
         <ArrowLeft className="h-6 w-6" />
       </button>
-      <button
-        type="button"
-        className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full border border-black/5 bg-white/90 text-zinc-950 shadow-sm backdrop-blur"
-        aria-label="More order actions"
-      >
-        <MoreHorizontal className="h-6 w-6" />
-      </button>
     </div>
   );
 }
@@ -278,19 +297,16 @@ function LiveTrackingCard({ order }: { order: Order }) {
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-black text-zinc-950">{riderName}</div>
           <div className="mt-0.5 flex items-center gap-1 text-xs font-medium text-zinc-500">
-            <Star className="h-3.5 w-3.5 fill-[#FF8A00] text-[#FF8A00]" />
-            <span>4.9</span>
-            <span>•</span>
             <span>{order.type === "delivery" ? "Delivery Partner" : order.type}</span>
           </div>
         </div>
-        <button
-          type="button"
+        <Link
+          to="/support"
           className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-zinc-100 text-zinc-700"
           aria-label="Message support"
         >
           <MessageSquare className="h-5 w-5" />
-        </button>
+        </Link>
         {canCall ? (
           <a
             href={`tel:${order.delivery?.partnerPhone}`}
@@ -309,24 +325,6 @@ function LiveTrackingCard({ order }: { order: Order }) {
           </a>
         )}
       </div>
-
-      <div className="my-5 h-px bg-zinc-100" />
-
-      <button
-        type="button"
-        className="flex w-full items-center gap-3 text-left"
-        aria-label="Add delivery instructions"
-      >
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
-          <Plus className="h-5 w-5" />
-        </span>
-        <span className="min-w-0">
-          <span className="block text-sm font-black text-zinc-950">Add Delivery Instructions</span>
-          <span className="block truncate text-xs font-medium text-zinc-500">
-            Ring bell, leave at door...
-          </span>
-        </span>
-      </button>
     </section>
   );
 }
@@ -349,10 +347,9 @@ function BatchAlert({ order }: { order: Order }) {
   );
 }
 
-function DelayAlert({ order }: { order: Order }) {  const delayed =
-    Boolean(order.delivery?.delayReason) ||
-    Boolean(order.delivery?.delayExtraMinutes) ||
-    isOlderThan(order, 35);
+function DelayAlert({ order }: { order: Order }) {
+  const delayed =
+    Boolean(order.delivery?.delayReason) || Boolean(order.delivery?.delayExtraMinutes);
   if (!delayed) return null;
   const minutes = order.delivery?.delayExtraMinutes || 5;
   return (
@@ -365,7 +362,7 @@ function DelayAlert({ order }: { order: Order }) {  const delayed =
           Delayed by {minutes} mins
         </div>
         <p className="mt-1 text-sm font-semibold text-zinc-950">
-          {order.delivery?.delayReason || "Get Rs 25 coupon after order delivery"}
+          {order.delivery?.delayReason || "Thanks for your patience."}
         </p>
       </div>
     </section>
@@ -373,6 +370,7 @@ function DelayAlert({ order }: { order: Order }) {  const delayed =
 }
 
 function ProgressCard({ order }: { order: Order }) {
+  const steps = stepsFor(order);
   const active = progressId(order.status);
   const badge = order.status === "cancelled" ? "Cancelled" : labelForStatus(order.status);
   return (
@@ -386,14 +384,14 @@ function ProgressCard({ order }: { order: Order }) {
         </span>
       </div>
       <ol className="mt-7 space-y-0">
-        {PROGRESS_STEPS.map((step, index) => (
+        {steps.map((step, index) => (
           <ProgressItem
             key={step.id}
             step={step}
             order={order}
             active={active === step.id}
             done={isStepDone(step.id, order.status)}
-            isLast={index === PROGRESS_STEPS.length - 1}
+            isLast={index === steps.length - 1}
           />
         ))}
       </ol>
@@ -525,11 +523,14 @@ function WhileYouWaitAd({ banners }: { banners: CustomerBanner[] }) {
         While you wait
       </div>
       <h2 className="mt-3 max-w-xs text-2xl font-black leading-tight">
-        Get 20% OFF your next feast!
+        Explore more from our kitchen
       </h2>
-      <div className="mt-5 inline-flex rounded-lg bg-red-600 px-4 py-3 text-sm font-black uppercase tracking-wide">
-        Code: DHABA20
-      </div>
+      <Link
+        to="/menu"
+        className="mt-5 inline-flex rounded-lg bg-red-600 px-4 py-3 text-sm font-black uppercase tracking-wide"
+      >
+        Browse the menu
+      </Link>
     </section>
   );
 }
@@ -658,6 +659,11 @@ function riderSubtext(order: Order) {
   return name ? `${name} is at the restaurant` : "Restaurant has received your order";
 }
 
+function stepsFor(order: Order): ProgressStep[] {
+  if (order.type === "pickup" || order.type === "dine-in") return PICKUP_STEPS;
+  return PROGRESS_STEPS;
+}
+
 function stepDescription(step: ProgressStep, order: Order) {
   if (step.id === "preparing" && order.items[0]?.name) {
     return `Chef is working on your ${order.items[0].name}`;
@@ -671,13 +677,17 @@ function stepDescription(step: ProgressStep, order: Order) {
 function progressId(status: OrderStatus): ProgressStep["id"] {
   if (status === "delivered") return "delivered";
   if (status === "out_for_delivery") return "out_for_delivery";
+  if (status === "ready") return "ready_for_pickup";
+  if (status === "picked_up") return "picked_up";
   return "preparing";
 }
 
 function isStepDone(step: ProgressStep["id"], status: OrderStatus) {
-  if (status === "cancelled") return false;
+  if (status === "cancelled") return step === "placed";
   if (step === "placed") return true;
   if (step === "preparing") return ["ready", "out_for_delivery", "delivered"].includes(status);
+  if (step === "ready_for_pickup") return status === "picked_up" || status === "delivered";
+  if (step === "picked_up") return status === "delivered";
   if (step === "out_for_delivery") return status === "delivered";
   if (step === "delivered") return status === "delivered";
   return false;
@@ -691,18 +701,13 @@ function labelForStatus(status: OrderStatus) {
 function etaNumber(order: Order) {
   if (order.status === "delivered") return 0;
   if (order.status === "cancelled") return 0;
-  return order.delivery?.etaMinutes || order.delivery?.prepEtaMinutes || 23;
+  return order.delivery?.etaMinutes ?? order.delivery?.prepEtaMinutes ?? "–";
 }
 
 function placedTime(order: Order) {
   return new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function isOlderThan(order: Order, minutes: number) {
-  if (["delivered", "cancelled"].includes(order.status)) return false;
-  return Date.now() - new Date(order.createdAt).getTime() > minutes * 60 * 1000;
-}
-
 function money(value: number) {
-  return `Rs ${Math.round(value)}`;
+  return formatINR(value);
 }

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Eye, EyeOff, KeyRound, LogIn, MessageSquareText, UtensilsCrossed } from "lucide-react";
@@ -8,6 +8,19 @@ import type { UserRole, AuthUser } from "@/stores/auth";
 import { API_BASE } from "@/services/api";
 
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+
+const SAFE_RETURN_PATHS = new Set([
+  "checkout",
+  "cart",
+  "orders",
+  "menu",
+  "favorites",
+  "wallet",
+  "profile",
+  "support",
+  "account",
+  "track",
+]);
 
 type LoginMode = "otp" | "password";
 
@@ -20,6 +33,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isAuthenticated, user } = useAuth();
   const [mode, setMode] = useState<LoginMode>("otp");
   const [phone, setPhone] = useState("");
@@ -53,7 +67,11 @@ function LoginPage() {
   function finishLogin(data: { token: string; user: AuthUser }) {
     login(data.token, data.user);
     toast.success(`Welcome back, ${data.user.name}!`);
-    navigate({ to: redirectFor(data.user.role as UserRole) });
+    const role = data.user.role as UserRole;
+    const fromParam = (location.search as { from?: string }).from;
+    const returnPath =
+      role === "USER" && fromParam && SAFE_RETURN_PATHS.has(fromParam) ? `/${fromParam}` : null;
+    navigate({ to: (returnPath ?? redirectFor(role)) as never });
   }
 
   async function handlePasswordLogin(e: React.FormEvent) {
@@ -184,7 +202,13 @@ function LoginPage() {
                 type="tel"
                 value={phone}
                 onChange={(e) => {
-                  setPhone(e.target.value.replace(/\D/g, "").slice(0, 10));
+                  const digits = e.target.value.replace(/\D/g, "");
+                  setPhone(
+                    (digits.startsWith("91") && digits.length > 10
+                      ? digits.slice(2)
+                      : digits
+                    ).slice(0, 10),
+                  );
                   setOtpSent(false);
                   setOtp("");
                   setOtpCooldown(0);
@@ -192,6 +216,7 @@ function LoginPage() {
                 }}
                 placeholder="10-digit mobile number"
                 inputMode="tel"
+                autoComplete="tel"
                 className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>

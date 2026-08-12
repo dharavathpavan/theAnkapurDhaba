@@ -6,6 +6,7 @@ import { getCustomerHome, getCustomerMenu, itemTaxRate } from "@/services/api";
 import { useCart, selectCartSubtotal } from "@/stores/cart";
 import { imageFallback, resolveMediaUrl } from "@/lib/media";
 import { isMenuItemAvailableNow } from "@/lib/menu-availability";
+import { formatINR } from "@/lib/utils";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Cart - Ankapur Dhaba" }] }),
@@ -79,7 +80,7 @@ function CartPage() {
           {freeGap > 0 ? (
             <div className="rounded-3xl bg-green-50 p-4 text-green-800">
               <div className="flex items-center gap-2 font-black">
-                <Truck className="h-5 w-5" /> Spend Rs {freeGap} more for free delivery
+                <Truck className="h-5 w-5" /> Spend {formatINR(freeGap)} more for free delivery
               </div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-green-100">
                 <div
@@ -124,10 +125,11 @@ function CartPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h2 className="line-clamp-2 font-black">{line.name}</h2>
-                    <p className="text-sm text-zinc-500">Rs {line.price} each</p>
+                    <p className="text-sm text-zinc-500">{formatINR(line.price)} each</p>
                   </div>
                   <button
                     onClick={() => remove(line.lineId || line.id)}
+                    aria-label={`Remove ${line.name} from cart`}
                     className="grid h-9 w-9 place-items-center rounded-full bg-zinc-100 text-zinc-500"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -144,6 +146,7 @@ function CartPage() {
                   <div className="flex items-center rounded-2xl bg-red-50 text-red-600">
                     <button
                       onClick={() => setQty(line.lineId || line.id, line.qty - 1)}
+                      aria-label={`Decrease quantity of ${line.name}`}
                       className="grid h-9 w-9 place-items-center"
                     >
                       <Minus className="h-4 w-4" />
@@ -151,12 +154,13 @@ function CartPage() {
                     <span className="min-w-7 text-center font-black">{line.qty}</span>
                     <button
                       onClick={() => setQty(line.lineId || line.id, line.qty + 1)}
+                      aria-label={`Increase quantity of ${line.name}`}
                       className="grid h-9 w-9 place-items-center"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
-                  <span className="font-black">Rs {line.price * line.qty}</span>
+                  <span className="font-black">{formatINR(line.price * line.qty)}</span>
                 </div>
               </div>
             </article>
@@ -171,15 +175,15 @@ function CartPage() {
           <div className="my-5 border-t border-dashed border-zinc-200" />
           <h2 className="text-xl font-black">Bill details</h2>
           <dl className="mt-4 space-y-3 text-sm">
-            <Row label="Item total" value={`Rs ${subtotal}`} />
-            <Row label="GST" value={`Rs ${tax}`} />
-            <Row label="Packing charge" value={`Rs ${packing}`} />
-            <Row label="Delivery" value={deliveryFee === 0 ? "FREE" : `Rs ${deliveryFee}`} />
+            <Row label="Item total" value={formatINR(subtotal)} />
+            <Row label="GST" value={formatINR(tax)} />
+            <Row label="Packing charge" value={formatINR(packing)} />
+            <Row label="Delivery" value={deliveryFee === 0 ? "FREE" : formatINR(deliveryFee)} />
           </dl>
           <div className="my-5 border-t border-zinc-200" />
           <div className="flex items-center justify-between">
             <span className="text-lg font-black">Grand total</span>
-            <span className="text-3xl font-black text-red-600">Rs {total}</span>
+            <span className="text-3xl font-black text-red-600">{formatINR(total)}</span>
           </div>
           {canCheckout ? (
             <Link
@@ -204,14 +208,14 @@ function CartPage() {
       {canCheckout ? (
         <Link
           to="/checkout"
-          className="fixed bottom-24 left-4 right-4 z-40 mx-auto flex min-h-14 max-w-md items-center justify-center rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 md:hidden"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom)+96px)] left-4 right-4 z-40 mx-auto flex min-h-14 max-w-md items-center justify-center rounded-3xl bg-red-600 font-black text-white shadow-2xl shadow-red-600/25 md:hidden"
         >
-          Proceed to checkout - Rs {total}
+          Proceed to checkout - {formatINR(total)}
         </Link>
       ) : (
         <button
           disabled
-          className="fixed bottom-24 left-4 right-4 z-40 mx-auto flex min-h-14 max-w-md items-center justify-center rounded-3xl bg-zinc-300 font-black text-zinc-600 shadow-2xl md:hidden"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom)+96px)] left-4 right-4 z-40 mx-auto flex min-h-14 max-w-md items-center justify-center rounded-3xl bg-zinc-300 font-black text-zinc-600 shadow-2xl md:hidden"
         >
           Remove unavailable items
         </button>

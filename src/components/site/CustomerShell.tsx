@@ -30,6 +30,7 @@ import {
   subscribeToOrderEvents,
 } from "@/services/api";
 import { getFirebasePushToken, onFirebaseForegroundMessage } from "@/lib/firebase";
+import { formatINR } from "@/lib/utils";
 import { useSelectedLocation } from "@/stores/location";
 import { AddressBottomSheet } from "@/components/site/AddressBottomSheet";
 import {
@@ -186,7 +187,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
             className={`relative inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 text-sm font-black shadow-sm transition ${count > 0 ? "bg-red-600 text-white shadow-red-600/20" : "bg-white/80 text-zinc-700 ring-1 ring-white/70"}`}
           >
             <ShoppingBag className="h-5 w-5" />
-            <span>{count > 0 ? `Cart Rs ${subtotal}` : "Cart"}</span>
+            <span>{count > 0 ? `Cart ${formatINR(subtotal)}` : "Cart"}</span>
             {count > 0 && (
               <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-zinc-950 px-1 text-[10px] text-white">
                 {count}
@@ -238,6 +239,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
 
       <TraditionBanner />
       <CustomerFooter />
+      <MobileFooter />
 
       {showLiveOrder && order && (
         <Link
@@ -255,7 +257,9 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
             <span className="mt-0.5 block text-[11px] font-bold text-white/70">View tracking</span>
           </span>
           <span className="ml-3 shrink-0 rounded-2xl bg-green-400 px-3 py-1.5 text-sm font-black text-zinc-950">
-            {order.delivery?.etaMinutes || order.delivery?.prepEtaMinutes || 20} min
+            {order.delivery?.etaMinutes || order.delivery?.prepEtaMinutes
+              ? `${order.delivery?.etaMinutes || order.delivery?.prepEtaMinutes} min`
+              : "In progress"}
           </span>
         </Link>
       )}
@@ -273,7 +277,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
               {count} item{count > 1 ? "s" : ""} added
             </span>
           </span>
-          <span className="shrink-0 font-black">Rs {subtotal} - Cart</span>
+          <span className="shrink-0 font-black">{formatINR(subtotal)} - Cart</span>
         </Link>
       )}
 
@@ -283,7 +287,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
           className="fixed bottom-[6.7rem] right-4 z-[51] inline-flex min-h-11 items-center gap-2 rounded-2xl bg-red-600 px-4 text-sm font-black text-white shadow-xl shadow-red-600/25 md:bottom-[6.4rem] md:right-8"
         >
           <ShoppingBag className="h-4 w-4" />
-          {count} - Rs {subtotal}
+          {count} - {formatINR(subtotal)}
         </Link>
       )}
 
@@ -596,6 +600,43 @@ function contentNoticeTitle(type: string) {
   if (type === "announcement") return "Restaurant announcement";
   if (type === "store") return "Restaurant status updated";
   return "The Ankapure Dhaba updated";
+}
+
+function MobileFooter() {
+  return (
+    <footer className="border-t border-zinc-200 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+88px)] pt-8 text-center md:hidden">
+      <div className="mx-auto max-w-md">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-400">Legal</p>
+        <nav className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2">
+          {LEGAL_LINKS.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className="text-xs font-bold text-zinc-500 underline-offset-4 hover:text-red-600 hover:underline"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="mx-auto mt-5 h-px w-16 bg-zinc-200" />
+        <a
+          href={`tel:+91${RESTAURANT_PHONE}`}
+          className="mt-5 inline-flex items-center gap-2 text-sm font-black text-zinc-700"
+        >
+          <Phone className="h-4 w-4 text-red-600" /> +91 {RESTAURANT_PHONE}
+        </a>
+        <a
+          href={`mailto:${RESTAURANT_EMAIL}`}
+          className="mt-2 block break-all text-xs font-bold text-zinc-500 hover:text-red-600"
+        >
+          {RESTAURANT_EMAIL}
+        </a>
+        <p className="mt-4 text-[11px] font-semibold text-zinc-400">
+          © {new Date().getFullYear()} The Ankapure Dhaba. All rights reserved.
+        </p>
+      </div>
+    </footer>
+  );
 }
 
 function CustomerFooter() {

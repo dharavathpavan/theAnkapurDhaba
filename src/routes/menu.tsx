@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Clock3,
   Flame,
@@ -8,7 +8,6 @@ import {
   Minus,
   Plus,
   Search,
-  SlidersHorizontal,
   Star,
   X,
 } from "lucide-react";
@@ -47,7 +46,7 @@ const ORDER_MODES: Array<{ id: OrderMode; label: string }> = [
 
 function MenuPage() {
   const searchParams = Route.useSearch();
-  const { data: items = [], isLoading } = useQuery({
+  const { data: items = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["customer-menu"],
     queryFn: getCustomerMenu,
     staleTime: 30_000,
@@ -102,14 +101,26 @@ function MenuPage() {
 
       <div className="sticky top-0 z-30 -mx-3 bg-[#F8F9FB]/95 px-3 py-2.5 backdrop-blur sm:-mx-4 sm:px-4 md:top-0 md:mx-0 md:rounded-3xl md:py-3">
         <div className="flex h-12 items-center gap-3 rounded-2xl bg-white px-4 shadow-sm ring-1 ring-zinc-100 md:h-14 md:rounded-3xl">
-          <Search className="h-5 w-5 text-zinc-400" />
+          <Search className="h-5 w-5 text-zinc-400" aria-hidden="true" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search dishes, tags, categories"
+            aria-label="Search menu"
+            type="search"
+            enterKeyHint="search"
             className="min-w-0 flex-1 bg-transparent text-base outline-none"
           />
-          <SlidersHorizontal className="h-5 w-5 text-zinc-400" />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
         <div className="mt-2.5 flex gap-2 overflow-x-auto pb-1 md:mt-3">
           {categories.map((category) => {
@@ -156,7 +167,9 @@ function MenuPage() {
             <button
               key={value}
               onClick={() => setDiet(value)}
-              className={`rounded-2xl px-4 py-2 text-xs font-black ${diet === value ? "bg-green-600 text-white" : "bg-white text-zinc-600"}`}
+              className={`rounded-2xl px-4 py-2 text-xs font-black ${
+                diet === value ? "bg-zinc-950 text-white" : "bg-white text-zinc-600"
+              }`}
             >
               {value === "all" ? "All" : value === "veg" ? "Veg" : "Non Veg"}
             </button>
@@ -164,15 +177,41 @@ function MenuPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="py-20 text-center">
+          <p className="font-black text-zinc-800">Couldn't load the menu</p>
+          <p className="mt-1 text-sm text-zinc-500">Check your connection and try again.</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="mt-6 inline-flex min-h-11 items-center rounded-2xl bg-red-600 px-6 font-black text-white"
+          >
+            Try again
+          </button>
+        </div>
+      ) : isLoading ? (
         <div className="mt-4 grid gap-3 md:mt-5 md:grid-cols-2 md:gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="h-40 animate-pulse rounded-3xl bg-white" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="py-20 text-center text-zinc-500">
-          No dishes match your filters. Scheduled categories may reopen at their menu time.
+        <div className="py-20 text-center">
+          <p className="font-black text-zinc-800">No dishes match your filters</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            Try clearing your search or filters, or check back when scheduled categories reopen.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setActiveCategory("All");
+              setDiet("all");
+            }}
+            className="mt-6 inline-flex min-h-11 items-center rounded-2xl bg-zinc-950 px-6 font-black text-white"
+          >
+            Clear filters
+          </button>
         </div>
       ) : (
         <div className="mt-4 grid gap-3 md:mt-5 md:grid-cols-2 md:gap-4">
@@ -225,15 +264,21 @@ function MenuCard({
         </div>
         <h2 className="mt-2 line-clamp-2 text-base font-black sm:mt-3 sm:text-lg">{item.name}</h2>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-          <span className="inline-flex items-center gap-1">
-            <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" /> {item.rating || 4.6}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Clock3 className="h-3.5 w-3.5" /> {item.prepTimeMinutes || 20} min
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Flame className="h-3.5 w-3.5 text-red-500" /> Spice {item.spiceLevel}
-          </span>
+          {item.rating ? (
+            <span className="inline-flex items-center gap-1">
+              <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" /> {item.rating}
+            </span>
+          ) : null}
+          {item.prepTimeMinutes ? (
+            <span className="inline-flex items-center gap-1">
+              <Clock3 className="h-3.5 w-3.5" /> {item.prepTimeMinutes} min
+            </span>
+          ) : null}
+          {item.spiceLevel ? (
+            <span className="inline-flex items-center gap-1">
+              <Flame className="h-3.5 w-3.5 text-red-500" /> Spice {item.spiceLevel}
+            </span>
+          ) : null}
         </div>
         <p className="mt-2 line-clamp-2 text-xs text-zinc-500 sm:text-sm">{item.description}</p>
         <div className="mt-3 flex items-center gap-2">
@@ -270,7 +315,7 @@ function MenuCard({
           disabled={!item.available}
           className="absolute -bottom-2 left-1/2 min-w-20 -translate-x-1/2 rounded-2xl bg-white px-3 py-2 text-xs font-black text-red-600 shadow-lg ring-1 ring-red-100 disabled:text-zinc-400 sm:min-w-24 sm:px-4 sm:text-sm"
         >
-          {qty > 0 ? `${qty} ADDED` : item.available ? "ADD" : "SOLD OUT"}
+          {qty > 0 ? "ADD MORE" : item.available ? "ADD" : "SOLD OUT"}
         </button>
       </div>
     </article>
@@ -299,6 +344,19 @@ function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
     selectedAddons.reduce((s, a) => s + a.price, 0) +
     selectedVariants.reduce((s, v) => s + v.price, 0);
 
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
   function addConfigured() {
     add(item, {
       price,
@@ -312,7 +370,12 @@ function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/45 backdrop-blur-sm">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="item-sheet-title"
+      className="fixed inset-0 z-[70] bg-black/45 backdrop-blur-sm"
+    >
       <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-[32px] bg-[#F8F9FB] shadow-2xl md:left-1/2 md:top-1/2 md:max-h-[88vh] md:max-w-2xl md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[32px]">
         <div className="relative aspect-[16/10] bg-zinc-100">
           <img
@@ -323,6 +386,7 @@ function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
           />
           <button
             onClick={onClose}
+            aria-label="Close item details"
             className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/90"
           >
             <X className="h-5 w-5" />
@@ -331,11 +395,13 @@ function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
         </div>
         <div className="space-y-5 p-5">
           <div>
-            <h2 className="text-2xl font-black">{item.name}</h2>
+            <h2 id="item-sheet-title" className="text-2xl font-black">
+              {item.name}
+            </h2>
             <p className="mt-2 text-sm text-zinc-600">{item.richDescription || item.description}</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-zinc-500">
               <Badge tone={item.isVeg ? "veg" : "nonveg"}>{item.isVeg ? "Veg" : "Non Veg"}</Badge>
-              <Badge tone="plain">{item.prepTimeMinutes || 20} min</Badge>
+              {item.prepTimeMinutes ? <Badge tone="plain">{item.prepTimeMinutes} min</Badge> : null}
               <Badge tone="plain">{item.kitchenStation || "Main Course"}</Badge>
             </div>
           </div>
@@ -346,6 +412,7 @@ function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
                 <button
                   key={s.id}
                   onClick={() => setSize(s.id)}
+                  aria-pressed={size === s.id}
                   className={`flex items-center justify-between rounded-2xl p-4 text-left ${size === s.id ? "bg-red-50 ring-2 ring-red-500" : "bg-white"}`}
                 >
                   <span className="font-bold">
@@ -364,6 +431,7 @@ function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
                 <button
                   key={option.id}
                   onClick={() => setVariants((v) => ({ ...v, [group.id]: option.id }))}
+                  aria-pressed={(variants[group.id] || group.options[0]?.id) === option.id}
                   className={`flex items-center justify-between rounded-2xl p-4 text-left ${(variants[group.id] || group.options[0]?.id) === option.id ? "bg-green-50 ring-2 ring-green-500" : "bg-white"}`}
                 >
                   <span className="font-bold">{option.name}</span>
@@ -385,6 +453,7 @@ function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
                         : [...curr, addon.id],
                     )
                   }
+                  aria-pressed={addons.includes(addon.id)}
                   className={`flex items-center justify-between rounded-2xl p-4 text-left ${addons.includes(addon.id) ? "bg-yellow-50 ring-2 ring-yellow-400" : "bg-white"}`}
                 >
                   <span className="font-bold">{addon.name}</span>

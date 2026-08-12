@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createWalletTopupSession, getCustomerWallet, verifyWalletTopup } from "@/services/api";
 import { useAuth } from "@/stores/auth";
+import { formatINR } from "@/lib/utils";
 
 const PENDING_KEY = "ankapur:wallet-pending-topup";
 
@@ -128,7 +129,7 @@ function WalletPage() {
             Available balance
           </p>
           <div className="mt-1 text-6xl font-black">
-            Rs {isLoading ? "..." : Math.round(wallet?.balance ?? 0)}
+            {isLoading ? "..." : formatINR(wallet?.balance ?? 0)}
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <MiniStat icon={ShieldCheck} title="Verified" text="Backend credited" />
@@ -149,7 +150,7 @@ function WalletPage() {
                 onClick={() => setAmount(String(value))}
                 className={`rounded-2xl py-3 text-sm font-black ring-1 ${amount === String(value) ? "bg-red-600 text-white ring-red-600" : "bg-zinc-50 text-zinc-700 ring-zinc-200"}`}
               >
-                Rs {value}
+                {formatINR(value)}
               </button>
             ))}
           </div>
@@ -171,7 +172,9 @@ function WalletPage() {
           </button>
           {pending && (
             <div className="mt-4 rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
-              <div className="font-black text-yellow-900">Pending top-up: Rs {pending.amount}</div>
+              <div className="font-black text-yellow-900">
+                Pending top-up: {formatINR(pending.amount)}
+              </div>
               <p className="mt-1 text-sm font-semibold text-yellow-800">
                 Order {pending.orderId}. If payment succeeded, verify it here.
               </p>
@@ -212,10 +215,9 @@ function WalletPage() {
                 <div
                   className={`text-right font-black ${tx.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}
                 >
-                  {tx.amount >= 0 ? "+" : "-"}Rs {Math.abs(tx.amount)}
-                  <div className="text-[11px] text-zinc-400">
-                    Bal Rs {Math.round(tx.balanceAfter)}
-                  </div>
+                  {tx.amount >= 0 ? "+" : "-"}
+                  {formatINR(Math.abs(tx.amount))}
+                  <div className="text-[11px] text-zinc-400">Bal {formatINR(tx.balanceAfter)}</div>
                 </div>
               </div>
             ))

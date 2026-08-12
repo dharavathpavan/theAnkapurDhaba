@@ -29,8 +29,14 @@ function SignupPage() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     if (!name || !phone || !password || !confirm) return toast.error("Please fill in all fields");
-    if (!/^[6-9]\d{9}$/.test(phone))
-      return toast.error("Enter a valid 10-digit Indian mobile number");
+    const digits = phone.replace(/\D/g, "");
+    const normalized = /^[6-9]\d{9}$/.test(digits)
+      ? digits
+      : digits.startsWith("91") && /^91[6-9]\d{9}$/.test(digits)
+        ? digits.slice(2)
+        : "";
+    if (!normalized) return toast.error("Enter a valid 10-digit Indian mobile number");
+    if (normalized !== phone) setPhone(normalized);
     if (password.length < 6) return toast.error("Password must be at least 6 characters");
     if (password !== confirm) return toast.error("Passwords do not match");
 
@@ -39,7 +45,7 @@ function SignupPage() {
       const res = await fetch(`${API_BASE}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), phone, password }),
+        body: JSON.stringify({ name: name.trim(), phone: normalized, password }),
       });
       const data = await res.json();
       if (!res.ok) return toast.error(data.error || "Signup failed");

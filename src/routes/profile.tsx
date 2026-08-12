@@ -51,6 +51,7 @@ import { LocationPicker } from "@/components/site/LocationPicker";
 import type { LatLngLiteral } from "@/lib/google-maps";
 import { useAuth } from "@/stores/auth";
 import { useActiveOrderTracking } from "@/stores/active-order";
+import { formatINR } from "@/lib/utils";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile - The Ankapure Dhaba" }] }),
@@ -258,7 +259,7 @@ function ProfilePage() {
     () => [
       { label: "Orders", value: loyalty?.orderCount ?? orders.length, icon: Package },
       { label: "Points", value: loyalty?.points ?? 0, icon: Star },
-      { label: "Wallet", value: `Rs ${Math.round(wallet?.balance ?? 0)}`, icon: Wallet },
+      { label: "Wallet", value: formatINR(wallet?.balance ?? 0), icon: Wallet },
     ],
     [loyalty?.orderCount, loyalty?.points, orders.length, wallet?.balance],
   );
@@ -470,7 +471,7 @@ function ProfilePage() {
                       </span>
                     </span>
                     <span className="shrink-0 text-right">
-                      <span className="block font-black text-zinc-900">Rs {order.total}</span>
+                      <span className="block font-black text-zinc-900">{formatINR(order.total)}</span>
                       <StatusPill status={order.status} />
                     </span>
                   </Link>
@@ -625,7 +626,7 @@ function ProfilePage() {
                   Available balance
                 </p>
                 <div className="mt-1 text-3xl font-black md:text-4xl">
-                  Rs {Math.round(wallet?.balance ?? 0)}
+                  {formatINR(wallet?.balance ?? 0)}
                 </div>
               </div>
             </div>
@@ -1172,7 +1173,8 @@ function LedgerRow({ title, text, amount }: { title: string; text: string; amoun
         <div className="truncate text-xs font-semibold text-zinc-500">{text}</div>
       </div>
       <div className={`shrink-0 font-black ${amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-        {amount >= 0 ? "+" : "-"}Rs {Math.abs(amount)}
+        {amount >= 0 ? "+" : "-"}
+        {formatINR(Math.abs(amount))}
       </div>
     </div>
   );

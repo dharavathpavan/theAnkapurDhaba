@@ -8,8 +8,6 @@ import {
   Instagram,
   MapPin,
   Quote,
-  Search,
-  Share2,
   Sparkles,
   Star,
   Ticket,
@@ -50,7 +48,7 @@ const categoryIcons: Record<string, string> = {
 };
 
 function Home() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["customer-home"],
     queryFn: getCustomerHome,
     staleTime: 0,
@@ -84,7 +82,27 @@ function Home() {
     setBannerIndex((i) => (i + delta + visibleBanners.length) % visibleBanners.length);
   }
 
-  if (isLoading || !data) return <HomeSkeleton />;
+  if (isLoading) return <HomeSkeleton />;
+  if (isError || !data) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-24 text-center">
+        <div className="mx-auto grid h-24 w-24 place-items-center rounded-[32px] bg-white shadow-sm">
+          <MapPin className="h-10 w-10 text-red-600" />
+        </div>
+        <h1 className="mt-6 text-3xl font-black">Couldn't load the menu</h1>
+        <p className="mt-2 text-zinc-500">
+          We hit a snag fetching today's menu and offers. Check your connection and try again.
+        </p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="mt-8 inline-flex min-h-14 items-center rounded-3xl bg-red-600 px-6 font-black text-white"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   const bestSellers = (
     data.collections.find((item) => /best/i.test(item.title))?.items ?? data.recommended
@@ -100,30 +118,23 @@ function Home() {
     <div className="bg-[#F8F9FB]">
       <div className="mx-auto max-w-7xl px-3 pb-10 pt-3 sm:px-4 md:px-6 md:pt-6">
         <section>
-          <div className="hidden">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-red-600">
-                <MapPin className="h-4 w-4" /> Ankapur Dhaba
-              </div>
-              <div className="mt-1 truncate text-sm font-semibold text-zinc-600 md:text-base">
-                {data.store.status === "online"
-                  ? "Delivering now"
-                  : data.store.statusMessage || "Store paused"}{" "}
-                · Closes {data.store.closeTime}
-              </div>
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-white/80 bg-white/85 px-3 py-2.5 shadow-sm backdrop-blur-xl sm:px-4">
+            <div className="flex min-w-0 items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em]">
+              <MapPin className="h-4 w-4 shrink-0 text-red-600" />
+              <span className="truncate text-zinc-600">Ankapur Dhaba</span>
+              <span className="h-1 w-1 shrink-0 rounded-full bg-zinc-300" />
+              <span
+                className={`truncate ${
+                  data.store.status === "online" ? "text-green-600" : "text-yellow-700"
+                }`}
+              >
+                {storeStatusLabel(data.store.status, data.store.statusMessage)}
+              </span>
             </div>
-            <Link
-              to="/profile"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-zinc-950 font-black text-white md:hidden"
-            >
-              AD
-            </Link>
+            <div className="shrink-0 text-xs font-black text-zinc-600">
+              Closes {formatStoreTime(data.store.closeTime)}
+            </div>
           </div>
-
-          <Link to="/menu" className="hidden">
-            <Search className="h-5 w-5 text-red-500" />
-            Search biryani, chicken, naan...
-          </Link>
 
           {banner && (
             <section
@@ -145,6 +156,7 @@ function Home() {
                       onClick={() => setBannerIndex(i)}
                       className={`h-1.5 rounded-full transition-all sm:h-2 ${i === bannerIndex ? "w-7 bg-white sm:w-9" : "w-1.5 bg-white/55 sm:w-2"}`}
                       aria-label={`Show banner ${i + 1}`}
+                      aria-current={i === bannerIndex}
                     />
                   ))}
                 </div>
@@ -164,12 +176,17 @@ function Home() {
 
         <section className="mt-4 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-6">
           <InfoCard icon={Clock3} label="Avg Time" value={`${data.store.averageDeliveryMin} min`} />
-          <InfoCard icon={Truck} label="Delivery" value={`Rs ${data.store.deliveryCharge}`} />
-          <InfoCard icon={Ticket} label="Free Above" value={`Rs ${data.store.freeDeliveryAbove}`} />
+          <InfoCard
+            icon={Truck}
+            label="Delivery"
+            value={data.store.deliveryCharge === 0 ? "FREE" : `₹${data.store.deliveryCharge}`}
+          />
+          <InfoCard icon={Ticket} label="Free Above" value={`₹${data.store.freeDeliveryAbove}`} />
+          <InfoCard icon={Clock3} label="Closes" value={formatStoreTime(data.store.closeTime)} />
         </section>
 
         <section className="mt-7">
-          <SectionTitle title="What's on your mind?" action="Full menu" to="/menu" />
+          <SectionTitle search={{}} title="What's on your mind?" action="Full menu" to="/menu" />
           <div className="-mx-3 mt-3 flex gap-3 overflow-x-auto px-3 pb-2 md:mx-0 md:px-0">
             {categories.map((category) => {
               const key = category.name.toLowerCase();
@@ -302,8 +319,9 @@ function PublishedReviews({ reviews }: { reviews: CustomerReview[] }) {
 
 function SocialPill({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
   return (
-    <span className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:bg-white/15">
-      <Icon className="h-4 w-4" aria-label={label} />
+    <span className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/10">
+      <Icon className="h-4 w-4" aria-hidden="true" />
+      <span className="sr-only">{label}</span>
     </span>
   );
 }
@@ -326,7 +344,6 @@ function ReviewTile({ review }: { review: CustomerReview }) {
           <span className="rounded-full bg-yellow-400/15 px-2.5 py-1 text-xs font-black text-yellow-200">
             {rating.toFixed(1)}
           </span>
-          <Share2 className="h-4 w-4 text-white/35 transition group-hover:text-white/70" />
         </div>
       </div>
       <p className="mt-3 flex gap-2 line-clamp-3 text-sm font-medium leading-6 text-white/72">
@@ -419,16 +436,24 @@ function FoodTile({ item, onAdd }: { item: MenuItem; onAdd: () => void }) {
       <div className="p-4">
         <div className="line-clamp-1 text-base font-black">{item.name}</div>
         <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-zinc-500">
-          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" /> {item.rating || 4.6}
-          <span className="h-1 w-1 rounded-full bg-zinc-300" />
-          <Clock3 className="h-3.5 w-3.5" /> {item.prepTimeMinutes || 20} min
+          {item.rating ? (
+            <>
+              <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" /> {item.rating}
+              <span className="h-1 w-1 rounded-full bg-zinc-300" />
+            </>
+          ) : null}
+          {item.prepTimeMinutes ? (
+            <>
+              <Clock3 className="h-3.5 w-3.5" /> {item.prepTimeMinutes} min
+            </>
+          ) : null}
         </div>
         <div className="mt-3 flex items-center justify-between gap-2">
           <div>
-            <div className="text-lg font-black">Rs {item.price}</div>
+            <div className="text-lg font-black">₹{item.price}</div>
             {item.basePrice && item.basePrice > item.price ? (
               <div className="text-xs font-semibold text-zinc-400 line-through">
-                Rs {item.basePrice}
+                ₹{item.basePrice}
               </div>
             ) : null}
           </div>
@@ -470,11 +495,13 @@ function SectionTitle({
   subtitle,
   action,
   to,
+  search = {},
 }: {
   title: string;
   subtitle?: string;
   action?: string;
   to?: string;
+  search?: Record<string, unknown>;
 }) {
   return (
     <div className="flex items-end justify-between gap-3">
@@ -485,6 +512,7 @@ function SectionTitle({
       {action && to && (
         <Link
           to={to}
+          search={search}
           className="shrink-0 rounded-full bg-red-50 px-3 py-1.5 text-sm font-black text-red-600"
         >
           {action}
@@ -497,12 +525,12 @@ function SectionTitle({
 function HomeSkeleton() {
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-4">
-      <div className="h-24 rounded-[28px] bg-white" />
+      <div className="h-24 animate-pulse rounded-[28px] bg-white" />
       <div className="h-[230px] animate-pulse rounded-[26px] bg-zinc-200 md:h-[390px]" />
       <div className="grid grid-cols-3 gap-3">
-        <div className="h-24 rounded-[22px] bg-white" />
-        <div className="h-24 rounded-[22px] bg-white" />
-        <div className="h-24 rounded-[22px] bg-white" />
+        <div className="h-24 animate-pulse rounded-[22px] bg-white" />
+        <div className="h-24 animate-pulse rounded-[22px] bg-white" />
+        <div className="h-24 animate-pulse rounded-[22px] bg-white" />
       </div>
     </div>
   );
@@ -539,6 +567,24 @@ function BannerMedia({ banner }: { banner: CustomerBanner }) {
 
 function isAdBanner(type?: string) {
   return Boolean(type && /ad|sponsor|brand/i.test(type));
+}
+
+function storeStatusLabel(status: string, statusMessage?: string | null) {
+  if (status === "online") return "Delivering now";
+  if (status === "busy") return statusMessage || "Busy right now";
+  return statusMessage || "Store paused";
+}
+
+function formatStoreTime(value?: string) {
+  if (!value) return "";
+  const match = /^(\d{1,2}):(\d{2})/.exec(value);
+  if (!match) return value;
+  let hour = Number(match[1]);
+  const minute = match[2];
+  const suffix = hour >= 12 ? "PM" : "AM";
+  if (hour === 0) hour = 12;
+  else if (hour > 12) hour -= 12;
+  return `${hour}:${minute} ${suffix}`;
 }
 
 function heroHeightClasses(banner: CustomerBanner) {
