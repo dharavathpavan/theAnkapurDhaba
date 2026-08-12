@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="120" fill="#C62828"/>
+  <circle cx="256" cy="256" r="172" fill="#F6B51E"/>
+  <circle cx="256" cy="256" r="128" fill="#FFF7ED"/>
+  <path d="M172 286c38 46 130 46 168 0 20-24 11-67-32-78-17-5-31-3-52-3s-35-2-52 3c-43 11-52 54-32 78z" fill="#C62828"/>
+  <path d="M196 184c11-38 40-62 60-84 20 22 49 46 60 84-38-18-82-18-120 0z" fill="#16A34A"/>
+  <text x="256" y="372" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="900" fill="#111827">AD</text>
+</svg>
