@@ -1,16 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Clock3,
-  Flame,
-  Leaf,
-  Minus,
-  Plus,
-  Search,
-  Star,
-  X,
-} from "lucide-react";
+import { Clock3, Flame, Leaf, Minus, Plus, Search, Star, X } from "lucide-react";
 import { getCustomerHome, getCustomerMenu } from "@/services/api";
 import { useCart } from "@/stores/cart";
 import type { MenuItem } from "@/data/menu";
@@ -46,7 +37,12 @@ const ORDER_MODES: Array<{ id: OrderMode; label: string }> = [
 
 function MenuPage() {
   const searchParams = Route.useSearch();
-  const { data: items = [], isLoading, isError, refetch } = useQuery({
+  const {
+    data: items = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["customer-menu"],
     queryFn: getCustomerMenu,
     staleTime: 30_000,
@@ -126,7 +122,9 @@ function MenuPage() {
           {categories.map((category) => {
             const categoryData = home?.categories.find((entry) => entry.name === category);
             const availability =
-              category === "All" ? { available: true, message: "", windowLabel: "" } : isCategoryAvailableNow(categoryData);
+              category === "All"
+                ? { available: true, message: "", windowLabel: "" }
+                : isCategoryAvailableNow(categoryData);
             return (
               <button
                 key={category}
@@ -284,7 +282,7 @@ function MenuCard({
         <div className="mt-3 flex items-center gap-2">
           <span className="text-lg font-black sm:text-xl">₹{item.price}</span>
           {item.basePrice && item.basePrice > item.price && (
-            <span className="text-sm text-zinc-400 line-through">₹{item.basePrice}</span>
+            <span className="text-sm text-zinc-500 line-through">₹{item.basePrice}</span>
           )}
           {item.discountPercent ? (
             <span className="text-xs font-black text-green-600">{item.discountPercent}% OFF</span>

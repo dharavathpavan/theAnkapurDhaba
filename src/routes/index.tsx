@@ -67,7 +67,10 @@ function Home() {
   const heroHeight = banner ? heroHeightClasses(banner) : "";
   const categories = useMemo(() => data?.categories.slice(0, 10) ?? [], [data]);
   const availableItems = useMemo(
-    () => (data?.recommended ?? []).filter((item) => isMenuItemAvailableNow(item, data?.categories ?? []).available),
+    () =>
+      (data?.recommended ?? []).filter(
+        (item) => isMenuItemAvailableNow(item, data?.categories ?? []).available,
+      ),
     [data?.recommended, data?.categories],
   );
 
@@ -125,7 +128,7 @@ function Home() {
               <span className="h-1 w-1 shrink-0 rounded-full bg-zinc-300" />
               <span
                 className={`truncate ${
-                  data.store.status === "online" ? "text-green-600" : "text-yellow-700"
+                  data.store.status === "online" ? "text-green-700" : "text-yellow-700"
                 }`}
               >
                 {storeStatusLabel(data.store.status, data.store.statusMessage)}
@@ -154,10 +157,18 @@ function Home() {
                     <button
                       key={item.id}
                       onClick={() => setBannerIndex(i)}
-                      className={`h-1.5 rounded-full transition-all sm:h-2 ${i === bannerIndex ? "w-7 bg-white sm:w-9" : "w-1.5 bg-white/55 sm:w-2"}`}
                       aria-label={`Show banner ${i + 1}`}
                       aria-current={i === bannerIndex}
-                    />
+                      className="grid h-6 w-6 place-items-center rounded-full"
+                    >
+                      <span
+                        className={`block rounded-full transition-all ${
+                          i === bannerIndex
+                            ? "h-1.5 w-7 bg-white sm:w-9"
+                            : "h-1.5 w-1.5 bg-white/70 sm:w-2"
+                        }`}
+                      />
+                    </button>
                   ))}
                 </div>
               </div>
@@ -205,7 +216,9 @@ function Home() {
                       {icon}
                     </div>
                     <div className="mt-2 line-clamp-1 text-sm font-black">{category.name}</div>
-                    <div className="mt-1 text-[10px] font-black uppercase text-zinc-400">Closed</div>
+                    <div className="mt-1 text-[10px] font-black uppercase text-zinc-400">
+                      Closed
+                    </div>
                   </div>
                 );
               }
@@ -216,7 +229,7 @@ function Home() {
                   search={{ category: category.name } as never}
                   className={className}
                 >
-                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-red-50 text-lg font-black text-red-600">
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-red-50 text-lg font-black text-red-700">
                     {icon}
                   </div>
                   <div className="mt-2 line-clamp-1 text-sm font-black">{category.name}</div>
@@ -327,7 +340,8 @@ function SocialPill({ icon: Icon, label }: { icon: React.ElementType; label: str
 }
 
 function ReviewTile({ review }: { review: CustomerReview }) {
-  const rating = ((review.foodRating || 0) + (review.deliveryRating || 0) + (review.packagingRating || 0)) / 3;
+  const rating =
+    ((review.foodRating || 0) + (review.deliveryRating || 0) + (review.packagingRating || 0)) / 3;
   return (
     <article className="group rounded-[24px] border border-white/10 bg-white/10 p-4 shadow-lg shadow-black/10 backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white/14">
       <div className="flex items-start justify-between gap-3">
@@ -374,7 +388,9 @@ function averageReviews(reviews: CustomerReview[]) {
   const avg =
     reviews.reduce(
       (sum, review) =>
-        sum + ((review.foodRating || 0) + (review.deliveryRating || 0) + (review.packagingRating || 0)) / 3,
+        sum +
+        ((review.foodRating || 0) + (review.deliveryRating || 0) + (review.packagingRating || 0)) /
+          3,
       0,
     ) / reviews.length;
   return avg.toFixed(1);
@@ -452,7 +468,7 @@ function FoodTile({ item, onAdd }: { item: MenuItem; onAdd: () => void }) {
           <div>
             <div className="text-lg font-black">₹{item.price}</div>
             {item.basePrice && item.basePrice > item.price ? (
-              <div className="text-xs font-semibold text-zinc-400 line-through">
+              <div className="text-xs font-semibold text-zinc-500 line-through">
                 ₹{item.basePrice}
               </div>
             ) : null}
@@ -513,7 +529,7 @@ function SectionTitle({
         <Link
           to={to}
           search={search}
-          className="shrink-0 rounded-full bg-red-50 px-3 py-1.5 text-sm font-black text-red-600"
+          className="shrink-0 rounded-full bg-red-50 px-3 py-1.5 text-sm font-black text-red-700"
         >
           {action}
         </Link>

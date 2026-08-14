@@ -606,7 +606,7 @@ function MobileFooter() {
   return (
     <footer className="border-t border-zinc-200 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+88px)] pt-8 text-center md:hidden">
       <div className="mx-auto max-w-md">
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-400">Legal</p>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Legal</p>
         <nav className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2">
           {LEGAL_LINKS.map((link) => (
             <Link
@@ -631,7 +631,7 @@ function MobileFooter() {
         >
           {RESTAURANT_EMAIL}
         </a>
-        <p className="mt-4 text-[11px] font-semibold text-zinc-400">
+        <p className="mt-4 text-[11px] font-semibold text-zinc-500">
           © {new Date().getFullYear()} The Ankapure Dhaba. All rights reserved.
         </p>
       </div>
@@ -672,7 +672,7 @@ function CustomerFooter() {
         <FooterLinkGroup title="Legal" links={LEGAL_LINKS} />
 
         <section>
-          <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/45">
+          <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/60">
             Restaurant Info
           </h2>
           <div className="mt-4 grid gap-3 text-sm text-white/70">
@@ -706,7 +706,7 @@ function CustomerFooter() {
         </section>
       </div>
 
-      <div className="mx-auto mt-8 flex max-w-7xl flex-col gap-3 border-t border-white/10 pt-5 text-xs font-semibold text-white/45 md:flex-row md:items-center md:justify-between">
+      <div className="mx-auto mt-8 flex max-w-7xl flex-col gap-3 border-t border-white/10 pt-5 text-xs font-semibold text-white/60 md:flex-row md:items-center md:justify-between">
         <p>© {new Date().getFullYear()} The Ankapure Dhaba. All rights reserved.</p>
       </div>
     </footer>
