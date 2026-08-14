@@ -737,7 +737,7 @@ function FooterLinkGroup({
 }) {
   return (
     <section>
-      <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/45">{title}</h2>
+      <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/60">{title}</h2>
       <nav className="mt-4 grid gap-3">
         {links.map((link) => (
           <Link

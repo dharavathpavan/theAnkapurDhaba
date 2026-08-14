@@ -349,7 +349,7 @@ function ReviewTile({ review }: { review: CustomerReview }) {
           <CustomerAvatar name={review.userName || "Happy customer"} />
           <div className="min-w-0">
             <div className="truncate text-sm font-black">{review.userName || "Happy customer"}</div>
-            <div className="mt-0.5 text-xs font-semibold text-white/45">
+            <div className="mt-0.5 text-xs font-semibold text-white/60">
               Order #{review.orderId || "The Ankapure Dhaba"}
             </div>
           </div>
