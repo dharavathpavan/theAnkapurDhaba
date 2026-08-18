@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   CreditCard,
+  Eye,
   FileSpreadsheet,
   FileText,
   MapPin,
@@ -44,10 +45,12 @@ import {
   listCustomerCoupons,
   listOrders,
   updateCatalogItem,
+  updateOrderStatus,
   validateCustomerCoupon,
   type CustomerCoupon,
   type Order,
   type OrderItem,
+  type OrderStatus,
   type OrderType,
   type PaymentMethod,
 } from "@/services/api";
@@ -62,6 +65,23 @@ export const Route = createFileRoute("/admin/billing")({
 type DraftItem = OrderItem & { category: string };
 type PrintKind = "bill" | "kot";
 const PAGE_SIZES = [10, 25, 50];
+
+const STATUS_STEPS: Array<{ key: OrderStatus; label: string }> = [
+  { key: "received", label: "Received" },
+  { key: "accepted", label: "Accepted" },
+  { key: "preparing", label: "Preparing" },
+  { key: "ready", label: "Ready" },
+  { key: "out_for_delivery", label: "Out" },
+  { key: "delivered", label: "Delivered" },
+];
+
+const NEXT: Partial<Record<OrderStatus, { next: OrderStatus; label: string }>> = {
+  received: { next: "accepted", label: "Accept" },
+  accepted: { next: "preparing", label: "Start cooking" },
+  preparing: { next: "ready", label: "Mark ready" },
+  ready: { next: "out_for_delivery", label: "Out for delivery" },
+  out_for_delivery: { next: "delivered", label: "Mark delivered" },
+};
 
 function AdminBilling() {
   useOrderRealtime();
@@ -95,6 +115,7 @@ function AdminBilling() {
   const [saving, setSaving] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [printKind, setPrintKind] = useState<PrintKind | null>(null);
+  const [viewOrderId, setViewOrderId] = useState<string | null>(null);
 
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<CustomerCoupon | null>(null);
@@ -272,6 +293,16 @@ function AdminBilling() {
       toast.error("Could not update pin");
     } finally {
       setPinUpdating(null);
+    }
+  }
+
+  async function advanceOrder(id: string, status: OrderStatus) {
+    try {
+      await updateOrderStatus(id, status);
+      await qc.invalidateQueries({ queryKey: ["orders"] });
+      toast.success(`Order ${id} → ${status.replace(/_/g, " ")}`);
+    } catch {
+      toast.error("Couldn't update order");
     }
   }
 
@@ -916,9 +947,16 @@ function AdminBilling() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {pageOrders.map((order) => (
-                      <tr key={order.id} className="hover:bg-background/40">
+                      <tr
+                        key={order.id}
+                        className="cursor-pointer hover:bg-background/40"
+                        onClick={() => setViewOrderId(order.id)}
+                      >
                         <td className="px-4 py-3">
-                          <div className="font-display text-primary">#{order.id}</div>
+                          <div className="flex items-center gap-1.5">
+                            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="font-display text-primary">#{order.id}</span>
+                          </div>
                           <div className="text-xs text-muted-foreground">
                             {new Date(order.createdAt).toLocaleString()}
                           </div>
@@ -942,7 +980,8 @@ function AdminBilling() {
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">
                             <button
-                              onClick={() => {
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 setCreatedOrder(order);
                                 setPrintKind("kot");
                               }}
@@ -951,7 +990,8 @@ function AdminBilling() {
                               KOT
                             </button>
                             <button
-                              onClick={() => {
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 setCreatedOrder(order);
                                 setPrintKind("bill");
                               }}
@@ -1024,6 +1064,17 @@ function AdminBilling() {
       {createdOrder && printKind && (
         <PrintDialog order={createdOrder} kind={printKind} onClose={() => setPrintKind(null)} />
       )}
+      {viewOrderId && (
+        <OrderHistoryDrawer
+          order={(orders.find((order) => order.id === viewOrderId) || null) as Order | null}
+          onClose={() => setViewOrderId(null)}
+          onAdvance={advanceOrder}
+          onPrint={(order, kind) => {
+            setCreatedOrder(order);
+            setPrintKind(kind);
+          }}
+        />
+      )}
     </div>
   );
 
@@ -1076,6 +1127,224 @@ function PrintDialog({
       <div className="print-area">
         <KotBill order={order} kind={kind} />
       </div>
+    </div>
+  );
+}
+
+function OrderHistoryDrawer({
+  order,
+  onClose,
+  onAdvance,
+  onPrint,
+}: {
+  order: Order;
+  onClose: () => void;
+  onAdvance: (id: string, status: OrderStatus) => void;
+  onPrint: (order: Order, kind: PrintKind) => void;
+}) {
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [onClose]);
+
+  if (!order) return null;
+
+  const action = NEXT[order.status];
+  const itemsLabel = order.items.reduce((sum, item) => sum + item.qty, 0);
+
+  return (
+    <div className="fixed inset-0 z-[90] flex justify-end">
+      <button
+        type="button"
+        aria-label="Close order details"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      />
+      <aside className="relative flex h-full w-full max-w-lg flex-col border-l border-border bg-background shadow-2xl">
+        <header className="border-b border-border px-5 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-display text-xl tracking-widest">#{order.id}</h2>
+                <StatusPill status={order.status} />
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {new Date(order.createdAt).toLocaleString()} · {order.customer.name} ·{" "}
+                <span className="uppercase">
+                  {order.tableNumber ? `Table ${order.tableNumber}` : order.type}
+                </span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close drawer"
+              className="grid h-9 w-9 place-items-center rounded-md border border-border bg-surface hover:bg-background"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => onPrint(order, "kot")}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5 font-display text-[11px] tracking-widest hover:border-primary/50"
+            >
+              <Printer className="h-3.5 w-3.5" /> KOT
+            </button>
+            <button
+              onClick={() => onPrint(order, "bill")}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5 font-display text-[11px] tracking-widest hover:border-primary/50"
+            >
+              <ReceiptText className="h-3.5 w-3.5" /> BILL
+            </button>
+            {order.status === "received" && (
+              <button
+                onClick={() => onAdvance(order.id, "cancelled")}
+                className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-red-500/30 px-3 py-1.5 font-display text-[11px] tracking-widest text-red-400 hover:bg-red-500/10"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> CANCEL
+              </button>
+            )}
+          </div>
+        </header>
+
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
+          <section className="space-y-3">
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+              Progress · {itemsLabel} items
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {STATUS_STEPS.map((step, index) => {
+                const currentIndex =
+                  order.status === "cancelled"
+                    ? -1
+                    : STATUS_STEPS.findIndex((entry) => entry.key === order.status);
+                const done =
+                  order.status === "delivered" || (currentIndex >= index && currentIndex !== -1);
+                return (
+                  <span
+                    key={step.key}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                      done ? "bg-veg/10 text-veg" : "bg-surface text-muted-foreground"
+                    } ${order.status === step.key ? "ring-1 ring-primary/40" : ""}`}
+                  >
+                    {step.label}
+                  </span>
+                );
+              })}
+            </div>
+            {action ? (
+              <button
+                onClick={() => onAdvance(order.id, action.next)}
+                className="min-h-10 w-full rounded-md bg-primary font-display text-sm tracking-widest text-primary-foreground hover:bg-primary-glow"
+              >
+                {action.label.toUpperCase()}
+              </button>
+            ) : (
+              <div className="rounded-md bg-veg/10 px-4 py-3 text-center font-display text-sm tracking-widest text-veg">
+                {order.status === "cancelled"
+                  ? "ORDER CANCELLED"
+                  : "Order completed — no further action"}
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+              Items
+            </h3>
+            <div className="divide-y divide-border rounded-lg border border-border bg-surface">
+              {order.items.map((item, index) => (
+                <div
+                  key={`${item.id}-${index}`}
+                  className="flex items-start justify-between gap-3 px-4 py-3 text-sm"
+                >
+                  <div className="min-w-0">
+                    <span className="font-semibold">
+                      <span className="text-primary">{item.qty}x</span> {item.name}
+                    </span>
+                    {item.addons?.length ? (
+                      <div className="text-xs text-muted-foreground">
+                        {item.addons.map((addon) => addon.name).join(", ")}
+                      </div>
+                    ) : null}
+                    {item.instructions ? (
+                      <p className="mt-1 text-xs italic text-muted-foreground">
+                        {item.instructions}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="shrink-0 font-semibold">Rs {item.qty * item.price}</div>
+                </div>
+              ))}
+              {order.items.length === 0 && (
+                <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  No items on this order.
+                </div>
+              )}
+            </div>
+            <div className="space-y-1 rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+              <BillLine label="Subtotal" value={`Rs ${order.subtotal}`} />
+              <BillLine label="Tax" value={`Rs ${order.tax}`} />
+              <BillLine label="Delivery" value={`Rs ${order.deliveryFee}`} />
+              <div className="mt-1 flex justify-between border-t border-border pt-2 font-display tracking-widest">
+                <span className="font-bold">TOTAL</span>
+                <span className="font-bold text-veg">Rs {order.total}</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+              Customer
+            </h3>
+            <div className="space-y-1 rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                {order.customer.name}
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                {order.customer.phone}
+              </div>
+              {order.customer.address && (
+                <div className="flex items-start gap-2">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span>{order.customer.address}</span>
+                </div>
+              )}
+              {order.customer.notes && (
+                <p className="pt-1 text-xs italic text-muted-foreground">{order.customer.notes}</p>
+              )}
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+              Payment
+            </h3>
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+              <span className="font-black uppercase">{order.paymentMethod}</span>
+              <span
+                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-widest ${
+                  order.paymentStatus === "paid" || order.paymentMethod === "cod"
+                    ? "bg-veg/10 text-veg"
+                    : "bg-red-500/10 text-red-400"
+                }`}
+              >
+                {order.paymentStatus}
+              </span>
+            </div>
+          </section>
+        </div>
+      </aside>
     </div>
   );
 }
