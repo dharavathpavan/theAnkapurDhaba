@@ -1,7 +1,7 @@
 import { createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Eye, EyeOff, KeyRound, LogIn, MessageSquareText, UtensilsCrossed } from "lucide-react";
+import { Eye, EyeOff, KeyRound, LogIn, MessageSquareText } from "lucide-react";
 import { resetFirebaseOtp, sendFirebasePhoneOtp, verifyFirebasePhoneOtp } from "@/lib/firebase";
 import { useAuth } from "@/stores/auth";
 import type { UserRole, AuthUser } from "@/stores/auth";
@@ -157,18 +157,28 @@ function LoginPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-8">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-sm">
-        <div className="mb-7 flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
-            <UtensilsCrossed className="h-7 w-7 text-primary" />
+        <div className="mb-7 flex flex-col items-center gap-4">
+          <div className="group relative">
+            <div className="absolute -inset-2 rounded-[28px] bg-primary/25 blur-2xl transition group-hover:bg-primary/40" />
+            <img
+              src="/the-ankapure-dhaba-logo.png"
+              alt="The Ankapure Dhaba logo"
+              className="relative h-24 w-24 rounded-[24px] object-cover shadow-2xl ring-1 ring-primary/30"
+            />
           </div>
           <div className="text-center">
             <h1 className="font-display text-3xl tracking-widest text-foreground">THE ANKAPURE DHABA</h1>
-            <p className="mt-1 text-xs tracking-widest text-muted-foreground">SIGN IN TO YOUR ACCOUNT</p>
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <span className="h-px w-8 bg-primary/40" />
+              <p className="text-xs tracking-widest text-muted-foreground">SIGN IN TO YOUR ACCOUNT</p>
+              <span className="h-px w-8 bg-primary/40" />
+            </div>
           </div>
         </div>
 
