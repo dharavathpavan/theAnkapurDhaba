@@ -82,6 +82,7 @@ function LoginPage() {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: authHeaders(),
+        credentials: "include",
         body: JSON.stringify({ phone, password }),
       });
       const data = await res.json().catch(() => ({}));
@@ -132,6 +133,7 @@ function LoginPage() {
       const res = await fetch(`${API_BASE}/auth/firebase-login`, {
         method: "POST",
         headers: authHeaders(),
+        credentials: "include",
         body: JSON.stringify({ idToken }),
       });
       const data = await res.json().catch(() => ({}));

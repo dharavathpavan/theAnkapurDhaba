@@ -40,7 +40,11 @@ function authHeaders(): Record<string, string> {
 
 async function apiFetch(url: string, init?: ApiFetchInit): Promise<Response> {
   const { skipAuthRedirect, headers, ...fetchInit } = init ?? {};
-  const res = await fetch(url, { ...fetchInit, headers: { ...authHeaders(), ...(headers ?? {}) } });
+  const res = await fetch(url, {
+    ...fetchInit,
+    credentials: "include",
+    headers: { ...authHeaders(), ...(headers ?? {}) },
+  });
   // Auto-logout on 401/403
   if (!skipAuthRedirect && (res.status === 401 || res.status === 403)) {
     useAuth.getState().logout();
@@ -1317,6 +1321,7 @@ export async function uploadSupportFile(
   const res = await fetch(`${API_BASE}/customer/support/uploads`, {
     method: "POST",
     headers,
+    credentials: "include",
     body: form,
   });
   const json = await res.json().catch(() => ({}));
@@ -1807,6 +1812,7 @@ export async function uploadCatalogFile(
   const res = await fetch(`${API_BASE}/catalog/uploads`, {
     method: "POST",
     headers,
+    credentials: "include",
     body: form,
   });
   if (!res.ok) throw new Error("Failed to upload file");
@@ -1822,6 +1828,7 @@ export async function importCatalogExcel(
   const res = await fetch(`${API_BASE}/catalog/import/excel`, {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    credentials: "include",
     body: form,
   });
   if (!res.ok) throw new Error("Failed to import Excel");
@@ -1835,6 +1842,7 @@ export function catalogExportUrl(kind: "excel" | "catalog") {
 export async function downloadCatalogExport(kind: "excel" | "catalog"): Promise<void> {
   const token = useAuth.getState().token;
   const res = await fetch(catalogExportUrl(kind), {
+    credentials: "include",
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   if (!res.ok) throw new Error("Failed to download catalog");

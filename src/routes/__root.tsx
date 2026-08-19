@@ -20,6 +20,7 @@ import { getFirebaseAnalytics } from "../lib/firebase";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CustomerShell } from "@/components/site/CustomerShell";
 import { Toaster } from "@/components/ui/sonner";
+import { useAuth } from "@/stores/auth";
 
 function NotFoundComponent() {
   return (
@@ -179,6 +180,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { ready, hydrate } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isStaff =
     pathname.startsWith("/admin") ||
@@ -192,7 +194,8 @@ function RootComponent() {
   useEffect(() => {
     installChunkRecovery();
     void getFirebaseAnalytics();
-  }, []);
+    void hydrate();
+  }, [hydrate]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -221,7 +224,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {isStaff ? (
+      {!ready ? (
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="font-display text-sm tracking-widest text-muted-foreground">Loading…</p>
+          </div>
+        </div>
+      ) : isStaff ? (
         <div className="flex min-h-screen flex-col">
           <main className="flex-1">
             <Outlet />
