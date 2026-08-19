@@ -18,6 +18,7 @@ import {
 } from "../lib/chunk-recovery";
 import { getFirebaseAnalytics } from "../lib/firebase";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CustomerShell } from "@/components/site/CustomerShell";
 import { Toaster } from "@/components/ui/sonner";
 import { useAuth } from "@/stores/auth";
@@ -225,12 +226,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {!ready ? (
-        <div className="flex min-h-screen items-center justify-center bg-background px-4">
-          <div className="text-center">
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <p className="font-display text-sm tracking-widest text-muted-foreground">Loading…</p>
-          </div>
-        </div>
+        pathname === "/login" || pathname === "/signup" ? (
+          <LoginSkeleton />
+        ) : (
+          <AppSkeleton />
+        )
       ) : isStaff ? (
         <div className="flex min-h-screen flex-col">
           <main className="flex-1">
@@ -264,4 +264,81 @@ function isCustomerAppPath(pathname: string) {
     "/track",
     "/t",
   ].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function LoginSkeleton() {
+  return (
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-8">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+      </div>
+      <div className="relative w-full max-w-sm">
+        <div className="mb-7 flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="absolute -inset-2 rounded-[28px] bg-primary/25 blur-2xl" />
+            <Skeleton className="relative h-24 w-24 rounded-[24px]" />
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <Skeleton className="h-8 w-60" />
+            <Skeleton className="h-3 w-44" />
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-surface/85 p-6 shadow-2xl backdrop-blur-sm sm:p-7">
+          <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl bg-muted/50 p-1">
+            <Skeleton className="h-9 rounded-lg" />
+            <Skeleton className="h-9 rounded-lg" />
+          </div>
+          <div className="space-y-5">
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-11 w-full rounded-lg" />
+            </div>
+            <Skeleton className="h-11 w-full rounded-lg" />
+            <Skeleton className="h-12 w-full rounded-lg" />
+          </div>
+        </div>
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <Skeleton className="h-3 w-64" />
+          <Skeleton className="h-3 w-52" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AppSkeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+      </div>
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/60 bg-background/85 px-4 backdrop-blur-sm sm:px-6">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="h-12 w-12 rounded-[18px]" />
+          <div className="hidden flex-col gap-2 sm:flex">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <Skeleton className="h-9 w-24 rounded-lg" />
+        </div>
+      </header>
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+        <Skeleton className="h-8 w-56" />
+        <div className="mt-5 flex gap-4 overflow-hidden pb-4">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-40 min-w-56 flex-1 rounded-2xl" />
+          ))}
+        </div>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-48 rounded-2xl" />
+          ))}
+        </div>
+      </main>
+    </div>
+  );
 }
